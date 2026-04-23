@@ -25,6 +25,13 @@ require_once BASE_PATH . '/app/models/ProfileModel.php';
 require_once BASE_PATH . '/app/models/BlogModel.php';
 require_once BASE_PATH . '/app/models/ContactModel.php';
 
+require_once BASE_PATH . '/app/models/AdminTaiKhoanModel.php';
+require_once BASE_PATH . '/app/models/AdminDonHangModel.php';
+require_once BASE_PATH . '/app/models/AdminSanPhamModel.php';
+require_once BASE_PATH . '/app/models/AdminBlogModel.php';
+require_once BASE_PATH . '/app/models/AdminBrandModel.php';
+require_once BASE_PATH . '/app/models/AdminRevenueModel.php';
+
 // 3. Nạp Controllers
 require_once BASE_PATH . '/app/controllers/SanPhamController.php';
 require_once BASE_PATH . '/app/controllers/TaiKhoanController.php';
@@ -36,12 +43,21 @@ require_once BASE_PATH . '/app/controllers/BlogController.php';
 require_once BASE_PATH . '/app/controllers/ContactController.php';
 require_once BASE_PATH . '/app/controllers/ErrorController.php';
 
+require_once BASE_PATH . '/app/controllers/DashboardController.php';
+require_once BASE_PATH . '/app/controllers/AdminTaiKhoanController.php';
+require_once BASE_PATH . '/app/controllers/AdminDonHangController.php';
+require_once BASE_PATH . '/app/controllers/AdminSanPhamController.php';
+require_once BASE_PATH . '/app/controllers/AdminBlogController.php';
+require_once BASE_PATH . '/app/controllers/AdminBrandController.php';
+require_once BASE_PATH . '/app/controllers/AdminRevenueController.php';
+
 // Lấy thông tin từ URL
 $controllerName = $_GET['controller'] ?? 'home'; 
 $actionName = $_GET['action'] ?? 'index';
 
 // Điều phối đến Controller tương ứng
 switch ($controllerName) {
+    // --- PHẦN CLIENT (Tài khoản) ---
     case 'taikhoan':
         $authController = new TaiKhoanController($pdo);
         switch ($actionName) {
@@ -134,5 +150,89 @@ switch ($controllerName) {
         } else {
             $homeController->index();
         }
+        break;
+
+        // --- PHẦN ADMIN ---
+        case 'dashboard':
+            $dashboardCtrl = new DashboardController($pdo); // Truyền biến $pdo vào đây
+            $dashboardCtrl->index();
+        break;
+
+        case 'admintaikhoan':
+        $adminAccCtrl = new AdminTaiKhoanController($pdo);
+        switch ($actionName) {
+            case 'detail':
+                $adminAccCtrl->detail();
+                break;
+            case 'toggleActive':
+                $adminAccCtrl->toggleActive();
+                break;
+            case 'changePassword':
+                $adminAccCtrl->changePassword();
+                break;
+            case 'updateRole':
+                $adminAccCtrl->updateRole();
+                break;
+            default:
+                $adminAccCtrl->index();
+                break;
+        }
+        break;
+
+        case 'admindonhang':
+            $adminOrderCtrl = new AdminDonHangController($pdo);
+            switch ($actionName) {
+                case 'detail': $adminOrderCtrl->detail(); break;
+                case 'updateStatus': $adminOrderCtrl->updateStatus(); break;
+                case 'assignShipper': $adminOrderCtrl->assignShipper(); break;
+                default: $adminOrderCtrl->index(); break;
+            }
+        break;
+
+        case 'adminsanpham':
+            $adminProductCtrl = new AdminSanPhamController($pdo);
+            switch ($actionName) {
+                case 'toggleFeatured': $adminProductCtrl->toggleFeatured(); break;
+                case 'edit': $adminProductCtrl->edit(); break; // Thêm dòng này để mở Form Thêm/Sửa
+                case 'save': $adminProductCtrl->save(); break; // Xử lý Lưu dữ liệu từ Form
+                case 'delete': $adminProductCtrl->delete(); break;
+                default: $adminProductCtrl->index(); break;
+            }
+        break;
+
+        case 'adminblog':
+            $adminBlogCtrl = new AdminBlogController($pdo);
+            switch ($actionName) {
+                case 'activate': $adminBlogCtrl->activate(); break;
+                case 'edit': $adminBlogCtrl->edit(); break; 
+                case 'save': $adminBlogCtrl->save(); break;
+                case 'delete': $adminBlogCtrl->delete(); break;
+                default: $adminBlogCtrl->index(); break;
+            }
+        break;
+
+        case 'adminbrand':
+            $brandCtrl = new AdminBrandController($pdo);
+            switch ($actionName) {
+                case 'save': $brandCtrl->save(); break;
+                case 'delete': $brandCtrl->delete(); break;
+                default: $brandCtrl->index(); break;
+            }
+        break;
+
+        case 'admintype':
+            require_once BASE_PATH . '/app/controllers/AdminTypeController.php';
+            $typeCtrl = new AdminTypeController($pdo);
+            switch ($actionName) {
+                case 'save': $typeCtrl->save(); break;
+                case 'delete': $typeCtrl->delete(); break;
+                default: $typeCtrl->index(); break;
+            }
+        break;
+
+        case 'adminrevenue':
+            require_once BASE_PATH . '/app/controllers/AdminRevenueController.php';
+            $revenueCtrl = new AdminRevenueController($pdo);
+            $revenueCtrl->index(); 
         break;
 }

@@ -25,39 +25,40 @@ class TaiKhoanController {
      * Xử lý logic đăng nhập khi người dùng nhấn nút
      */
     public function loginPost() {
-        $username = trim($_POST['Username'] ?? '');
-        $password = $_POST['Password'] ?? '';
-        $errors = [];
+    $username = trim($_POST['Username'] ?? '');
+    $password = $_POST['Password'] ?? '';
+    $errors = [];
 
-        if (empty($username) || empty($password)) {
-            $errors['Global'][] = "Vui lòng nhập đầy đủ thông tin.";
-        } else {
-            $account = $this->accountModel->getAccountByUsername($username);
+    if (empty($username) || empty($password)) {
+        $errors['Global'][] = "Vui lòng nhập đầy đủ thông tin.";
+    } else {
+        $account = $this->accountModel->getAccountByUsername($username);
+        
+        if ($account && HashPassword::verify($password, $account['MatKhauHash'])) {
+            $this->accountModel->updateLastLogin($account['TaiKhoanId']);
             
-            // Dùng HashPassword đã tạo để kiểm tra Bcrypt
-            if ($account && HashPassword::verify($password, $account['MatKhauHash'])) {
-                // Cập nhật thời gian đăng nhập
-                $this->accountModel->updateLastLogin($account['TaiKhoanId']);
-                
-                // Lưu session
-                $_SESSION['LoginInformation'] = $account;
-                
-                // Chuyển hướng theo vai trò
-                $maVaiTro = strtoupper(trim($account['MaVaiTro'] ?? ''));
-                if (in_array($maVaiTro, ['ADMIN', 'STAFF', 'SHIPPER'])) {
-                    header("Location: index.php?area=admin&controller=dashboard");
-                } else {
-                    header("Location: index.php");
-                }
-                $_SESSION['success'] = "Chào mừng " . $account['HoTen'] . " đã quay trở lại!";
+            // Lưu session
+            $_SESSION['LoginInformation'] = $account;
+            $_SESSION['success'] = "Chào mừng " . $account['HoTen'] . " đã quay trở lại!";
+            
+            // LẤY VAI TRÒ ĐỂ CHUYỂN HƯỚNG
+            $maVaiTro = strtoupper(trim($account['MaVaiTro'] ?? ''));
+            
+            if (in_array($maVaiTro, ['ADMIN', 'STAFF', 'SHIPPER'])) {
+                // Nếu là Admin/Nhân viên thì bay thẳng vào trang quản trị
+                header("Location: admin/index.php?controller=dashboard");
+                exit; // QUAN TRỌNG: Phải có exit để không chạy code bên dưới
+            } else {
+                // Nếu là khách hàng bình thường
                 header("Location: index.php");
                 exit;
-            } else {
-                $errors['Global'][] = "Sai tài khoản hoặc mật khẩu.";
             }
+        } else {
+            $errors['Global'][] = "Sai tài khoản hoặc mật khẩu.";
         }
-        $this->renderLogin($errors);
     }
+    $this->renderLogin($errors);
+}
 
     /**
      * Hiển thị trang đăng ký
