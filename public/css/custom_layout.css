@@ -1,0 +1,108 @@
+/* Nội dung file custom_layout.css */
+:root {
+  --gold: #c5a059;
+  --dark: #121212;
+  --light: #f8f9fa;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  color: var(--dark);
+  background-color: #fff;
+}
+
+.topbar-eyewear {
+  background: var(--dark);
+  color: #fff;
+  padding: 8px 0;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.main-header {
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  padding: 15px 0;
+}
+
+.brand-logo {
+  text-decoration: none !important;
+}
+.brand-name {
+  font-family: "Playfair Display", serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--dark);
+  line-height: 1;
+}
+.brand-sub {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: var(--gold);
+}
+
+.nav-link {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 13px;
+  color: var(--dark) !important;
+  margin: 0 10px;
+  transition: 0.3s;
+}
+.nav-link:hover {
+  color: var(--gold) !important;
+}
+
+.action-btn {
+  font-size: 20px;
+  color: var(--dark);
+  margin-left: 20px;
+  position: relative;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.account-chip {
+  background: var(--light);
+  padding: 6px 15px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dark) !important;
+  text-decoration: none !important;
+  border: 1px solid #ddd;
+}
+
+#searchPanel {
+  display: none;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 100%;
+  background: #fff;
+  padding: 20px;
+  z-index: 1000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+footer {
+  background: var(--dark);
+  color: #fff;
+  padding: 60px 0 30px;
+  margin-top: 50px;
+}
+footer h6 {
+  color: var(--gold);
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+footer a {
+  color: #aaa;
+  text-decoration: none !important;
+  transition: 0.3s;
+}
+footer a:hover {
+  color: #fff;
+}

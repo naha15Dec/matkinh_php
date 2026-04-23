@@ -1,0 +1,180 @@
+/* --- PREMIUM CHECKOUT STYLING --- */
+
+.checkout-page {
+  background-color: #f8f9fa !important;
+}
+
+/* Các khung nhập liệu */
+.checkout-page .card {
+  border-radius: 16px !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
+}
+
+.checkout-page label {
+  color: #555;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.checkout-page .form-control {
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  padding: 12px 15px;
+  height: auto;
+  transition: all 0.3s;
+}
+
+.checkout-page .form-control:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.1);
+}
+
+/* Phương thức thanh toán */
+.payment-methods .form-check {
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid #eee !important;
+  background: #fff;
+}
+
+.payment-methods .form-check:hover {
+  border-color: var(--gold) !important;
+  background: #fffcf5;
+}
+
+.payment-methods input[type="radio"]:checked + label {
+  color: var(--gold);
+}
+
+/* Order Summary Box (Cột phải) */
+.order-items::-webkit-scrollbar {
+  width: 5px;
+}
+.order-items::-webkit-scrollbar-thumb {
+  background: #eee;
+  border-radius: 10px;
+}
+
+.order-items h6 {
+  font-size: 14px;
+  color: var(--dark);
+}
+
+/* Tổng kết giá tiền */
+.checkout-page hr {
+  border-top: 1px dashed #ddd;
+}
+
+.h4.text-primary {
+  color: var(
+    --gold
+  ) !important; /* Đổi màu xanh mặc định sang màu Gold thương hiệu */
+  font-weight: 800 !important;
+}
+
+/* Nút bấm thanh toán */
+.btn-dark.btn-block {
+  background: var(--dark);
+  border: none;
+  letter-spacing: 2px;
+  font-size: 14px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+
+.btn-dark.btn-block:hover {
+  background: var(--gold);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 25px rgba(197, 160, 89, 0.2);
+}
+
+/* --- ORDER SUCCESS PREMIER STYLE --- */
+
+.success-section {
+  background-color: #fcfcfc !important;
+}
+
+.success-hero-card {
+  background: #fff;
+  padding: 50px;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f0f0f0;
+}
+
+/* Hiệu ứng Icon Success */
+.icon-wrap i {
+  color: var(
+    --gold
+  ) !important; /* Sử dụng màu vàng thương hiệu thay vì xanh lá mặc định */
+  display: inline-block;
+  animation: scaleUp 0.5s ease-out;
+}
+
+@keyframes scaleUp {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-hero-card h2 {
+  font-size: 36px;
+  margin-bottom: 15px;
+  letter-spacing: -1px;
+}
+
+/* Style cho các Card thông tin */
+.success-section .card {
+  border-radius: 15px !important;
+  transition: 0.3s;
+}
+
+.success-section .card h4 {
+  font-family: "Playfair Display", serif;
+  font-size: 20px;
+  color: var(--dark);
+  border-bottom: 2px solid var(--gold) !important;
+  width: fit-content;
+}
+
+.success-section p {
+  font-size: 15px;
+  margin-bottom: 10px;
+  color: #555;
+}
+
+.success-section p strong {
+  color: var(--dark);
+}
+
+/* Nút hành động */
+.success-actions .btn-dark {
+  background: var(--dark);
+  border: none;
+  letter-spacing: 1px;
+  font-weight: 700;
+  transition: 0.3s;
+}
+
+.success-actions .btn-dark:hover {
+  background: var(--gold);
+  transform: translateY(-3px);
+}
+
+.success-actions .btn-outline-dark {
+  border: 2px solid var(--dark);
+  font-weight: 700;
+  transition: 0.3s;
+}
+
+.success-actions .btn-outline-dark:hover {
+  background: var(--dark);
+  color: #fff;
+}

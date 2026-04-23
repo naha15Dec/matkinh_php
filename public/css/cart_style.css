@@ -1,0 +1,135 @@
+/* --- MODERN SHOPPING CART STYLE --- */
+
+.cart-page-title {
+  font-family: "Playfair Display", serif;
+  font-size: 32px;
+  margin-bottom: 40px;
+  font-weight: 700;
+}
+
+/* Table Styling */
+.cart-table {
+  border-collapse: separate;
+  border-spacing: 0 15px; /* Tạo khoảng cách giữa các dòng */
+}
+
+.cart-table thead th {
+  border: none;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #888;
+  padding: 20px;
+}
+
+.cart-item-row {
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  transition: 0.3s;
+}
+
+.cart-item-row:hover {
+  transform: scale(1.01);
+}
+
+.cart-item-row td {
+  border: none;
+  padding: 25px 20px;
+  vertical-align: middle;
+}
+
+.cart-item-row td:first-child {
+  border-radius: 12px 0 0 12px;
+}
+.cart-item-row td:last-child {
+  border-radius: 0 12px 12px 0;
+}
+
+/* Product Info in Cart */
+.cart-product-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: #f9f9f9;
+  border-radius: 8px;
+  margin-right: 15px;
+}
+
+.cart-product-name {
+  font-weight: 600;
+  color: var(--dark);
+  font-size: 16px;
+  text-decoration: none;
+}
+
+/* Quantity Input */
+.quantity-control {
+  display: flex;
+  align-items: center;
+  background: #f1f1f1;
+  border-radius: 30px;
+  padding: 5px 15px;
+  width: fit-content;
+}
+
+.quantity-control input {
+  background: transparent;
+  border: none;
+  text-align: center;
+  width: 40px;
+  font-weight: 700;
+}
+
+.quantity-control button {
+  background: none;
+  border: none;
+  color: var(--dark);
+  font-weight: bold;
+}
+
+/* Cart Summary Box */
+.cart-summary {
+  background: var(--dark);
+  color: #fff;
+  padding: 40px;
+  border-radius: 20px;
+  margin-top: 30px;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  opacity: 0.8;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 20px;
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.btn-checkout {
+  background: var(--gold);
+  color: var(--dark);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 50px;
+  padding: 15px 40px;
+  border: none;
+  width: 100%;
+  margin-top: 25px;
+  transition: 0.3s;
+}
+
+.btn-checkout:hover {
+  background: #fff;
+  transform: translateY(-3px);
+}

@@ -1,0 +1,94 @@
+/* --- PREMIUM CONTACT PAGE STYLING --- */
+
+.contact-page-area {
+  background-color: #fcfcfc !important;
+}
+
+.contact-hero h2 {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  font-size: 42px;
+  letter-spacing: -1px;
+}
+
+/* Khối thông tin bên trái */
+.contact-info-card {
+  background: #fff;
+  padding: 50px;
+  border-radius: 20px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.03);
+  height: 100%;
+}
+
+.contact-info-card h3 {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 35px;
+  position: relative;
+}
+
+.contact-info-card h3::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background: var(--gold);
+}
+
+.info-item i {
+  font-size: 20px;
+  color: var(--gold);
+  width: 40px;
+  height: 40px;
+  background: rgba(197, 160, 89, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.3s;
+}
+
+.info-item:hover i {
+  background: var(--gold);
+  color: #fff;
+}
+
+.info-item strong {
+  font-size: 16px;
+  color: var(--dark);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Khối bản đồ bên phải */
+.contact-map-wrap {
+  height: 100%;
+  min-height: 500px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
+  border: 5px solid #fff;
+}
+
+/* Social Icons */
+.social-links-contact a {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  transition: 0.3s;
+  text-decoration: none !important;
+}
+
+.social-links-contact a:hover {
+  transform: translateY(-5px);
+  opacity: 0.9;
+}

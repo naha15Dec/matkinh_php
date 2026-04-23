@@ -1,0 +1,140 @@
+/* --- BLOG EDITORIAL STYLE --- */
+
+.blog-layout {
+  display: flex;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+/* Search Box */
+.search-box-blog {
+  background: #fff;
+  padding: 30px;
+  border-radius: 15px;
+  border: 1px solid #f0f0f0;
+  margin-bottom: 40px;
+}
+
+.search-box-blog input {
+  height: 50px;
+  border: 1px solid #eee;
+  padding: 0 20px;
+  border-radius: 30px !important;
+  transition: 0.3s;
+}
+
+.search-box-blog input:focus {
+  border-color: var(--gold);
+  outline: none;
+}
+
+.search-box-blog button {
+  background: var(--dark) !important;
+  border-radius: 30px !important;
+  padding: 0 30px !important;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.search-box-blog button:hover {
+  background: var(--gold) !important;
+}
+
+/* Post Cards */
+.post-card {
+  display: flex;
+  gap: 30px;
+  background: #fff;
+  padding: 25px;
+  margin-bottom: 35px;
+  border-radius: 16px;
+  border: 1px solid #f5f5f5;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.post-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+}
+
+.post-img img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.post-info h3 a {
+  font-family: "Playfair Display", serif;
+  font-size: 24px;
+  color: var(--dark);
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.post-info h3 a:hover {
+  color: var(--gold);
+}
+
+.btn-readmore {
+  color: var(--gold);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.btn-readmore i {
+  margin-left: 8px;
+  transition: 0.3s;
+}
+
+.btn-readmore:hover i {
+  transform: translateX(5px);
+}
+
+/* Sidebar Sticky */
+.blog-sidebar h3 {
+  font-family: "Playfair Display", serif;
+  font-size: 20px;
+  border-left: 3px solid var(--gold);
+  padding-left: 15px;
+}
+
+.popular-item {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.popular-item:hover {
+  background: var(--light);
+}
+
+/* Pagination Circular */
+.pagination a {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #eee;
+  color: var(--dark);
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.pagination a.active {
+  background: var(--dark);
+  color: #fff;
+  border-color: var(--dark);
+}

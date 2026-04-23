@@ -1,0 +1,150 @@
+/* --- PREMIUM AUTHENTICATION STYLING --- */
+
+.auth-section {
+  background-color: #fcfcfc;
+}
+
+/* Khung vỏ đăng nhập */
+.auth-shell {
+  border: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Ảnh nền bên trái */
+.auth-shell img {
+  filter: brightness(0.9);
+  transition: transform 10s ease;
+}
+
+.auth-shell:hover img {
+  transform: scale(1.1);
+}
+
+/* Form đăng nhập */
+.auth-form-head h2 {
+  font-family: "Playfair Display", serif;
+  font-size: 32px;
+  letter-spacing: -0.5px;
+}
+
+.auth-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--dark);
+  margin-bottom: 8px;
+}
+
+.auth-input {
+  height: 50px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  padding: 10px 20px;
+  transition: all 0.3s;
+  background-color: #fafafa;
+}
+
+.auth-input:focus {
+  background-color: #fff;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px rgba(197, 160, 89, 0.1);
+  outline: none;
+}
+
+/* Nút bấm */
+.btn-dark.btn-block {
+  background: var(--dark);
+  border: none;
+  letter-spacing: 2px;
+  font-size: 14px;
+  border-radius: 50px !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-dark.btn-block:hover {
+  background: var(--gold);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(197, 160, 89, 0.2);
+}
+
+/* Modal Quên mật khẩu */
+.modal-content {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.modal-header {
+  border-bottom: none;
+  padding: 30px 30px 10px;
+}
+
+.modal-body h4 {
+  color: var(--gold) !important;
+  font-weight: 800;
+}
+
+/* Link màu vàng gold */
+.text-primary {
+  color: var(--gold) !important;
+  text-decoration: none;
+}
+
+.text-primary:hover {
+  color: var(--dark) !important;
+}
+
+/* --- REGISTER SPECIFIC STYLING --- */
+
+/* Khối bên trái màu tối (Dark Sidebar) */
+.auth-shell .bg-dark {
+  background-color: var(--dark) !important;
+  background-image: url("https://www.transparenttextures.com/patterns/asfalt-dark.png"); /* Hiệu ứng texture nhẹ */
+}
+
+.auth-shell .bg-dark h2 {
+  font-family: "Playfair Display", serif;
+  font-weight: 700;
+}
+
+.auth-shell .bg-dark p {
+  line-height: 1.8;
+}
+
+/* Nút outline trắng */
+.btn-outline-light {
+  border: 2px solid #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 13px;
+  transition: all 0.3s;
+}
+
+.btn-outline-light:hover {
+  background: #fff;
+  color: var(--dark);
+  transform: translateY(-2px);
+}
+
+/* Tối ưu hóa layout Form Đăng ký */
+#registerForm label {
+  color: #444;
+  margin-bottom: 5px;
+}
+
+/* Hiển thị lỗi đỏ tinh tế hơn */
+.text-danger {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Custom Select */
+select.form-control.auth-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+}

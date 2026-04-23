@@ -1,0 +1,130 @@
+/* --- PRODUCT PAGE STYLING --- */
+
+/* Breadcrumb sang trọng */
+.optical-breadcrumb {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+    url("https://images.unsplash.com/photo-1574258495973-f010dfbb5371?q=80&w=2070&auto=format&fit=crop");
+  background-size: cover;
+  background-position: center;
+  padding: 80px 0;
+  color: #fff;
+  text-align: center;
+}
+
+.optical-breadcrumb__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 12px;
+  color: var(--gold);
+  display: block;
+  margin-bottom: 10px;
+}
+
+.optical-breadcrumb h1 {
+  font-family: "Playfair Display", serif;
+  font-size: 42px;
+  font-weight: 700;
+}
+
+.optical-breadcrumb nav a {
+  color: #ccc;
+  text-decoration: none;
+  transition: 0.3s;
+}
+.optical-breadcrumb nav a:hover {
+  color: var(--gold);
+}
+
+/* Sidebar & Filters */
+.optical-sidebar {
+  position: sticky;
+  top: 100px;
+}
+
+.sidebar-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+}
+
+.sidebar-card__title {
+  font-family: "Playfair Display", serif;
+  font-size: 20px;
+  border-bottom: 2px solid var(--gold);
+  display: inline-block;
+  padding-bottom: 5px;
+}
+
+.optical-category-list li a {
+  color: #555;
+  text-decoration: none;
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: 0.3s;
+}
+
+.optical-category-list li a:hover,
+.optical-category-list li a.text-primary {
+  background: var(--light);
+  color: var(--gold) !important;
+}
+
+/* Filter Radios */
+.form-check {
+  margin-bottom: 10px;
+}
+.form-check-input:checked {
+  background-color: var(--gold);
+  border-color: var(--gold);
+}
+
+/* Catalog Topbar */
+.catalog-topbar {
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+
+/* Product Card - Hiệu ứng Luxury */
+.optical-product-card {
+  transition: var(--transition);
+  overflow: hidden;
+  border-radius: 15px !important;
+}
+
+.optical-product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+}
+
+.optical-product-card img {
+  transition: 0.5s;
+  height: 220px;
+  object-fit: contain;
+}
+
+.optical-product-card:hover img {
+  transform: scale(1.05);
+}
+
+/* Pagination Custom */
+.pagination .page-link {
+  border: none;
+  margin: 0 5px;
+  border-radius: 8px !important;
+  color: var(--dark);
+  font-weight: 600;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--gold);
+  border-color: var(--gold);
+}
+
+.pagination .page-item.disabled .page-link {
+  background-color: transparent;
+  opacity: 0.5;
+}
