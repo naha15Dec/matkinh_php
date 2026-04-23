@@ -31,6 +31,8 @@ require_once BASE_PATH . '/app/models/AdminSanPhamModel.php';
 require_once BASE_PATH . '/app/models/AdminBlogModel.php';
 require_once BASE_PATH . '/app/models/AdminBrandModel.php';
 require_once BASE_PATH . '/app/models/AdminRevenueModel.php';
+require_once BASE_PATH . '/app/models/AdminProfileModel.php';
+require_once BASE_PATH . '/app/models/AdminSettingModel.php';
 
 // 3. Nạp Controllers
 require_once BASE_PATH . '/app/controllers/SanPhamController.php';
@@ -50,6 +52,8 @@ require_once BASE_PATH . '/app/controllers/AdminSanPhamController.php';
 require_once BASE_PATH . '/app/controllers/AdminBlogController.php';
 require_once BASE_PATH . '/app/controllers/AdminBrandController.php';
 require_once BASE_PATH . '/app/controllers/AdminRevenueController.php';
+require_once BASE_PATH . '/app/controllers/AdminProfileController.php';
+require_once BASE_PATH . '/app/controllers/AdminSettingController.php';
 
 // Lấy thông tin từ URL
 $controllerName = $_GET['controller'] ?? 'home'; 
@@ -235,4 +239,39 @@ switch ($controllerName) {
             $revenueCtrl = new AdminRevenueController($pdo);
             $revenueCtrl->index(); 
         break;
+
+        // Điều hướng cho trang Profile
+    case 'adminprofile':
+        require_once BASE_PATH . '/app/controllers/AdminProfileController.php';
+        $profileCtrl = new AdminProfileController($pdo);
+    
+    switch ($actionName) {
+        case 'update': 
+            $profileCtrl->update(); 
+            break;
+        case 'changePassword': 
+            $profileCtrl->changePassword(); 
+            break;
+        default: 
+            $profileCtrl->index(); 
+            break;
+    }
+    break;
+
+    case 'adminsetting':
+    require_once BASE_PATH . '/app/controllers/AdminSettingController.php';
+    $settingCtrl = new AdminSettingController($pdo);
+    
+    switch ($actionName) {
+        case 'save': 
+            $settingCtrl->save(); 
+            break;
+        case 'deleteHistory': 
+            $settingCtrl->deleteHistory(); 
+            break;
+        default: 
+            $settingCtrl->index(); 
+            break;
+    }
+    break;
 }
