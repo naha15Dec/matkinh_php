@@ -1,22 +1,24 @@
 <?php
 session_start();
 
-// Bật hiển thị lỗi để dễ debug khi làm đồ án
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
-// Chỉ định nghĩa nếu chưa có (Tránh lỗi trùng hằng số với config.php)
 if (!defined('BASE_PATH')) {
     define('BASE_PATH', dirname(__DIR__));
 }
 
-// 1. Cấu hình & Helper
+// =======================
+// CONFIG & HELPER
+// =======================
 require_once BASE_PATH . '/config.php';
 require_once BASE_PATH . '/app/helpers/HashPassword.php';
 require_once BASE_PATH . '/app/helpers/OrderConstants.php';
 
-// 2. Nạp Models
-require_once BASE_PATH . '/app/models/SanPhamModel.php'; 
+// =======================
+// MODELS
+// =======================
+require_once BASE_PATH . '/app/models/SanPhamModel.php';
 require_once BASE_PATH . '/app/models/TaiKhoanModel.php';
 require_once BASE_PATH . '/app/models/HomeModel.php';
 require_once BASE_PATH . '/app/models/GioHangModel.php';
@@ -33,11 +35,14 @@ require_once BASE_PATH . '/app/models/AdminBrandModel.php';
 require_once BASE_PATH . '/app/models/AdminRevenueModel.php';
 require_once BASE_PATH . '/app/models/AdminProfileModel.php';
 require_once BASE_PATH . '/app/models/AdminSettingModel.php';
+require_once BASE_PATH . '/app/models/AdminTypeModel.php';
 
-// 3. Nạp Controllers
+// =======================
+// CONTROLLERS
+// =======================
+require_once BASE_PATH . '/app/controllers/HomeController.php';
 require_once BASE_PATH . '/app/controllers/SanPhamController.php';
 require_once BASE_PATH . '/app/controllers/TaiKhoanController.php';
-require_once BASE_PATH . '/app/controllers/HomeController.php';
 require_once BASE_PATH . '/app/controllers/GioHangController.php';
 require_once BASE_PATH . '/app/controllers/ThanhToanController.php';
 require_once BASE_PATH . '/app/controllers/ProfileController.php';
@@ -54,224 +59,306 @@ require_once BASE_PATH . '/app/controllers/AdminBrandController.php';
 require_once BASE_PATH . '/app/controllers/AdminRevenueController.php';
 require_once BASE_PATH . '/app/controllers/AdminProfileController.php';
 require_once BASE_PATH . '/app/controllers/AdminSettingController.php';
+require_once BASE_PATH . '/app/controllers/AdminTypeController.php';
 
-// Lấy thông tin từ URL
-$controllerName = $_GET['controller'] ?? 'home'; 
-$actionName = $_GET['action'] ?? 'index';
+// =======================
+// ROUTE PARAMS
+// =======================
+$controllerName = strtolower($_GET['controller'] ?? 'home');
+$actionName = strtolower($_GET['action'] ?? 'index');
 
-// Điều phối đến Controller tương ứng
+// =======================
+// ROUTER
+// =======================
 switch ($controllerName) {
-    // --- PHẦN CLIENT (Tài khoản) ---
+
+    // CLIENT
+    case 'home':
+        $ctrl = new HomeController($pdo);
+
+        if ($actionName === 'findproductbyid') {
+            $ctrl->findProductByID();
+        } else {
+            $ctrl->index();
+        }
+        break;
+
     case 'taikhoan':
-        $authController = new TaiKhoanController($pdo);
+        $ctrl = new TaiKhoanController($pdo);
+
         switch ($actionName) {
-            case 'login': 
-                // Tự động nhận biết nếu là POST thì gọi loginPost, nếu là GET thì gọi loginView
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $authController->loginPost();
-                } else {
-                    $authController->loginView();
-                }
+            case 'login':
+                $_SERVER['REQUEST_METHOD'] === 'POST'
+                    ? $ctrl->loginPost()
+                    : $ctrl->loginView();
                 break;
 
-            case 'register': 
-                // SỬA TẠI ĐÂY: Nếu user submit form (POST), gọi registerPost()
-                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                    $authController->registerPost();
-                } else {
-                    $authController->registerView();
-                }
+            case 'register':
+                $_SERVER['REQUEST_METHOD'] === 'POST'
+                    ? $ctrl->registerPost()
+                    : $ctrl->registerView();
                 break;
 
-            case 'logout': 
-                $authController->logoutAccount(); 
+            case 'logout':
+                $ctrl->logoutAccount();
                 break;
 
-            default: 
-                $authController->loginView(); 
+            default:
+                $ctrl->loginView();
                 break;
         }
         break;
 
     case 'sanpham':
-        $shopController = new SanPhamController($pdo);
-        if ($actionName == 'detail') {
-            $shopController->detail();
+        $ctrl = new SanPhamController($pdo);
+
+        if ($actionName === 'detail') {
+            $ctrl->detail();
         } else {
-            $shopController->index();
+            $ctrl->index();
         }
         break;
-    
+
     case 'giohang':
     case 'cart':
-        $cartController = new GioHangController($pdo);
+        $ctrl = new GioHangController($pdo);
+
         switch ($actionName) {
-            case 'add': $cartController->add(); break;
-            case 'update': $cartController->update(); break;
-            case 'remove': $cartController->remove(); break;
-            case 'clear': $cartController->clear(); break;
-            default: $cartController->index(); break;
+            case 'add':
+                $ctrl->add();
+                break;
+            case 'update':
+                $ctrl->update();
+                break;
+            case 'remove':
+                $ctrl->remove();
+                break;
+            case 'clear':
+                $ctrl->clear();
+                break;
+            default:
+                $ctrl->index();
+                break;
         }
         break;
 
     case 'thanhtoan':
-        $checkoutCtrl = new ThanhToanController($pdo);
+        $ctrl = new ThanhToanController($pdo);
+
         switch ($actionName) {
-            case 'process': $checkoutCtrl->process(); break;
-            case 'vnpay_return': $checkoutCtrl->vnpay_return(); break;
-            case 'success': $checkoutCtrl->success(); break;
-            default: $checkoutCtrl->index(); break;
+            case 'process':
+                $ctrl->process();
+                break;
+            case 'vnpay_return':
+                $ctrl->vnpay_return();
+                break;
+            case 'success':
+                $ctrl->success();
+                break;
+            default:
+                $ctrl->index();
+                break;
         }
         break;
 
     case 'profile':
-        $profileCtrl = new ProfileController($pdo);
+        $ctrl = new ProfileController($pdo);
+
         switch ($actionName) {
-            case 'updateInfo': $profileCtrl->updateInfo(); break;
-            case 'changePassword': $profileCtrl->changePassword(); break;
-            case 'orderDetail': $profileCtrl->orderDetail(); break;
-            default: $profileCtrl->index(); break;
+            case 'updateinfo':
+                $ctrl->updateInfo();
+                break;
+            case 'changepassword':
+                $ctrl->changePassword();
+                break;
+            case 'orderdetail':
+                $ctrl->orderDetail();
+                break;
+            default:
+                $ctrl->index();
+                break;
         }
         break;
 
     case 'blog':
-        $blogCtrl = new BlogController($pdo);
-        ($actionName == 'detail') ? $blogCtrl->detail() : $blogCtrl->index();
+        $ctrl = new BlogController($pdo);
+
+        if ($actionName === 'detail') {
+            $ctrl->detail();
+        } else {
+            $ctrl->index();
+        }
         break;
 
     case 'contact':
-        (new ContactController($pdo))->index();
+        $ctrl = new ContactController($pdo);
+        $ctrl->index();
         break;
 
     case 'error':
-        (new ErrorController($pdo))->index();
+        $ctrl = new ErrorController($pdo);
+        $ctrl->index();
+        break;
+
+    // ADMIN
+    case 'dashboard':
+        $ctrl = new DashboardController($pdo);
+        $ctrl->index();
+        break;
+
+    case 'admintaikhoan':
+        $ctrl = new AdminTaiKhoanController($pdo);
+
+        switch ($actionName) {
+            case 'detail':
+                $ctrl->detail();
+                break;
+            case 'toggleactive':
+                $ctrl->toggleActive();
+                break;
+            case 'changepassword':
+                $ctrl->changePassword();
+                break;
+            case 'updaterole':
+                $ctrl->updateRole();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
+        break;
+
+    case 'admindonhang':
+        $ctrl = new AdminDonHangController($pdo);
+
+        switch ($actionName) {
+            case 'detail':
+                $ctrl->detail();
+                break;
+            case 'updatestatus':
+                $ctrl->updateStatus();
+                break;
+            case 'assignshipper':
+                $ctrl->assignShipper();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
+        break;
+
+    case 'adminsanpham':
+        $ctrl = new AdminSanPhamController($pdo);
+
+        switch ($actionName) {
+            case 'togglefeatured':
+                $ctrl->toggleFeatured();
+                break;
+            case 'edit':
+                $ctrl->edit();
+                break;
+            case 'save':
+                $ctrl->save();
+                break;
+            case 'delete':
+                $ctrl->delete();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
+        break;
+
+    case 'adminblog':
+        $ctrl = new AdminBlogController($pdo);
+
+        switch ($actionName) {
+            case 'edit':
+                $ctrl->edit();
+                break;
+            case 'save':
+                $ctrl->save();
+                break;
+            case 'delete':
+                $ctrl->delete();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
+        break;
+
+    case 'adminbrand':
+        $ctrl = new AdminBrandController($pdo);
+
+        switch ($actionName) {
+            case 'save':
+                $ctrl->save();
+                break;
+            case 'delete':
+                $ctrl->delete();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
+        break;
+
+    case 'admintype':
+        $ctrl = new AdminTypeController($pdo);
+
+        switch ($actionName) {
+            case 'save':
+                $ctrl->save();
+                break;
+            case 'delete':
+                $ctrl->delete();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
+        break;
+
+    case 'adminrevenue':
+        $ctrl = new AdminRevenueController($pdo);
+        $ctrl->index();
+        break;
+
+    case 'adminprofile':
+        $ctrl = new AdminProfileController($pdo);
+
+        switch ($actionName) {
+            case 'update':
+                $ctrl->update();
+                break;
+            case 'changepassword':
+                $ctrl->changePassword();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
+        break;
+
+    case 'adminsetting':
+        $ctrl = new AdminSettingController($pdo);
+
+        switch ($actionName) {
+            case 'save':
+                $ctrl->save();
+                break;
+            case 'deletehistory':
+                $ctrl->deleteHistory();
+                break;
+            default:
+                $ctrl->index();
+                break;
+        }
         break;
 
     default:
-        $homeController = new HomeController($pdo);
-        if ($actionName == 'findProductByID') {
-            $homeController->findProductByID();
-        } else {
-            $homeController->index();
-        }
+        $ctrl = new ErrorController($pdo);
+        $ctrl->index();
         break;
-
-        // --- PHẦN ADMIN ---
-        case 'dashboard':
-            $dashboardCtrl = new DashboardController($pdo); // Truyền biến $pdo vào đây
-            $dashboardCtrl->index();
-        break;
-
-        case 'admintaikhoan':
-        $adminAccCtrl = new AdminTaiKhoanController($pdo);
-        switch ($actionName) {
-            case 'detail':
-                $adminAccCtrl->detail();
-                break;
-            case 'toggleActive':
-                $adminAccCtrl->toggleActive();
-                break;
-            case 'changePassword':
-                $adminAccCtrl->changePassword();
-                break;
-            case 'updateRole':
-                $adminAccCtrl->updateRole();
-                break;
-            default:
-                $adminAccCtrl->index();
-                break;
-        }
-        break;
-
-        case 'admindonhang':
-            $adminOrderCtrl = new AdminDonHangController($pdo);
-            switch ($actionName) {
-                case 'detail': $adminOrderCtrl->detail(); break;
-                case 'updateStatus': $adminOrderCtrl->updateStatus(); break;
-                case 'assignShipper': $adminOrderCtrl->assignShipper(); break;
-                default: $adminOrderCtrl->index(); break;
-            }
-        break;
-
-        case 'adminsanpham':
-            $adminProductCtrl = new AdminSanPhamController($pdo);
-            switch ($actionName) {
-                case 'toggleFeatured': $adminProductCtrl->toggleFeatured(); break;
-                case 'edit': $adminProductCtrl->edit(); break; // Thêm dòng này để mở Form Thêm/Sửa
-                case 'save': $adminProductCtrl->save(); break; // Xử lý Lưu dữ liệu từ Form
-                case 'delete': $adminProductCtrl->delete(); break;
-                default: $adminProductCtrl->index(); break;
-            }
-        break;
-
-        case 'adminblog':
-            $adminBlogCtrl = new AdminBlogController($pdo);
-            switch ($actionName) {
-                case 'activate': $adminBlogCtrl->activate(); break;
-                case 'edit': $adminBlogCtrl->edit(); break; 
-                case 'save': $adminBlogCtrl->save(); break;
-                case 'delete': $adminBlogCtrl->delete(); break;
-                default: $adminBlogCtrl->index(); break;
-            }
-        break;
-
-        case 'adminbrand':
-            $brandCtrl = new AdminBrandController($pdo);
-            switch ($actionName) {
-                case 'save': $brandCtrl->save(); break;
-                case 'delete': $brandCtrl->delete(); break;
-                default: $brandCtrl->index(); break;
-            }
-        break;
-
-        case 'admintype':
-            require_once BASE_PATH . '/app/controllers/AdminTypeController.php';
-            $typeCtrl = new AdminTypeController($pdo);
-            switch ($actionName) {
-                case 'save': $typeCtrl->save(); break;
-                case 'delete': $typeCtrl->delete(); break;
-                default: $typeCtrl->index(); break;
-            }
-        break;
-
-        case 'adminrevenue':
-            require_once BASE_PATH . '/app/controllers/AdminRevenueController.php';
-            $revenueCtrl = new AdminRevenueController($pdo);
-            $revenueCtrl->index(); 
-        break;
-
-        // Điều hướng cho trang Profile
-    case 'adminprofile':
-        require_once BASE_PATH . '/app/controllers/AdminProfileController.php';
-        $profileCtrl = new AdminProfileController($pdo);
-    
-    switch ($actionName) {
-        case 'update': 
-            $profileCtrl->update(); 
-            break;
-        case 'changePassword': 
-            $profileCtrl->changePassword(); 
-            break;
-        default: 
-            $profileCtrl->index(); 
-            break;
-    }
-    break;
-
-    case 'adminsetting':
-    require_once BASE_PATH . '/app/controllers/AdminSettingController.php';
-    $settingCtrl = new AdminSettingController($pdo);
-    
-    switch ($actionName) {
-        case 'save': 
-            $settingCtrl->save(); 
-            break;
-        case 'deleteHistory': 
-            $settingCtrl->deleteHistory(); 
-            break;
-        default: 
-            $settingCtrl->index(); 
-            break;
-    }
-    break;
 }

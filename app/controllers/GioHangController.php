@@ -1,142 +1,189 @@
 <?php
+
 require_once BASE_PATH . '/app/models/GioHangModel.php';
-// THÊM: Nạp HomeModel để lấy StoreInfo cho Layout
 require_once BASE_PATH . '/app/models/HomeModel.php';
 
 class GioHangController {
     private $pdo;
-    private $gioHangModel;
-    private $homeModel; // THÊM
+    private $model;
+    private $homeModel;
 
     public function __construct($pdo) {
         $this->pdo = $pdo;
-        $this->gioHangModel = new GioHangModel($pdo);
-        $this->homeModel = new HomeModel($pdo); // THÊM
+        $this->model = new GioHangModel($pdo);
+        $this->homeModel = new HomeModel($pdo);
+
+        if (!isset($_SESSION['ShoppingCart'])) {
+            $_SESSION['ShoppingCart'] = [];
+        }
     }
 
-    private function getCart() {
-        return $_SESSION['ShoppingCart'] ?? [];
-    }
-
-    private function saveCart($cart) {
-        $_SESSION['ShoppingCart'] = $cart;
-    }
-
-    // ========================= TRANG GIỎ HÀNG =========================
     public function index() {
-        $cart = $this->getCart();
-        
-        // THÊM: Lấy StoreInfo để Layout không bị lỗi Fatal Error
+        $cart = $_SESSION['ShoppingCart'] ?? [];
         $storeInfo = $this->homeModel->getStoreInfo();
 
-        // Cấu hình Layout
-        $title = "Giỏ hàng của bạn";
+        $title = "Giỏ hàng";
         $viewContent = BASE_PATH . '/views/client/cart.php';
-        
-        // Đảm bảo đường dẫn khớp với /views/client/layout.php
-        include BASE_PATH . '/views/client/layout.php';
+
+        require BASE_PATH . '/views/client/layout.php';
     }
 
-    // ========================= THÊM VÀO GIỎ =========================
     public function add() {
-        // Bắt buộc đăng nhập để mua hàng
-        if (!isset($_SESSION['LoginInformation'])) {
-            $_SESSION['NotificationLogin'] = "Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.";
-            header("Location: index.php?controller=taikhoan&action=login");
+        $sanPhamId = (int)($_GET['sanPhamId'] ?? $_POST['sanPhamId'] ?? $_POST['SanPhamId'] ?? 0);
+        $soLuong = (int)($_POST['soLuong'] ?? $_POST['SoLuong'] ?? 1);
+
+        if ($sanPhamId <= 0) {
+            $_SESSION['CartError'] = "Sản phẩm không hợp lệ.";
+            header("Location: index.php?controller=sanpham");
             exit;
         }
 
-        $sanPhamId = (int)($_POST['SanPhamId'] ?? $_GET['sanPhamId'] ?? 0);
-        $product = $this->gioHangModel->getProductById($sanPhamId);
+        $product = $this->model->getProductById($sanPhamId);
 
-        // Kiểm tra tính hợp lệ của sản phẩm
-        if (!$product || $product['TrangThai'] != 1) {
-            $_SESSION['CartError'] = "Sản phẩm không tồn tại hoặc đã ngừng kinh doanh.";
-            header("Location: index.php?controller=giohang");
+        if (!$product || (int)$product['TrangThai'] !== 1) {
+            $_SESSION['CartError'] = "Sản phẩm không tồn tại hoặc đã ngừng bán.";
+            header("Location: index.php?controller=sanpham");
             exit;
         }
 
-        // Kiểm tra tồn kho
-        if ($product['SoLuongTon'] <= 0) {
-            $_SESSION['CartError'] = "Sản phẩm hiện đang hết hàng.";
-            header("Location: index.php?controller=giohang");
+        $tonKho = (int)($product['SoLuongTon'] ?? 0);
+
+        if ($tonKho <= 0) {
+            $_SESSION['CartError'] = "Sản phẩm hiện đã hết hàng.";
+            header("Location: index.php?controller=sanpham&action=detail&id=" . $sanPhamId);
             exit;
         }
 
-        $cart = $this->getCart();
+        if ($soLuong < 1) {
+            $soLuong = 1;
+        }
+
+        if ($soLuong > $tonKho) {
+            $soLuong = $tonKho;
+        }
+
+        $cart = $_SESSION['ShoppingCart'];
         $found = false;
 
         foreach ($cart as &$item) {
-            if ($item['SanPhamId'] == $sanPhamId) {
-                if ($item['SoLuong'] + 1 > $product['SoLuongTon']) {
-                    $_SESSION['CartError'] = "Số lượng yêu cầu vượt quá tồn kho (Hiện có: {$product['SoLuongTon']}).";
-                    header("Location: index.php?controller=giohang");
-                    exit;
+            if ((int)$item['SanPhamId'] === $sanPhamId) {
+                $newQty = (int)$item['SoLuong'] + $soLuong;
+
+                if ($newQty > $tonKho) {
+                    $newQty = $tonKho;
+                    $_SESSION['CartError'] = "Số lượng sản phẩm đã được điều chỉnh theo tồn kho hiện có.";
+                } else {
+                    $_SESSION['CartSuccess'] = "Đã cập nhật số lượng sản phẩm trong giỏ hàng.";
                 }
-                $item['SoLuong'] += 1;
+
+                $item['SoLuong'] = $newQty;
+                $item['SoLuongTon'] = $tonKho;
                 $found = true;
                 break;
             }
         }
 
+        unset($item);
+
         if (!$found) {
             $cart[] = [
-                'SanPhamId' => $product['SanPhamId'],
-                'TenSanPham' => $product['TenSanPham'],
-                'HinhAnh' => $product['HinhAnhChinh'],
-                'DonGia' => (float)$product['GiaBan'], // Dùng giá bán thực tế
-                'GiamGia' => ($product['GiaGoc'] > $product['GiaBan']) ? ($product['GiaGoc'] - $product['GiaBan']) : 0,
-                'SoLuong' => 1
+                'SanPhamId'   => (int)$product['SanPhamId'],
+                'TenSanPham'  => $product['TenSanPham'],
+                'HinhAnh'     => $product['HinhAnhChinh'] ?? '',
+                'DonGia'      => (float)$product['GiaBan'],
+                'GiaGoc'      => (float)($product['GiaGoc'] ?? $product['GiaBan']),
+                'GiamGia'     => ((float)($product['GiaGoc'] ?? 0) > (float)$product['GiaBan'])
+                                    ? ((float)$product['GiaGoc'] - (float)$product['GiaBan'])
+                                    : 0,
+                'SoLuong'     => $soLuong,
+                'SoLuongTon'  => $tonKho,
+                'ThuongHieu'  => $product['TenThuongHieu'] ?? '',
+                'LoaiSanPham' => $product['TenLoaiSanPham'] ?? ''
             ];
+
+            $_SESSION['CartSuccess'] = "Đã thêm sản phẩm vào giỏ hàng.";
         }
 
-        $this->saveCart($cart);
-        $_SESSION['CartSuccess'] = "Đã thêm sản phẩm vào giỏ hàng.";
+        $_SESSION['ShoppingCart'] = $cart;
+
         header("Location: index.php?controller=giohang");
+        exit;
     }
 
-    // ========================= CẬP NHẬT SỐ LƯỢNG =========================
     public function update() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
+        $sanPhamId = (int)($_POST['sanPhamId'] ?? $_POST['SanPhamId'] ?? $_GET['sanPhamId'] ?? 0);
+        $soLuong = (int)($_POST['soLuong'] ?? $_POST['SoLuong'] ?? $_GET['soLuong'] ?? 1);
 
-        $sanPhamId = (int)($_POST['sanPhamId'] ?? 0);
-        $soLuong = (int)($_POST['soLuong'] ?? 0);
-        $cart = $this->getCart();
-        $product = $this->gioHangModel->getProductById($sanPhamId);
-        
-        foreach ($cart as $key => &$item) {
-            if ($item['SanPhamId'] == $sanPhamId) {
+        if ($sanPhamId <= 0) {
+            $_SESSION['CartError'] = "Sản phẩm không hợp lệ.";
+            header("Location: index.php?controller=giohang");
+            exit;
+        }
+
+        $product = $this->model->getProductById($sanPhamId);
+        $tonKho = $product ? (int)($product['SoLuongTon'] ?? 0) : 0;
+
+        $cart = $_SESSION['ShoppingCart'] ?? [];
+
+        foreach ($cart as $index => &$item) {
+            if ((int)$item['SanPhamId'] === $sanPhamId) {
                 if ($soLuong <= 0) {
-                    unset($cart[$key]);
-                } elseif ($soLuong > $product['SoLuongTon']) {
-                    $_SESSION['CartError'] = "Kho không đủ. Chỉ còn {$product['SoLuongTon']} cái.";
-                } else {
-                    $item['SoLuong'] = $soLuong;
+                    unset($cart[$index]);
+                    $_SESSION['CartSuccess'] = "Đã xóa sản phẩm khỏi giỏ hàng.";
+                    break;
                 }
+
+                if ($tonKho <= 0) {
+                    unset($cart[$index]);
+                    $_SESSION['CartError'] = "Sản phẩm đã hết hàng và được xóa khỏi giỏ.";
+                    break;
+                }
+
+                if ($soLuong > $tonKho) {
+                    $soLuong = $tonKho;
+                    $_SESSION['CartError'] = "Số lượng đã được điều chỉnh theo tồn kho.";
+                } else {
+                    $_SESSION['CartSuccess'] = "Đã cập nhật giỏ hàng.";
+                }
+
+                $item['SoLuong'] = $soLuong;
+                $item['SoLuongTon'] = $tonKho;
                 break;
             }
         }
-        $this->saveCart(array_values($cart));
+
+        unset($item);
+
+        $_SESSION['ShoppingCart'] = array_values($cart);
+
         header("Location: index.php?controller=giohang");
+        exit;
     }
 
-    // ========================= XÓA 1 SẢN PHẨM =========================
     public function remove() {
-        $sanPhamId = (int)($_GET['sanPhamId'] ?? 0);
-        $cart = $this->getCart();
-        foreach ($cart as $key => $item) {
-            if ($item['SanPhamId'] == $sanPhamId) { 
-                unset($cart[$key]); 
-                break; 
+        $sanPhamId = (int)($_GET['sanPhamId'] ?? $_POST['sanPhamId'] ?? $_GET['SanPhamId'] ?? 0);
+
+        $cart = $_SESSION['ShoppingCart'] ?? [];
+
+        foreach ($cart as $index => $item) {
+            if ((int)$item['SanPhamId'] === $sanPhamId) {
+                unset($cart[$index]);
+                $_SESSION['CartSuccess'] = "Đã xóa sản phẩm khỏi giỏ hàng.";
+                break;
             }
         }
-        $this->saveCart(array_values($cart));
+
+        $_SESSION['ShoppingCart'] = array_values($cart);
+
         header("Location: index.php?controller=giohang");
+        exit;
     }
 
-    // ========================= XÓA SẠCH GIỎ HÀNG =========================
     public function clear() {
-        $this->saveCart([]);
+        $_SESSION['ShoppingCart'] = [];
+        $_SESSION['CartSuccess'] = "Đã xóa toàn bộ giỏ hàng.";
+
         header("Location: index.php?controller=giohang");
+        exit;
     }
 }

@@ -1,99 +1,157 @@
-<section class="contact-page">
+<?php
+$storeInfo = $storeInfo ?? [];
+
+$storeName = $storeInfo['TenCuaHang'] ?? 'Karma Eyewear';
+$hotline   = $storeInfo['Hotline'] ?? '0123.456.789';
+$email     = $storeInfo['Email'] ?? 'support@karmaeyewear.vn';
+$address   = $storeInfo['DiaChi'] ?? 'Hệ thống cửa hàng mắt kính chính hãng';
+$openTime  = $storeInfo['GioMoCua'] ?? '08:00 - 21:00';
+?>
+
+<section class="contact-page-modern">
     <section class="optical-breadcrumb">
-        <div class="container text-center">
+        <div class="container">
             <div class="optical-breadcrumb__inner">
-                <span class="optical-breadcrumb__eyebrow">Karma Eyewear Experience</span>
-                <h1 class="text-white">Liên hệ với chúng tôi</h1>
-                <nav class="mt-2">
-                    <a href="index.php" class="text-white-50">Trang chủ</a> 
-                    <span class="text-white-50 mx-2">/</span> 
-                    <span class="text-white">Liên hệ</span>
+                <span class="optical-breadcrumb__eyebrow">Karma Eyewear Support</span>
+                <h1>Liên hệ với chúng tôi</h1>
+
+                <nav>
+                    <a href="index.php?controller=home">Trang chủ</a>
+                    <span>/</span>
+                    <span>Liên hệ</span>
                 </nav>
             </div>
         </div>
     </section>
 
-    <section class="contact-page-area" style="padding: 80px 0; background: #fcfcfc;">
+    <section class="contact-section-modern">
         <div class="container">
-            <div class="contact-hero text-center mb-5">
-                <span class="text-uppercase font-weight-bold small" style="letter-spacing: 3px; color: #c5a059;">Get in touch</span>
-                <h2 class="mt-2" style="font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700;">Chúng tôi luôn lắng nghe bạn</h2>
-                <p class="text-muted mx-auto" style="max-width: 600px;">
-                    <?= !empty($shortDesc) ? htmlspecialchars($shortDesc) : "Hãy để lại thông tin hoặc liên hệ trực tiếp, chuyên gia của chúng tôi luôn sẵn sàng hỗ trợ bạn tìm kiếm mẫu mắt kính hoàn hảo nhất." ?>
-                </p>
+            <div class="contact-hero-panel">
+                <div>
+                    <span class="eyebrow">Customer Care</span>
+                    <h2>Chúng tôi luôn sẵn sàng hỗ trợ bạn chọn mẫu kính phù hợp.</h2>
+                    <p>
+                        Cần tư vấn kiểu dáng, chất liệu gọng, kính mát hay kính thời trang?
+                        Đội ngũ Karma Eyewear sẽ hỗ trợ bạn nhanh chóng và tận tâm.
+                    </p>
+                </div>
+
+                <a href="tel:<?= htmlspecialchars($hotline) ?>" class="contact-hotline-btn">
+                    <i class="fas fa-phone-alt"></i>
+                    <?= htmlspecialchars($hotline) ?>
+                </a>
             </div>
 
-            <div class="row">
-                <div class="col-lg-5 mb-4 mb-lg-0">
-                    <div class="contact-info-card bg-white p-5 shadow-sm" style="border-radius: 20px; border: 1px solid #f0f0f0;">
-                        <h3 style="font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; margin-bottom: 35px; border-left: 4px solid #c5a059; padding-left: 20px;">Thông tin cửa hàng</h3>
-                        
-                        <div class="info-item d-flex mb-4">
-                            <div class="icon-wrap" style="width: 45px; height: 45px; background: rgba(197, 160, 89, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-map-marker-alt" style="color: #c5a059;"></i>
-                            </div>
-                            <div class="ml-3">
-                                <strong class="d-block mb-1 text-uppercase small" style="letter-spacing: 1px;">Showroom chính</strong>
-                                <p class="text-muted mb-0" style="font-size: 14px; line-height: 1.5;"><?= empty($address) ? "Đang cập nhật địa chỉ showroom." : htmlspecialchars($address) ?></p>
-                            </div>
-                        </div>
-
-                        <div class="info-item d-flex mb-4">
-                            <div class="icon-wrap" style="width: 45px; height: 45px; background: rgba(197, 160, 89, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-phone-alt" style="color: #c5a059;"></i>
-                            </div>
-                            <div class="ml-3">
-                                <strong class="d-block mb-1 text-uppercase small" style="letter-spacing: 1px;">Đường dây nóng</strong>
-                                <p class="mb-0">
-                                    <?php if (!empty($hotline)): ?>
-                                        <a href="tel:<?= $hotline ?>" class="text-dark font-weight-bold h5 text-decoration-none"><?= htmlspecialchars($hotline) ?></a>
-                                    <?php else: ?>
-                                        <span class="text-muted small">Đang cập nhật...</span>
-                                    <?php endif; ?>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="info-item d-flex mb-4">
-                            <div class="icon-wrap" style="width: 45px; height: 45px; background: rgba(197, 160, 89, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-envelope" style="color: #c5a059;"></i>
-                            </div>
-                            <div class="ml-3">
-                                <strong class="d-block mb-1 text-uppercase small" style="letter-spacing: 1px;">Email hỗ trợ</strong>
-                                <p class="mb-0">
-                                    <?php if (!empty($email)): ?>
-                                        <a href="mailto:<?= $email ?>" class="text-muted text-decoration-none small"><?= htmlspecialchars($email) ?></a>
-                                    <?php else: ?>
-                                        <span class="text-muted small">Đang cập nhật...</span>
-                                    <?php endif; ?>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="pt-4 mt-4 border-top">
-                            <p class="small text-muted mb-3">Thời gian phục vụ:<br><strong class="text-dark">08:00 – 22:00 (Hằng ngày kể cả lễ)</strong></p>
-                            <div class="social-links-contact d-flex">
-                                <?php if (!empty($facebookUrl)): ?>
-                                    <a href="<?= $facebookUrl ?>" class="mr-2 shadow-sm" style="background: #3b5998; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none;"><i class="fab fa-facebook-f small"></i></a>
-                                <?php endif; ?>
-                                <?php if (!empty($instagramUrl)): ?>
-                                    <a href="<?= $instagramUrl ?>" class="shadow-sm" style="background: #e1306c; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none;"><i class="fab fa-instagram small"></i></a>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+            <div class="row contact-info-row">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="contact-info-card">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <h4>Địa chỉ</h4>
+                        <p><?= htmlspecialchars($address) ?></p>
                     </div>
                 </div>
 
-                <div class="col-lg-7">
-                    <div class="contact-map-wrap shadow-sm" style="height: 100%; min-height: 500px; border-radius: 20px; overflow: hidden; border: 8px solid #fff;">
-                              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.7704806485776!2d106.67178467480811!3d10.98068928918078!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3174d1085e2b1c37%3A0x73bfa5616464d0ee!2sThu%20Dau%20Mot%20University!5e0!3m2!1sen!2s!4v1773818804398!5m2!1sen!2s"
-                                    width="100%"
-                                    height="100%"
-                                    style="border:0;"
-                                    allowfullscreen=""
-                                    loading="lazy">
-                            </iframe>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="contact-info-card">
+                        <i class="fas fa-phone-alt"></i>
+                        <h4>Hotline</h4>
+                        <p>
+                            <a href="tel:<?= htmlspecialchars($hotline) ?>">
+                                <?= htmlspecialchars($hotline) ?>
+                            </a>
+                        </p>
                     </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="contact-info-card">
+                        <i class="far fa-envelope"></i>
+                        <h4>Email</h4>
+                        <p>
+                            <a href="mailto:<?= htmlspecialchars($email) ?>">
+                                <?= htmlspecialchars($email) ?>
+                            </a>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="contact-info-card">
+                        <i class="far fa-clock"></i>
+                        <h4>Giờ mở cửa</h4>
+                        <p><?= htmlspecialchars($openTime) ?></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-main-grid">
+                <div class="contact-form-card">
+                    <div class="contact-form-head">
+                        <span>Send Message</span>
+                        <h3>Gửi thông tin tư vấn</h3>
+                        <p>Điền thông tin bên dưới, chúng tôi sẽ phản hồi sớm nhất có thể.</p>
+                    </div>
+
+                    <form action="index.php?controller=contact" method="POST" class="contact-form-modern">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label>Họ và tên *</label>
+                                <div class="contact-input-wrap">
+                                    <i class="far fa-user"></i>
+                                    <input type="text" name="FullName" placeholder="Nhập họ tên" required>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 form-group">
+                                <label>Số điện thoại *</label>
+                                <div class="contact-input-wrap">
+                                    <i class="fas fa-phone-alt"></i>
+                                    <input type="tel" name="Phone" placeholder="09xxxxxxxx" required>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 form-group">
+                                <label>Email</label>
+                                <div class="contact-input-wrap">
+                                    <i class="far fa-envelope"></i>
+                                    <input type="email" name="Email" placeholder="email@example.com">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 form-group">
+                                <label>Chủ đề</label>
+                                <div class="contact-input-wrap">
+                                    <i class="far fa-comment-dots"></i>
+                                    <input type="text" name="Subject" placeholder="Tư vấn chọn kính">
+                                </div>
+                            </div>
+
+                            <div class="col-12 form-group">
+                                <label>Nội dung *</label>
+                                <div class="contact-input-wrap textarea">
+                                    <i class="far fa-edit"></i>
+                                    <textarea name="Message" rows="5" placeholder="Bạn cần tư vấn mẫu kính nào?" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-contact-submit">
+                            Gửi liên hệ
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+
+               <div class="contact-map-card">
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.7702007771913!2d106.67271417480792!3d10.980710389180723!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3174d1085e2b1c37%3A0x73bfa5616464d0ee!2sThu%20Dau%20Mot%20University!5e0!3m2!1sen!2s!4v1777378515863!5m2!1sen!2s"
+                        width="100%"
+                        height="100%"
+                        style="border:0;"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
                 </div>
             </div>
         </div>

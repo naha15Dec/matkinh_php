@@ -1,183 +1,303 @@
 <?php
-// 1. Helper Functions (Tương đương Func trong C#)
-function normalizeImg($path) {
-    if (empty($path)) return "public/images/no-image.png";
-    if (strpos($path, 'http') === 0) return $path;
-    return "public/images/" . trim($path, '/');
+if (!function_exists('normalizeImg')) {
+    function normalizeImg($path) {
+        if (empty($path)) return "/BanMatKinh/public/images/no-image.png";
+        if (strpos($path, 'http') === 0) return $path;
+        if (strpos($path, '/BanMatKinh/') === 0) return $path;
+        return "/BanMatKinh/public/images/" . ltrim($path, '/');
+    }
 }
 
-function formatMoney($value) {
-    return number_format($value, 0, ',', '.') . ' ₫';
+if (!function_exists('formatMoney')) {
+    function formatMoney($value) {
+        return number_format((float)$value, 0, ',', '.') . 'đ';
+    }
 }
 
-// 2. Trích xuất dữ liệu từ biến $product (truyền từ Controller)
-$tenSP = $product['TenSanPham'] ?? "Sản phẩm";
-$maSP = $product['MaSanPham'] ?? "";
+$product = $product ?? [];
+$recommendedProducts = $recommendedProducts ?? [];
+$relatedProducts = $relatedProducts ?? [];
+
+$displayProducts = !empty($recommendedProducts) ? $recommendedProducts : $relatedProducts;
+
+$productId = $product['SanPhamId'] ?? 0;
+$tenSP = $product['TenSanPham'] ?? 'Sản phẩm';
+$maSP = $product['MaSanPham'] ?? '—';
 $giaGoc = (float)($product['GiaGoc'] ?? 0);
 $giaBan = (float)($product['GiaBan'] ?? 0);
-$isSale = $giaGoc > $giaBan;
-$conHang = ($product['TrangThai'] == 1 && $product['SoLuongTon'] > 0);
-$mainImg = normalizeImg($product['HinhAnhChinh'] ?? '');
-$fallbackImg = "public/images/no-image.png";
+$soLuongTon = (int)($product['SoLuongTon'] ?? 0);
 
-// 3. Ưu tiên hiển thị Recommended, nếu không có thì hiện Related
-$displayProducts = !empty($recommendedProducts) ? $recommendedProducts : $relatedProducts;
+$isSale = $giaGoc > $giaBan;
+$conHang = (($product['TrangThai'] ?? 0) == 1 && $soLuongTon > 0);
+$mainImg = normalizeImg($product['HinhAnhChinh'] ?? '');
+$fallbackImg = "/BanMatKinh/public/images/no-image.png";
+
+$discountPercent = $isSale && $giaGoc > 0
+    ? round((($giaGoc - $giaBan) / $giaGoc) * 100)
+    : 0;
 ?>
 
-<section class="detail-page">
+<section class="detail-page-modern">
     <section class="optical-breadcrumb">
         <div class="container">
             <div class="optical-breadcrumb__inner">
                 <span class="optical-breadcrumb__eyebrow">Karma Eyewear Product</span>
                 <h1>Chi tiết sản phẩm</h1>
                 <nav>
-                    <a href="index.php">Trang chủ</a> <span>/</span>
-                    <a href="index.php?controller=sanpham">Sản phẩm</a> <span>/</span>
+                    <a href="index.php?controller=home">Trang chủ</a>
+                    <span>/</span>
+                    <a href="index.php?controller=sanpham">Sản phẩm</a>
+                    <span>/</span>
                     <span>Chi tiết</span>
                 </nav>
             </div>
         </div>
     </section>
 
-    <section class="detail-main-section" style="padding: 60px 0;">
+    <section class="detail-main-section">
         <div class="container">
-            <div class="detail-card bg-white p-4 shadow-sm" style="border-radius: 12px;">
+            <div class="detail-product-shell">
                 <div class="row align-items-start">
-                    <div class="col-lg-6 mb-4">
-                        <div class="detail-gallery">
-                            <div class="detail-gallery__main mb-3 text-center border" style="border-radius: 8px; overflow: hidden;">
-                                <img id="mainImage" src="<?= $mainImg ?>" alt="<?= $tenSP ?>" 
-                                     style="max-width: 100%; height: auto;"
-                                     onerror="this.onerror=null;this.src='<?= $fallbackImg ?>';">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <div class="detail-gallery-modern">
+                            <div class="detail-main-image">
+                                <?php if ($isSale): ?>
+                                    <span class="detail-sale-badge">-<?= $discountPercent ?>%</span>
+                                <?php endif; ?>
+
+                                <img 
+                                    id="mainImage" 
+                                    src="<?= $mainImg ?>" 
+                                    alt="<?= htmlspecialchars($tenSP) ?>"
+                                    onerror="this.onerror=null;this.src='<?= $fallbackImg ?>';"
+                                >
                             </div>
-                            <div class="detail-gallery__thumbs d-flex gap-2">
-                                <img class="thumb active border p-1" src="<?= $mainImg ?>" 
-                                     data-src="<?= $mainImg ?>" onclick="swapImage(this)"
-                                     style="width: 80px; height: 80px; cursor: pointer; object-fit: cover;">
-                                </div>
+
+                            <div class="detail-thumb-list">
+                                <button type="button" class="detail-thumb active" data-src="<?= $mainImg ?>">
+                                    <img src="<?= $mainImg ?>" alt="<?= htmlspecialchars($tenSP) ?>">
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div class="col-lg-6">
-                        <div class="detail-info">
-                            <div class="detail-badges mb-3">
-                                <span class="badge bg-secondary"><?= htmlspecialchars($product['TenLoaiSanPham'] ?? '—') ?></span>
-                                <span class="badge bg-light text-dark border"><?= htmlspecialchars($product['TenThuongHieu'] ?? '—') ?></span>
-                                <span class="badge <?= $conHang ? 'bg-success' : 'bg-danger' ?>">
+                        <div class="detail-info-modern">
+                            <div class="detail-badge-row">
+                                <span><?= htmlspecialchars($product['TenLoaiSanPham'] ?? 'Mắt kính') ?></span>
+                                <span><?= htmlspecialchars($product['TenThuongHieu'] ?? 'Karma Eyewear') ?></span>
+                                <span class="<?= $conHang ? 'in-stock' : 'out-stock' ?>">
                                     <?= $conHang ? 'Còn hàng' : 'Hết hàng' ?>
                                 </span>
                             </div>
 
-                            <h2 class="detail-title" style="font-family: 'Playfair Display', serif; font-size: 32px; color: #2c3e50;">
-                                <?= htmlspecialchars($tenSP) ?>
-                            </h2>
+                            <h2><?= htmlspecialchars($tenSP) ?></h2>
 
-                            <div class="detail-meta my-3 text-muted">
-                                <p class="mb-1"><strong>Mã sản phẩm:</strong> <?= !empty($maSP) ? $maSP : "—" ?></p>
-                                <p class="mb-1"><strong>Tồn kho:</strong> <?= $product['SoLuongTon'] ?? 0 ?></p>
+                            <div class="detail-meta-modern">
+                                <div>
+                                    <strong>Mã sản phẩm</strong>
+                                    <span><?= htmlspecialchars($maSP) ?></span>
+                                </div>
+
+                                <div>
+                                    <strong>Tồn kho</strong>
+                                    <span><?= $soLuongTon ?></span>
+                                </div>
                             </div>
 
-                            <div class="detail-price-box my-4">
+                            <div class="detail-price-modern">
+                                <strong><?= formatMoney($giaBan) ?></strong>
+
                                 <?php if ($isSale): ?>
-                                    <div class="h2 text-danger font-weight-bold mb-0"><?= formatMoney($giaBan) ?></div>
-                                    <div class="d-flex align-items-center gap-3">
-                                        <del class="text-muted"><?= formatMoney($giaGoc) ?></del>
-                                        <span class="badge bg-danger">Tiết kiệm <?= formatMoney($giaGoc - $giaBan) ?></span>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="h2 text-dark font-weight-bold"><?= formatMoney($giaBan) ?></div>
+                                    <del><?= formatMoney($giaGoc) ?></del>
+                                    <span>Tiết kiệm <?= formatMoney($giaGoc - $giaBan) ?></span>
                                 <?php endif; ?>
                             </div>
 
-                            <div class="detail-short-desc mb-4" style="line-height: 1.6; color: #666;">
-                                <?= !empty($product['MoTaNgan']) ? nl2br(htmlspecialchars($product['MoTaNgan'])) : "Thiết kế mắt kính hiện đại, phong cách thanh lịch." ?>
+                            <div class="detail-short-desc">
+                                <?= !empty($product['MoTaNgan'])
+                                    ? nl2br(htmlspecialchars($product['MoTaNgan']))
+                                    : "Thiết kế mắt kính hiện đại, thanh lịch, phù hợp sử dụng hằng ngày và nâng tầm phong cách cá nhân." ?>
                             </div>
 
-                            <div class="detail-actions d-flex gap-3 mb-4">
+                            <div class="detail-service-box">
+                                <div>
+                                    <i class="fas fa-shipping-fast"></i>
+                                    <span>Giao hàng toàn quốc</span>
+                                </div>
+
+                                <div>
+                                    <i class="fas fa-sync-alt"></i>
+                                    <span>Đổi trả linh hoạt</span>
+                                </div>
+
+                                <div>
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Bảo hành rõ ràng</span>
+                                </div>
+                            </div>
+
+                            <div class="detail-actions-modern">
                                 <?php if ($conHang): ?>
-                                    <form action="index.php?controller=giohang&action=add" method="POST" class="d-flex gap-2">
-                                        <input type="hidden" name="SanPhamId" value="<?= $product['SanPhamId'] ?>">
-                                        <input type="number" name="SoLuong" value="1" min="1" max="<?= $product['SoLuongTon'] ?>" class="form-control" style="width: 80px;">
-                                        <button type="submit" class="btn btn-dark px-4 py-2">
-                                            <i class="fas fa-shopping-bag mr-2"></i> Thêm vào giỏ hàng
+                                    <form action="index.php?controller=giohang&action=add" method="POST" class="detail-cart-form">
+                                        <input type="hidden" name="SanPhamId" value="<?= $productId ?>">
+
+                                        <div class="quantity-control">
+                                            <button type="button" class="qty-btn" data-type="minus">-</button>
+                                            <input 
+                                                type="number" 
+                                                name="SoLuong" 
+                                                id="quantityInput"
+                                                value="1" 
+                                                min="1" 
+                                                max="<?= $soLuongTon ?>"
+                                            >
+                                            <button type="button" class="qty-btn" data-type="plus">+</button>
+                                        </div>
+
+                                        <button type="submit" class="btn-detail-cart">
+                                            <i class="fas fa-shopping-bag"></i>
+                                            Thêm vào giỏ hàng
                                         </button>
                                     </form>
                                 <?php else: ?>
-                                    <button class="btn btn-secondary" disabled><i class="fas fa-ban mr-2"></i> Hết hàng</button>
+                                    <button class="btn-detail-cart disabled" disabled>
+                                        <i class="fas fa-ban"></i>
+                                        Sản phẩm đã hết hàng
+                                    </button>
                                 <?php endif; ?>
-                                <a href="index.php?controller=sanpham" class="btn btn-outline-dark px-4 py-2">Xem thêm</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <section class="detail-tabs-section pb-5">
-        <div class="container">
-            <div class="bg-white p-4 shadow-sm" style="border-radius: 12px;">
-                <ul class="nav nav-tabs mb-4" id="detailTab" role="tablist">
-                    <li class="nav-item">
-                        <a class="nav-link active" id="desc-tab" data-toggle="tab" href="#desc-pane">Mô tả chi tiết</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" id="spec-tab" data-toggle="tab" href="#spec-pane">Thông số kĩ thuật</a>
-                    </li>
-                </ul>
-                <div class="tab-content" id="detailTabContent">
-                    <div class="tab-pane fade show active" id="desc-pane">
-                        <?= !empty($product['MoTaChiTiet']) ? $product['MoTaChiTiet'] : "<p>Đang cập nhật nội dung...</p>" ?>
-                    </div>
-                    <div class="tab-pane fade" id="spec-pane">
-                        <table class="table table-bordered w-50">
-                            <tr><th class="bg-light">Mã sản phẩm</th><td><?= $maSP ?></td></tr>
-                            <tr><th class="bg-light">Thương hiệu</th><td><?= $product['TenThuongHieu'] ?? '—' ?></td></tr>
-                            <tr><th class="bg-light">Dòng sản phẩm</th><td><?= $product['TenLoaiSanPham'] ?? '—' ?></td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="detail-recommend-section pb-5">
-        <div class="container">
-            <div class="section-heading mb-4">
-                <h2 style="font-family: 'Playfair Display', serif;">Có thể bạn sẽ thích</h2>
-                <p class="text-muted">Các mẫu kính tương tự dựa trên sở thích của bạn.</p>
-            </div>
-
-            <?php if (!empty($displayProducts)): ?>
-                <div class="row">
-                    <?php foreach ($displayProducts as $item): ?>
-                        <div class="col-md-3 mb-4">
-                            <div class="card h-100 border-0 shadow-sm text-center p-3" style="border-radius: 10px;">
-                                <a href="index.php?controller=sanpham&action=detail&id=<?= $item['SanPhamId'] ?>" class="text-decoration-none text-dark">
-                                    <img src="<?= normalizeImg($item['HinhAnhChinh']) ?>" class="card-img-top mb-3" alt="<?= $item['TenSanPham'] ?>">
-                                    <h6 class="card-title text-truncate"><?= htmlspecialchars($item['TenSanPham']) ?></h6>
-                                    <div class="text-danger font-weight-bold"><?= formatMoney($item['GiaBan']) ?></div>
+                                <a href="index.php?controller=sanpham" class="btn-detail-back">
+                                    Xem thêm sản phẩm
                                 </a>
                             </div>
                         </div>
-                    <?php endforeach; ?>
+                    </div>
                 </div>
-            <?php else: ?>
-                <div class="alert alert-light border">Hệ thống đang cập nhật dữ liệu gợi ý...</div>
-            <?php endif; ?>
+            </div>
+
+            <div class="detail-tab-shell">
+                <ul class="nav nav-tabs detail-tabs" id="detailTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#desc-pane">
+                            Mô tả chi tiết
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#spec-pane">
+                            Thông số sản phẩm
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content detail-tab-content">
+                    <div class="tab-pane fade show active" id="desc-pane">
+                        <?= !empty($product['MoTaChiTiet'])
+                            ? $product['MoTaChiTiet']
+                            : "<p>Thông tin chi tiết sản phẩm đang được cập nhật.</p>" ?>
+                    </div>
+
+                    <div class="tab-pane fade" id="spec-pane">
+                        <div class="spec-grid">
+                            <div>
+                                <strong>Mã sản phẩm</strong>
+                                <span><?= htmlspecialchars($maSP) ?></span>
+                            </div>
+
+                            <div>
+                                <strong>Thương hiệu</strong>
+                                <span><?= htmlspecialchars($product['TenThuongHieu'] ?? '—') ?></span>
+                            </div>
+
+                            <div>
+                                <strong>Dòng sản phẩm</strong>
+                                <span><?= htmlspecialchars($product['TenLoaiSanPham'] ?? '—') ?></span>
+                            </div>
+
+                            <div>
+                                <strong>Tình trạng</strong>
+                                <span><?= $conHang ? 'Còn hàng' : 'Hết hàng' ?></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <section class="detail-recommend-modern">
+                <div class="section-heading text-center">
+                    <span class="eyebrow">Gợi ý dành cho bạn</span>
+                    <h2>Có thể bạn sẽ thích</h2>
+                    <p>Các mẫu kính tương tự phù hợp với phong cách bạn đang xem.</p>
+                </div>
+
+                <?php if (!empty($displayProducts)): ?>
+                    <div class="row">
+                        <?php foreach ($displayProducts as $item): ?>
+                            <?php
+                                $relatedId = $item['SanPhamId'] ?? 0;
+                                $relatedGiaBan = $item['GiaBan'] ?? 0;
+                            ?>
+
+                            <div class="col-lg-3 col-md-6 mb-4">
+                                <div class="related-product-card">
+                                    <a href="index.php?controller=sanpham&action=detail&id=<?= $relatedId ?>" class="related-thumb">
+                                        <img 
+                                            src="<?= normalizeImg($item['HinhAnhChinh'] ?? '') ?>" 
+                                            alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>"
+                                        >
+                                    </a>
+
+                                    <div class="related-body">
+                                        <a href="index.php?controller=sanpham&action=detail&id=<?= $relatedId ?>">
+                                            <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>
+                                        </a>
+                                        <strong><?= formatMoney($relatedGiaBan) ?></strong>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="detail-empty-recommend">
+                        Hệ thống đang cập nhật dữ liệu gợi ý sản phẩm.
+                    </div>
+                <?php endif; ?>
+            </section>
         </div>
     </section>
 </section>
 
 <script>
-    // Hàm chuyển đổi ảnh chính khi click thumb (JS thuần)
-    function swapImage(el) {
-        var main = document.getElementById('mainImage');
-        if (!main || !el) return;
-        main.src = el.getAttribute('data-src');
-        
-        // Cập nhật class active
-        document.querySelectorAll('.detail-gallery__thumbs img').forEach(img => img.style.borderColor = "#ddd");
-        el.style.borderColor = "#2c3e50";
-    }
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".detail-thumb").forEach(function (thumb) {
+        thumb.addEventListener("click", function () {
+            const mainImage = document.getElementById("mainImage");
+            const src = this.getAttribute("data-src");
+
+            if (!mainImage || !src) return;
+
+            mainImage.src = src;
+
+            document.querySelectorAll(".detail-thumb").forEach(item => item.classList.remove("active"));
+            this.classList.add("active");
+        });
+    });
+
+    document.querySelectorAll(".qty-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            const input = document.getElementById("quantityInput");
+            if (!input) return;
+
+            let value = parseInt(input.value || "1");
+            const min = parseInt(input.getAttribute("min") || "1");
+            const max = parseInt(input.getAttribute("max") || "999");
+
+            if (this.dataset.type === "plus" && value < max) value++;
+            if (this.dataset.type === "minus" && value > min) value--;
+
+            input.value = value;
+        });
+    });
+});
 </script>

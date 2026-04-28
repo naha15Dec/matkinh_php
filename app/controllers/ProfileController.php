@@ -2,6 +2,7 @@
 require_once BASE_PATH . '/app/models/ProfileModel.php';
 require_once BASE_PATH . '/app/models/HomeModel.php';
 require_once BASE_PATH . '/app/helpers/HashPassword.php';
+require_once BASE_PATH . '/app/helpers/OrderConstants.php';
 
 class ProfileController {
     private $pdo;

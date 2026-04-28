@@ -5,25 +5,25 @@ class DashboardController
     private $pdo;
 
     public function __construct($pdo)
-    {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        $this->pdo = $pdo;
-
-        if (!isset($_SESSION['LoginInformation'])) {
-            header("Location: index.php?controller=taikhoan&action=login");
-            exit();
-        }
-
-        $roleCode = strtoupper(trim($_SESSION['LoginInformation']['MaVaiTro'] ?? ''));
-
-        if (!in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER'])) {
-            header("Location: index.php");
-            exit();
-        }
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
     }
+
+    $this->pdo = $pdo;
+
+    if (!isset($_SESSION['LoginInformation'])) {
+        header("Location: index.php?controller=taikhoan&action=login");
+        exit();
+    }
+
+    $roleCode = strtoupper(trim($_SESSION['LoginInformation']['MaVaiTro'] ?? ''));
+
+    if (!in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER'])) {
+        header("Location: index.php?controller=error");
+        exit();
+    }
+}
 
     public function index()
     {

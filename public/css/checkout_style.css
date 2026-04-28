@@ -1,180 +1,413 @@
-/* --- PREMIUM CHECKOUT STYLING --- */
-
-.checkout-page {
-  background-color: #f8f9fa !important;
+.checkout-page-modern {
+  background: #fffaf3;
 }
 
-/* Các khung nhập liệu */
-.checkout-page .card {
-  border-radius: 16px !important;
-  border: 1px solid rgba(0, 0, 0, 0.05) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03) !important;
+.checkout-section-modern {
+  padding: 70px 0;
 }
 
-.checkout-page label {
-  color: #555;
-  margin-bottom: 8px;
+.checkout-layout-modern {
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 30px;
+  align-items: start;
+}
+
+.checkout-card,
+.checkout-summary-card,
+.checkout-empty {
+  background: #fff;
+  border: 1px solid #eadfce;
+  border-radius: 34px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.07);
+}
+
+.checkout-card {
+  padding: 34px;
+  margin-bottom: 26px;
+}
+
+.checkout-card-head {
+  margin-bottom: 26px;
+}
+
+.checkout-card-head span,
+.summary-eyebrow {
   display: block;
+  color: #b88a44;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
-.checkout-page .form-control {
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  padding: 12px 15px;
-  height: auto;
-  transition: all 0.3s;
-}
-
-.checkout-page .form-control:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.1);
-}
-
-/* Phương thức thanh toán */
-.payment-methods .form-check {
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 1px solid #eee !important;
-  background: #fff;
-}
-
-.payment-methods .form-check:hover {
-  border-color: var(--gold) !important;
-  background: #fffcf5;
-}
-
-.payment-methods input[type="radio"]:checked + label {
-  color: var(--gold);
-}
-
-/* Order Summary Box (Cột phải) */
-.order-items::-webkit-scrollbar {
-  width: 5px;
-}
-.order-items::-webkit-scrollbar-thumb {
-  background: #eee;
-  border-radius: 10px;
-}
-
-.order-items h6 {
-  font-size: 14px;
-  color: var(--dark);
-}
-
-/* Tổng kết giá tiền */
-.checkout-page hr {
-  border-top: 1px dashed #ddd;
-}
-
-.h4.text-primary {
-  color: var(
-    --gold
-  ) !important; /* Đổi màu xanh mặc định sang màu Gold thương hiệu */
-  font-weight: 800 !important;
-}
-
-/* Nút bấm thanh toán */
-.btn-dark.btn-block {
-  background: var(--dark);
-  border: none;
-  letter-spacing: 2px;
-  font-size: 14px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
-}
-
-.btn-dark.btn-block:hover {
-  background: var(--gold);
-  transform: translateY(-3px);
-  box-shadow: 0 15px 25px rgba(197, 160, 89, 0.2);
-}
-
-/* --- ORDER SUCCESS PREMIER STYLE --- */
-
-.success-section {
-  background-color: #fcfcfc !important;
-}
-
-.success-hero-card {
-  background: #fff;
-  padding: 50px;
-  border-radius: 20px;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.03);
-  border: 1px solid #f0f0f0;
-}
-
-/* Hiệu ứng Icon Success */
-.icon-wrap i {
-  color: var(
-    --gold
-  ) !important; /* Sử dụng màu vàng thương hiệu thay vì xanh lá mặc định */
-  display: inline-block;
-  animation: scaleUp 0.5s ease-out;
-}
-
-@keyframes scaleUp {
-  0% {
-    transform: scale(0);
-  }
-  70% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.success-hero-card h2 {
-  font-size: 36px;
-  margin-bottom: 15px;
-  letter-spacing: -1px;
-}
-
-/* Style cho các Card thông tin */
-.success-section .card {
-  border-radius: 15px !important;
-  transition: 0.3s;
-}
-
-.success-section .card h4 {
+.checkout-card-head h2,
+.checkout-summary-card h3 {
   font-family: "Playfair Display", serif;
-  font-size: 20px;
-  color: var(--dark);
-  border-bottom: 2px solid var(--gold) !important;
-  width: fit-content;
+  font-size: 34px;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 8px;
 }
 
-.success-section p {
-  font-size: 15px;
-  margin-bottom: 10px;
-  color: #555;
+.checkout-card-head p {
+  color: #777;
+  margin: 0;
+  line-height: 1.7;
 }
 
-.success-section p strong {
-  color: var(--dark);
+.checkout-card label {
+  color: #111;
+  font-size: 14px;
+  font-weight: 900;
+  margin-bottom: 8px;
 }
 
-/* Nút hành động */
-.success-actions .btn-dark {
-  background: var(--dark);
-  border: none;
-  letter-spacing: 1px;
-  font-weight: 700;
-  transition: 0.3s;
+.checkout-input-wrap {
+  position: relative;
 }
 
-.success-actions .btn-dark:hover {
-  background: var(--gold);
-  transform: translateY(-3px);
+.checkout-input-wrap > i {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  transform: translateY(-50%);
+  color: #b88a44;
+  z-index: 2;
 }
 
-.success-actions .btn-outline-dark {
-  border: 2px solid var(--dark);
-  font-weight: 700;
-  transition: 0.3s;
+.checkout-input-wrap.textarea > i {
+  top: 21px;
+  transform: none;
 }
 
-.success-actions .btn-outline-dark:hover {
-  background: var(--dark);
+.checkout-input-wrap input,
+.checkout-input-wrap textarea {
+  width: 100%;
+  border: 1px solid #eadfce;
+  background: #fffaf3;
+  outline: none;
+  color: #111;
+  font-weight: 600;
+  padding-left: 48px;
+}
+
+.checkout-input-wrap input {
+  height: 54px;
+  border-radius: 999px;
+  padding-right: 18px;
+}
+
+.checkout-input-wrap textarea {
+  border-radius: 24px;
+  padding-top: 16px;
+  padding-right: 18px;
+  padding-bottom: 16px;
+  resize: vertical;
+}
+
+.checkout-input-wrap input:focus,
+.checkout-input-wrap textarea:focus {
+  background: #fff;
+  border-color: #b88a44;
+  box-shadow: 0 0 0 4px rgba(184, 138, 68, 0.12);
+}
+
+.payment-method-list {
+  display: grid;
+  gap: 14px;
+}
+
+.payment-method-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid #eadfce;
+  border-radius: 24px;
+  padding: 18px;
+  cursor: pointer;
+  background: #fffaf3;
+  transition: 0.25s;
+  margin: 0;
+}
+
+.payment-method-card.active,
+.payment-method-card:hover {
+  border-color: #111;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+}
+
+.payment-method-card input {
+  display: none;
+}
+
+.payment-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #111;
   color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.payment-method-card strong {
+  display: block;
+  color: #111;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.payment-method-card small {
+  color: #777;
+}
+
+.checkout-summary-modern {
+  position: sticky;
+  top: 110px;
+}
+
+.checkout-summary-card {
+  padding: 28px;
+}
+
+.checkout-items {
+  max-height: 330px;
+  overflow-y: auto;
+  padding-right: 6px;
+  margin-bottom: 18px;
+}
+
+.checkout-item {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0e7dc;
+}
+
+.checkout-item-img {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  background: #f3eadf;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkout-item-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.checkout-item-img span {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkout-item-info a {
+  display: block;
+  color: #111;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.checkout-item-info a:hover {
+  color: #b88a44;
+}
+
+.checkout-item-info small {
+  color: #777;
+}
+
+.checkout-item strong {
+  color: #111;
+  font-size: 14px;
+}
+
+.summary-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0e7dc;
+  color: #666;
+}
+
+.summary-line strong {
+  color: #111;
+}
+
+.summary-line.discount strong {
+  color: #dc3545;
+}
+
+.checkout-secure-note {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: #fff7ec;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.checkout-secure-note i {
+  color: #b88a44;
+  margin-right: 6px;
+}
+
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-top: 18px;
+  margin-top: 8px;
+}
+
+.summary-total span {
+  color: #111;
+  font-weight: 900;
+}
+
+.summary-total strong {
+  color: #111;
+  font-size: 25px;
+  font-weight: 950;
+}
+
+.btn-place-order,
+.btn-back-cart {
+  width: 100%;
+  border-radius: 999px;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-weight: 900;
+}
+
+.btn-place-order {
+  border: none;
+  background: #111;
+  color: #fff;
+  margin-top: 24px;
+}
+
+.btn-place-order:hover {
+  background: #b88a44;
+  color: #fff;
+}
+
+.btn-back-cart {
+  background: #f5efe7;
+  color: #111;
+  margin-top: 12px;
+}
+
+.btn-back-cart:hover {
+  background: #111;
+  color: #fff;
+}
+
+.checkout-empty {
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.checkout-empty i {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: #f3eadf;
+  color: #b88a44;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  margin-bottom: 20px;
+}
+
+.checkout-empty h2 {
+  font-family: "Playfair Display", serif;
+  font-size: 36px;
+  font-weight: 800;
+  color: #111;
+}
+
+.checkout-empty p {
+  color: #777;
+  margin-bottom: 24px;
+}
+
+.checkout-empty a {
+  display: inline-flex;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 13px 26px;
+  font-weight: 900;
+}
+
+.checkout-empty a:hover {
+  background: #b88a44;
+  color: #fff;
+}
+
+@media (max-width: 1199px) {
+  .checkout-layout-modern {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-summary-modern {
+    position: static;
+  }
+}
+
+@media (max-width: 575px) {
+  .checkout-section-modern {
+    padding: 42px 0;
+  }
+
+  .checkout-card,
+  .checkout-summary-card {
+    padding: 24px;
+    border-radius: 24px;
+  }
+
+  .checkout-card-head h2,
+  .checkout-summary-card h3 {
+    font-size: 30px;
+  }
+
+  .checkout-item {
+    grid-template-columns: 56px 1fr;
+  }
+
+  .checkout-item > strong {
+    grid-column: 2;
+  }
 }

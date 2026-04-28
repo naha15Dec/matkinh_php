@@ -1,218 +1,420 @@
-/* --- PREMIUM PROFILE STYLING --- */
-
-.profile-page {
-  background-color: #fcfcfc !important;
+.profile-page-modern {
+  background: #fffaf3;
 }
 
-/* Card phía trên: Thông tin tổng quan */
-.profile-top-card {
-  background: #fff;
-  padding: 40px !important;
-  border-radius: 20px !important;
-  border: 1px solid #f0f0f0;
+.profile-section-modern {
+  padding: 70px 0;
 }
 
-.profile-top-card .avatar {
-  background: var(--dark) !important;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-  border: 3px solid #fff;
-}
-
-.profile-top-card h2 {
-  font-family: "Playfair Display", serif;
-  font-weight: 700;
-  color: var(--dark);
-}
-
-/* Các khung chức năng */
-.profile-page .card {
-  background: #fff;
-  border-radius: 20px !important;
-  border: 1px solid #f0f0f0 !important;
-  transition: 0.3s;
-}
-
-.profile-page h3 {
-  font-family: "Playfair Display", serif;
-  font-size: 22px;
-  margin-bottom: 25px;
-  color: var(--dark);
-  border-bottom: 2px solid var(--gold);
-  display: inline-block;
-  padding-bottom: 5px;
-}
-
-/* Form Styling */
-.profile-page .form-label {
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #888;
-  margin-bottom: 8px;
-}
-
-.profile-page .form-control {
-  border-radius: 10px;
-  padding: 12px 15px;
-  border: 1px solid #eee;
-  background: #fdfdfd;
-}
-
-.profile-page .form-control:focus {
-  border-color: var(--gold);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.1);
-}
-
-/* Trạng thái đơn hàng (Badges) */
-.badge.bg-success {
-  background-color: #27ae60 !important;
-}
-.badge.bg-danger {
-  background-color: #e74c3c !important;
-}
-.badge.bg-warning {
-  background-color: #f39c12 !important;
-  color: #fff !important;
-}
-.badge.bg-processing {
-  background-color: #3498db !important;
-}
-
-/* Bảng lịch sử đơn hàng */
-.table th {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: #aaa;
-  border-top: none;
-}
-
-.table td {
-  vertical-align: middle;
-  font-size: 14px;
-}
-
-.btn-light.border:hover {
-  background-color: var(--dark);
+.profile-hero-card {
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(184, 138, 68, 0.22),
+      transparent 34%
+    ),
+    #111;
   color: #fff;
+  border-radius: 34px;
+  padding: 34px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 30px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.12);
 }
 
-/* Pagination */
-.pagination .page-link {
-  border: none;
-  color: var(--dark);
-  border-radius: 5px;
-  margin: 0 2px;
-}
-
-.pagination .page-item.active .page-link {
-  background-color: var(--gold);
-}
-
-/* --- PREMIUM ORDER DETAIL STYLING --- */
-
-.order-detail-page {
-  background-color: #fcfcfc !important;
-}
-
-.order-detail-page .card {
-  border-radius: 20px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
-  border: 1px solid #f0f0f0 !important;
-}
-
-.order-detail-page h2 {
-  font-family: "Playfair Display", serif;
-  font-weight: 700;
-  color: var(--dark);
-}
-
-.order-detail-page h5 {
-  font-family: "Playfair Display", serif;
-  font-weight: 700;
-  color: var(--gold);
-  margin-bottom: 15px;
-  text-transform: uppercase;
-  font-size: 16px;
-  letter-spacing: 1px;
-}
-
-/* Thông tin chung */
-.order-detail-page p {
-  font-size: 14px;
-  line-height: 1.8;
-  color: #666;
-}
-
-.order-detail-page p strong {
-  color: var(--dark);
-}
-
-/* Bảng sản phẩm */
-.order-detail-page .table {
-  margin-top: 30px;
-}
-
-.order-detail-page .table thead th {
-  background-color: #fafafa;
-  border: none;
-  text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 1px;
-  color: #888;
-  padding: 15px;
-}
-
-.order-detail-page .table td {
-  padding: 20px 15px;
-  vertical-align: middle;
-  border-bottom: 1px solid #f5f5f5;
-}
-
-/* Footer bảng (Tổng tiền) */
-.order-detail-page tfoot td {
-  border: none;
-  padding: 10px 15px;
-  color: #777;
-}
-
-.order-detail-page tfoot tr:last-child td {
-  padding-top: 25px;
-  border-top: 1px dashed #ddd;
-}
-
-.text-danger-custom {
-  color: var(
-    --gold
-  ) !important; /* Dùng màu Gold thay vì đỏ để giữ nét sang trọng */
-}
-
-.avatar {
-  width: 70px;
-  height: 70px;
-  background-color: #212529;
-  color: #ffffff;
+.profile-avatar {
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
+  background: linear-gradient(135deg, #c6a76a, #b88a44);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 38px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.profile-hero-info {
+  flex: 1;
+}
+
+.profile-hero-info span,
+.profile-card-head span {
+  display: block;
+  color: #f2d8a6;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.profile-card-head span {
+  color: #b88a44;
+}
+
+.profile-hero-info h2 {
   font-family: "Playfair Display", serif;
+  font-size: 42px;
+  font-weight: 900;
+  margin-bottom: 6px;
 }
-.profile-top-card {
-  padding: 20px;
+
+.profile-hero-info p {
+  color: #d8d8d8;
+  margin: 0;
+}
+
+.profile-hero-stats {
+  display: flex;
+  gap: 14px;
+}
+
+.profile-hero-stats div {
+  min-width: 120px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  padding: 16px;
+  text-align: center;
+}
+
+.profile-hero-stats strong {
+  display: block;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.profile-hero-stats span {
+  color: #cfcfcf;
+  font-size: 12px;
+}
+
+.profile-layout-modern {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+.profile-card-modern {
   background: #fff;
-  border-radius: 15px;
+  border: 1px solid #eadfce;
+  border-radius: 34px;
+  padding: 30px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.07);
+  margin-bottom: 26px;
 }
-/* Tùy chỉnh màu sắc Badge nếu cần */
-.badge-success {
-  background-color: #28a745;
+
+.profile-card-head {
+  margin-bottom: 24px;
 }
-.badge-danger {
-  background-color: #dc3545;
+
+.profile-card-head h3 {
+  font-family: "Playfair Display", serif;
+  font-size: 32px;
+  font-weight: 900;
+  color: #111;
+  margin-bottom: 8px;
 }
+
+.profile-card-head p {
+  color: #777;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.profile-card-modern label {
+  color: #111;
+  font-size: 14px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.profile-input-wrap {
+  position: relative;
+}
+
+.profile-input-wrap > i {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  transform: translateY(-50%);
+  color: #b88a44;
+  z-index: 2;
+}
+
+.profile-input-wrap input,
+.profile-input-wrap select {
+  width: 100%;
+  height: 54px;
+  border: 1px solid #eadfce;
+  background: #fffaf3;
+  border-radius: 999px;
+  outline: none;
+  padding: 0 18px 0 48px;
+  font-weight: 600;
+  color: #111;
+}
+
+.profile-input-wrap input:focus,
+.profile-input-wrap select:focus {
+  background: #fff;
+  border-color: #b88a44;
+  box-shadow: 0 0 0 4px rgba(184, 138, 68, 0.12);
+}
+
+.btn-profile-primary,
+.btn-profile-secondary {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 999px;
+  border: none;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-profile-primary {
+  background: #111;
+  color: #fff;
+}
+
+.btn-profile-primary:hover {
+  background: #b88a44;
+  color: #fff;
+}
+
+.btn-profile-secondary {
+  background: #f5efe7;
+  color: #111;
+}
+
+.btn-profile-secondary:hover {
+  background: #111;
+  color: #fff;
+}
+
+.order-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+
+.order-head a {
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.order-head a:hover {
+  background: #b88a44;
+  color: #fff;
+}
+
+.order-list-modern {
+  display: grid;
+  gap: 14px;
+}
+
+.order-item-modern {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: center;
+  background: #fffaf3;
+  border: 1px solid #eadfce;
+  border-radius: 24px;
+  padding: 18px;
+}
+
+.order-main-info span,
+.order-money span {
+  display: block;
+  color: #777;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.order-main-info strong,
+.order-money strong {
+  color: #111;
+  font-weight: 900;
+}
+
+.order-main-info small {
+  display: block;
+  color: #999;
+  margin-top: 4px;
+}
+
+.order-status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .badge-warning {
-  background-color: #ffc107;
-  color: #212529;
+  background: #fff4da;
+  color: #b88a44;
+}
+
+.badge-success {
+  background: #e8fff1;
+  color: #1e8e4d;
+}
+
+.badge-danger {
+  background: #ffe8e8;
+  color: #d93025;
+}
+
+.badge-primary {
+  background: #e8f1ff;
+  color: #2563eb;
+}
+
+.badge-secondary {
+  background: #f3f3f3;
+  color: #666;
+}
+
+.btn-order-detail {
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.btn-order-detail:hover {
+  background: #b88a44;
+  color: #fff;
+}
+
+.profile-empty-order {
+  text-align: center;
+  padding: 60px 20px;
+  border: 1px dashed #dacbb8;
+  border-radius: 26px;
+  background: #fffaf3;
+}
+
+.profile-empty-order i {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f3eadf;
+  color: #b88a44;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  margin-bottom: 18px;
+}
+
+.profile-empty-order h4 {
+  color: #111;
+  font-weight: 900;
+}
+
+.profile-empty-order p {
+  color: #777;
+}
+
+.profile-empty-order a {
+  display: inline-flex;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-weight: 900;
+  margin-top: 10px;
+}
+
+.profile-empty-order a:hover {
+  background: #b88a44;
+  color: #fff;
+}
+
+.profile-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.profile-pagination a {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #eadfce;
+  color: #111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+.profile-pagination a.active,
+.profile-pagination a:hover {
+  background: #111;
+  color: #fff;
+}
+
+@media (max-width: 1199px) {
+  .profile-layout-modern {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .profile-hero-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-hero-stats {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .order-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-item-modern {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575px) {
+  .profile-section-modern {
+    padding: 42px 0;
+  }
+
+  .profile-hero-card,
+  .profile-card-modern {
+    border-radius: 24px;
+    padding: 24px;
+  }
+
+  .profile-hero-info h2 {
+    font-size: 34px;
+  }
 }

@@ -1,4 +1,5 @@
 <?php
+
 class ContactModel {
     private $db;
 
@@ -7,13 +8,19 @@ class ContactModel {
     }
 
     public function getStoreInfo() {
-        // Lấy thông tin cửa hàng đang hoạt động, ưu tiên cái mới cập nhật nhất
-        $sql = "SELECT * FROM thongtincuahang 
-                WHERE IsActive = 1 
-                ORDER BY UpdatedAt DESC 
-                LIMIT 1";
+        $sql = "
+            SELECT *
+            FROM thongtincuahang
+            WHERE IsActive = 1
+            ORDER BY UpdatedAt DESC
+            LIMIT 1
+        ";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetch();
+
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $result ?: [];
     }
 }

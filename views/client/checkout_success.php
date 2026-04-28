@@ -1,78 +1,168 @@
 <?php
-if (!function_exists('getStatusName')) {
-    function getStatusName($status) {
-        $map = [
-            1 => "Chờ xác nhận", 
-            2 => "Đã xác nhận", 
-            3 => "Đang chuẩn bị hàng",
-            4 => "Đã bàn giao shipper", 
-            5 => "Đang giao hàng", 
-            6 => "Đã giao hàng",
-            7 => "Giao hàng thất bại", 
-            8 => "Đã hủy"
-        ];
-        return $map[$status] ?? "Chờ xác nhận";
-    }
-}
-
-// Các helper khác nếu cần
 if (!function_exists('formatMoney')) {
     function formatMoney($value) {
-        return number_format($value, 0, ',', '.') . ' ₫';
+        return number_format((float)$value, 0, ',', '.') . '₫';
     }
 }
+
+$orderCode = $order['MaDonHang'] ?? ('KM' . time());
+
+$status = (int)($order['TrangThai'] ?? 1);
+
+$paymentMethod = $order['PhuongThucThanhToan'] ?? 'COD';
+
+$totalPay = (float)($order['TongThanhToan'] ?? 0);
 ?>
 
-<section class="success-page">
+<section class="order-success-page">
+
     <section class="optical-breadcrumb">
-        <div class="container text-center">
-            <span class="optical-breadcrumb__eyebrow">Karma Eyewear Confirmation</span>
-            <h1 class="text-white">Đặt hàng thành công</h1>
-        </div>
-    </section>
-
-    <section class="success-section" style="padding: 80px 0;">
         <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-10">
-                    
-                    <div class="success-hero-card text-center mb-5 shadow-sm">
-                        <div class="icon-wrap mb-4">
-                            <i class="fas fa-check-circle" style="font-size: 80px; color: #c5a059;"></i>
-                        </div>
-                        <h2 class="mb-3" style="font-family: 'Playfair Display', serif;">Cảm ơn quý khách!</h2>
-                        <p class="lead text-muted">Chúng tôi đã nhận được đơn hàng của bạn.</p>
-                        <div class="mt-4 p-3 d-inline-block rounded-pill" style="background: #fdf6e8; border: 1px solid #faebcc;">
-                            <span class="text-dark font-weight-bold">Mã đơn hàng: #<?= htmlspecialchars($order['MaDonHang'] ?? 'KM-'.time()) ?></span>
-                        </div>
-                    </div>
+            <div class="optical-breadcrumb__inner">
+                <span class="optical-breadcrumb__eyebrow">
+                    Karma Eyewear Confirmation
+                </span>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-4">
-                            <div class="card p-4 h-100 shadow-sm border-0">
-                                <h4 class="pb-2 mb-4 border-bottom" style="font-family: 'Playfair Display', serif; color: #c5a059;">Thông tin đơn hàng</h4>
-                                <p><strong>Ngày đặt:</strong> <?= date('d/m/Y H:i', strtotime($order['NgayDat'] ?? 'now')) ?></p>
-                                <p><strong>Trạng thái:</strong> <span class="badge badge-info px-3 py-2"><?= getStatusName($order['TrangThai'] ?? 1) ?></span></p>
-                                <p><strong>Thanh toán:</strong> <?= ($order['PhuongThucThanhToan'] == 'VNPAY') ? 'Chuyển khoản Online' : 'Tiền mặt (COD)' ?></p>
-                            </div>
-                        </div>
+                <h1>Đặt hàng thành công</h1>
 
-                        <div class="col-md-6 mb-4">
-                            <div class="card p-4 h-100 shadow-sm border-0">
-                                <h4 class="pb-2 mb-4 border-bottom" style="font-family: 'Playfair Display', serif; color: #c5a059;">Thông tin giao nhận</h4>
-                                <p><strong>Người nhận:</strong> <?= htmlspecialchars($order['HoTenNguoiNhan'] ?? '') ?></p>
-                                <p><strong>Số điện thoại:</strong> <?= htmlspecialchars($order['SoDienThoaiNguoiNhan'] ?? '') ?></p>
-                                <p><strong>Địa chỉ:</strong> <?= htmlspecialchars($order['DiaChiNhanHang'] ?? '') ?></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="success-actions text-center mt-5">
-                        <a href="index.php" class="btn btn-dark px-5 py-3 shadow-sm mr-md-3" style="border-radius: 30px; font-weight: bold;">TIẾP TỤC MUA SẮM</a>
-                        <a href="index.php?controller=profile" class="btn btn-outline-dark px-5 py-3 mt-3 mt-md-0" style="border-radius: 30px; font-weight: bold;">KIỂM TRA ĐƠN HÀNG</a>
-                    </div>
-                </div>
+                <nav>
+                    <a href="index.php">Trang chủ</a>
+                    <span>/</span>
+                    <span>Hoàn tất đơn hàng</span>
+                </nav>
             </div>
         </div>
     </section>
+
+    <section class="order-success-section">
+        <div class="container">
+
+            <div class="success-shell">
+
+                <div class="success-hero">
+                    <div class="success-icon">
+                        <i class="fas fa-check"></i>
+                    </div>
+
+                    <span class="success-eyebrow">
+                        ORDER SUCCESSFULLY PLACED
+                    </span>
+
+                    <h2>
+                        Cảm ơn bạn đã mua sắm tại Karma Eyewear
+                    </h2>
+
+                    <p>
+                        Đơn hàng của bạn đã được ghi nhận thành công. 
+                        Chúng tôi sẽ nhanh chóng xác nhận và chuẩn bị giao hàng.
+                    </p>
+
+                    <div class="success-order-code">
+                        Mã đơn hàng:
+                        <strong>#<?= htmlspecialchars($orderCode) ?></strong>
+                    </div>
+                </div>
+
+                <div class="success-grid">
+
+                    <div class="success-card">
+                        <div class="success-card-head">
+                            <span>Order Information</span>
+                            <h3>Thông tin đơn hàng</h3>
+                        </div>
+
+                        <div class="success-info-list">
+
+                            <div class="success-info-item">
+                                <span>Mã đơn hàng</span>
+                                <strong>#<?= htmlspecialchars($orderCode) ?></strong>
+                            </div>
+
+                            <div class="success-info-item">
+                                <span>Ngày đặt</span>
+                                <strong>
+                                    <?= date('d/m/Y H:i', strtotime($order['NgayDat'] ?? 'now')) ?>
+                                </strong>
+                            </div>
+
+                            <div class="success-info-item">
+                                <span>Trạng thái</span>
+
+                                <div class="success-status-badge <?= OrderStatusConstants::getBadgeClass($status) ?>">
+                                    <?= OrderStatusConstants::getName($status) ?>
+                                </div>
+                            </div>
+
+                            <div class="success-info-item">
+                                <span>Thanh toán</span>
+
+                                <strong>
+                                    <?= $paymentMethod === 'VNPAY'
+                                        ? 'Thanh toán VNPAY'
+                                        : 'Thanh toán khi nhận hàng (COD)' ?>
+                                </strong>
+                            </div>
+
+                            <div class="success-info-item total">
+                                <span>Tổng thanh toán</span>
+                                <strong><?= formatMoney($totalPay) ?></strong>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="success-card">
+                        <div class="success-card-head">
+                            <span>Shipping Information</span>
+                            <h3>Thông tin giao nhận</h3>
+                        </div>
+
+                        <div class="success-customer-box">
+
+                            <div class="customer-avatar">
+                                <i class="far fa-user"></i>
+                            </div>
+
+                            <div class="customer-info">
+                                <h4>
+                                    <?= htmlspecialchars($order['HoTenNguoiNhan'] ?? '') ?>
+                                </h4>
+
+                                <p>
+                                    <i class="fas fa-phone-alt"></i>
+                                    <?= htmlspecialchars($order['SoDienThoaiNguoiNhan'] ?? '') ?>
+                                </p>
+
+                                <p>
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <?= htmlspecialchars($order['DiaChiNhanHang'] ?? '') ?>
+                                </p>
+                            </div>
+
+                        </div>
+
+                        <div class="success-note">
+                            <i class="fas fa-shield-alt"></i>
+
+                            Karma Eyewear sẽ liên hệ xác nhận đơn hàng trong thời gian sớm nhất.
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="success-actions">
+                    <a href="index.php?controller=sanpham" class="btn-success-primary">
+                        Tiếp tục mua sắm
+                    </a>
+
+                    <a href="index.php?controller=profile" class="btn-success-secondary">
+                        Kiểm tra đơn hàng
+                    </a>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
 </section>
