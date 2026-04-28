@@ -1,49 +1,64 @@
 <?php
 require_once BASE_PATH . '/app/models/AdminTaiKhoanModel.php';
+require_once BASE_PATH . '/app/helpers/HashPassword.php';
 
-class AdminTaiKhoanController {
+class AdminTaiKhoanController
+{
     private $model;
     private $pdo;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->pdo = $pdo;
         $this->model = new AdminTaiKhoanModel($pdo);
-        
-        // Bảo vệ: Chỉ Admin mới được vào module này
-        if (!isset($_SESSION['LoginInformation']) || strtoupper(trim($_SESSION['LoginInformation']['MaVaiTro'] ?? '')) !== 'ADMIN') {
+
+        $sessionAccount = $_SESSION['LoginInformation'] ?? null;
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        if (!$sessionAccount || $roleCode !== 'ADMIN') {
             $_SESSION['error'] = "Chỉ Quản trị viên mới có quyền truy cập module này.";
             header("Location: index.php?controller=dashboard");
             exit;
         }
     }
 
-    // Trang danh sách tài khoản
-    public function index() {
-    $pdo = $this->pdo; 
-
-    $keyword = $_GET['keyword'] ?? '';
-    $role = $_GET['role'] ?? '';
-    
-    $accounts = $this->model->getAccounts($keyword, $role);
-    $roles = $this->model->getAllRoles();
-    
-    // Đảm bảo các biến quyền cũng có sẵn cho layout/view
-    $sessionAccount = $_SESSION['LoginInformation'];
-    $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
-    $isAdmin = ($roleCode === 'ADMIN');
-    $isStaff = ($roleCode === 'STAFF');
-    $isShipper = ($roleCode === 'SHIPPER');
-
-    $title = "Quản lý tài khoản";
-    $viewContent = BASE_PATH . '/views/admin/account_manager.php';
-    require_once BASE_PATH . '/views/admin/layout.php';
-}
-
-    // Trang chi tiết tài khoản (Xử lý các form Update, Change Pass, Role)
-    public function detail() {
+    public function index()
+    {
         $pdo = $this->pdo;
-        
-        $id = $_GET['id'] ?? 0;
+
+        $keyword = trim($_GET['keyword'] ?? '');
+        $role = trim($_GET['role'] ?? '');
+
+        $accounts = $this->model->getAccounts($keyword, $role);
+        $roles = $this->model->getAllRoles();
+
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        $isAdmin = $roleCode === 'ADMIN';
+        $isStaff = $roleCode === 'STAFF';
+        $isShipper = $roleCode === 'SHIPPER';
+
+        $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Admin';
+
+        $title = "Quản lý tài khoản";
+        $viewContent = BASE_PATH . '/views/admin/account_manager.php';
+
+        require_once BASE_PATH . '/views/admin/layout.php';
+    }
+
+    public function detail()
+    {
+        $pdo = $this->pdo;
+
+        $id = (int)($_GET['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Mã tài khoản không hợp lệ.";
+            header("Location: index.php?controller=admintaikhoan");
+            exit;
+        }
+
         $account = $this->model->getAccountById($id);
         $roles = $this->model->getAllRoles();
 
@@ -53,64 +68,110 @@ class AdminTaiKhoanController {
             exit;
         }
 
-        $title = "Chi tiết tài khoản: " . $account['TenDangNhap'];
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        $isAdmin = $roleCode === 'ADMIN';
+        $isStaff = $roleCode === 'STAFF';
+        $isShipper = $roleCode === 'SHIPPER';
+
+        $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Admin';
+
+        $title = "Chi tiết tài khoản: " . ($account['TenDangNhap'] ?? '');
         $viewContent = BASE_PATH . '/views/admin/account_detail.php';
+
         require_once BASE_PATH . '/views/admin/layout.php';
     }
 
-    // Khóa/Mở khóa tài khoản
-    public function toggleActive() {
-        $id = $_POST['id'] ?? 0;
-        $currentAdminId = $_SESSION['LoginInformation']['TaiKhoanId'];
+    public function toggleActive()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=admintaikhoan");
+            exit;
+        }
 
-        if ($id == $currentAdminId) {
+        $id = (int)($_POST['id'] ?? 0);
+        $currentAdminId = (int)($_SESSION['LoginInformation']['TaiKhoanId'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Tài khoản không hợp lệ.";
+            $this->redirectBack();
+        }
+
+        if ($id === $currentAdminId) {
             $_SESSION['error'] = "Bạn không thể tự khóa chính mình.";
         } else {
             if ($this->model->toggleActive($id)) {
                 $_SESSION['success'] = "Cập nhật trạng thái thành công.";
+            } else {
+                $_SESSION['error'] = "Cập nhật trạng thái thất bại.";
             }
         }
-        header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=admintaikhoan"));
+
+        $this->redirectBack();
+    }
+
+    public function changePassword()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=admintaikhoan");
+            exit;
+        }
+
+        $id = (int)($_POST['TaiKhoanId'] ?? 0);
+        $newPassword = trim($_POST['NewPassword'] ?? '');
+        $confirmPassword = trim($_POST['ConfirmPassword'] ?? '');
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Tài khoản không hợp lệ.";
+        } elseif (strlen($newPassword) < 6) {
+            $_SESSION['error'] = "Mật khẩu mới phải từ 6 ký tự trở lên.";
+        } elseif ($newPassword !== $confirmPassword) {
+            $_SESSION['error'] = "Xác nhận mật khẩu không khớp.";
+        } else {
+            $newHash = HashPassword::hash($newPassword);
+
+            if ($this->model->changePassword($id, $newHash)) {
+                $_SESSION['success'] = "Đã đổi mật khẩu cho tài khoản.";
+            } else {
+                $_SESSION['error'] = "Đổi mật khẩu thất bại.";
+            }
+        }
+
+        header("Location: index.php?controller=admintaikhoan&action=detail&id=" . $id);
         exit;
     }
 
-    // SỬA TẠI ĐÂY: Đổi mật khẩu dùng chuẩn HashPassword (Bcrypt) của bạn
-    public function changePassword() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['TaiKhoanId'] ?? 0;
-            $newPassword = $_POST['NewPassword'] ?? '';
-            $confirmPassword = $_POST['ConfirmPassword'] ?? '';
-
-            if (strlen($newPassword) < 6) {
-                $_SESSION['error'] = "Mật khẩu mới phải từ 6 ký tự trở lên.";
-            } elseif ($newPassword !== $confirmPassword) {
-                $_SESSION['error'] = "Xác nhận mật khẩu không khớp.";
-            } else {
-                // Dùng Bcrypt của bạn
-                $newHash = HashPassword::hash($newPassword);
-                if ($this->model->changePassword($id, $newHash)) {
-                    $_SESSION['success'] = "Đã đổi mật khẩu cho tài khoản.";
-                }
-            }
-            header("Location: index.php?controller=admintaikhoan&action=detail&id=" . $id);
+    public function updateRole()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=admintaikhoan");
             exit;
         }
-    }
 
-    // Cập nhật phân quyền
-    public function updateRole() {
-        $id = $_POST['TaiKhoanId'] ?? 0;
-        $roleId = $_POST['VaiTroId'] ?? 0;
-        $currentAdminId = $_SESSION['LoginInformation']['TaiKhoanId'];
+        $id = (int)($_POST['TaiKhoanId'] ?? 0);
+        $roleId = (int)($_POST['VaiTroId'] ?? 0);
+        $currentAdminId = (int)($_SESSION['LoginInformation']['TaiKhoanId'] ?? 0);
 
-        if ($id == $currentAdminId) {
+        if ($id <= 0 || $roleId <= 0) {
+            $_SESSION['error'] = "Dữ liệu phân quyền không hợp lệ.";
+        } elseif ($id === $currentAdminId) {
             $_SESSION['error'] = "Bạn không thể tự đổi quyền của mình.";
         } else {
             if ($this->model->updateRole($id, $roleId)) {
                 $_SESSION['success'] = "Cập nhật phân quyền thành công.";
+            } else {
+                $_SESSION['error'] = "Cập nhật phân quyền thất bại.";
             }
         }
+
         header("Location: index.php?controller=admintaikhoan&action=detail&id=" . $id);
+        exit;
+    }
+
+    private function redirectBack()
+    {
+        header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=admintaikhoan"));
         exit;
     }
 }

@@ -1,180 +1,240 @@
 <?php
 require_once BASE_PATH . '/app/models/AdminBlogModel.php';
 
-class AdminBlogController {
+class AdminBlogController
+{
     private $model;
     private $pdo;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->pdo = $pdo;
         $this->model = new AdminBlogModel($pdo);
-        
-        // Kiểm tra đăng nhập và quyền (Admin hoặc Staff mới được vào)
-        if (!isset($_SESSION['LoginInformation']) || !in_array(strtoupper($_SESSION['LoginInformation']['MaVaiTro']), ['ADMIN', 'STAFF'])) {
+
+        $sessionAccount = $_SESSION['LoginInformation'] ?? null;
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        if (!$sessionAccount || !in_array($roleCode, ['ADMIN', 'STAFF'])) {
+            $_SESSION['error'] = "Bạn không có quyền truy cập module bài viết.";
             header("Location: index.php?controller=dashboard");
             exit;
         }
     }
 
-    public function index() {
-        $pdo = $this->pdo; 
+    public function index()
+    {
+        $pdo = $this->pdo;
+
         $user = $_SESSION['LoginInformation'];
-        $role = strtoupper($user['MaVaiTro']);
+        $role = strtoupper(trim($user['MaVaiTro'] ?? ''));
 
         $status = $_GET['status'] ?? 'published';
-        $keyword = $_GET['keyword'] ?? '';
-        
-        // LOGIC PHÂN QUYỀN: Admin truyền null (thấy hết), Staff truyền TaiKhoanId (chỉ thấy bài mình)
-        $userId = ($role === 'ADMIN') ? null : $user['TaiKhoanId'];
+        $keyword = trim($_GET['keyword'] ?? '');
+
+        $userId = $role === 'ADMIN' ? null : (int)$user['TaiKhoanId'];
         $posts = $this->model->getBlogs($status, $keyword, $userId);
-        
+
+        $displayName = $user['HoTen'] ?? $user['TenDangNhap'] ?? 'Tài khoản';
+        $isAdmin = $role === 'ADMIN';
+        $isStaff = $role === 'STAFF';
+        $isShipper = $role === 'SHIPPER';
+
         $title = $this->getHeaderTitle($status);
         $viewContent = BASE_PATH . '/views/admin/blog_index.php';
+
         require_once BASE_PATH . '/views/admin/layout.php';
     }
 
-    // HIỂN THỊ FORM VIẾT BÀI / SỬA BÀI
-    public function edit() {
+    public function edit()
+    {
         $pdo = $this->pdo;
-        $id = $_GET['id'] ?? 0;
-        
+
+        $user = $_SESSION['LoginInformation'];
+        $role = strtoupper(trim($user['MaVaiTro'] ?? ''));
+
+        $id = (int)($_GET['id'] ?? 0);
         $post = null;
+
         if ($id > 0) {
             $post = $this->model->getBlogById($id);
-            // Bảo mật: Nếu không phải Admin thì không được sửa bài của người khác
-            if (!$post || (strtoupper($_SESSION['LoginInformation']['MaVaiTro']) !== 'ADMIN' && $post['CreatedById'] != $_SESSION['LoginInformation']['TaiKhoanId'])) {
+
+            if (!$post) {
+                $_SESSION['error'] = "Không tìm thấy bài viết.";
+                header("Location: index.php?controller=adminblog");
+                exit;
+            }
+
+            if ($role !== 'ADMIN' && (int)$post['CreatedById'] !== (int)$user['TaiKhoanId']) {
                 $_SESSION['error'] = "Bạn không có quyền chỉnh sửa bài viết này.";
                 header("Location: index.php?controller=adminblog");
                 exit;
             }
         }
 
+        $displayName = $user['HoTen'] ?? $user['TenDangNhap'] ?? 'Tài khoản';
+        $isAdmin = $role === 'ADMIN';
+        $isStaff = $role === 'STAFF';
+        $isShipper = $role === 'SHIPPER';
+
         $title = $id > 0 ? "Chỉnh sửa bài viết" : "Viết bài mới";
         $viewContent = BASE_PATH . '/views/admin/blog_form.php';
+
         require_once BASE_PATH . '/views/admin/layout.php';
     }
 
-    // XỬ LÝ LƯU DỮ LIỆU (ADD & UPDATE)
-    public function save() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['BaiVietId'] ?? 0;
-            $user = $_SESSION['LoginInformation'];
-            $role = strtoupper($user['MaVaiTro']);
-
-            // Kiểm tra bài viết tồn tại nếu là trường hợp Update
-            if ($id > 0) {
-                $post = $this->model->getBlogById($id);
-                if (!$post) {
-                    $_SESSION['error'] = "Không tìm thấy bài viết.";
-                    header("Location: index.php?controller=adminblog");
-                    exit;
-                }
-                // Bảo mật: STAFF chỉ được sửa bài của chính mình
-                if ($role !== 'ADMIN' && $post['CreatedById'] != $user['TaiKhoanId']) {
-                    $_SESSION['error'] = "Bạn không có quyền chỉnh sửa bài viết này.";
-                    header("Location: index.php?controller=adminblog");
-                    exit;
-                }
-            }
-
-            $data = [
-                'TieuDe' => $_POST['TieuDe'] ?? '',
-                'TomTat' => $_POST['TomTat'] ?? '',
-                'NoiDung' => $_POST['NoiDung'] ?? '',
-                'AnhDaiDien' => $_POST['CurrentAnhDaiDien'] ?? '' 
-            ];
-
-            // Xử lý Upload ảnh
-            if (isset($_FILES['imageAvatar']) && $_FILES['imageAvatar']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir = BASE_PATH . '/public/images/';
-                // Tạo tên file duy nhất để tránh trùng
-                $fileName = time() . '_' . preg_replace('/[^A-Za-z0-9.]/', '_', $_FILES['imageAvatar']['name']);
-                if (move_uploaded_file($_FILES['imageAvatar']['tmp_name'], $uploadDir . $fileName)) {
-                    $data['AnhDaiDien'] = $fileName;
-                }
-            }
-
-            if ($id > 0) {
-                // CẬP NHẬT
-                $this->model->updateBlog($id, $data);
-                $_SESSION['success'] = "Cập nhật bài viết thành công.";
-            } else {
-                // THÊM MỚI
-                $data['MaBaiViet'] = date("mdHis");
-                $data['CreatedById'] = $user['TaiKhoanId'];
-                $data['TrangThai'] = 0; // Mặc định là Nháp
-                $this->model->createBlog($data);
-                $_SESSION['success'] = "Đã lưu bản nháp thành công.";
-            }
-
-            // Quay lại trang trước đó
-            $redirectUrl = $_SERVER['HTTP_REFERER'] ?? 'index.php?controller=adminblog';
-            header("Location: " . $redirectUrl);
-            exit;
-        }
-    } // Đã đóng ngoặc đúng vị trí ở đây
-
-    public function activate() {
-        // Chỉ ADMIN mới có quyền Duyệt bài
-        if (strtoupper($_SESSION['LoginInformation']['MaVaiTro']) !== 'ADMIN') {
-            $_SESSION['error'] = "Chỉ Admin mới có quyền duyệt bài.";
-            header("Location: " . $_SERVER['HTTP_REFERER']);
+    public function save()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=adminblog");
             exit;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? 0;
-            $currentStatus = $_POST['status'] ?? 'published';
-            $post = $this->model->getBlogById($id);
+        $id = (int)($_POST['BaiVietId'] ?? 0);
+        $user = $_SESSION['LoginInformation'];
+        $role = strtoupper(trim($user['MaVaiTro'] ?? ''));
 
-            if ($post) {
-                $newStatus = 1; // Mặc định sang Published
-                $updateDate = false;
+        $data = $_POST;
+        $data['TieuDe'] = trim($data['TieuDe'] ?? '');
+        $data['TomTat'] = trim($data['TomTat'] ?? '');
+        $data['NoiDung'] = trim($data['NoiDung'] ?? '');
 
-                if ($currentStatus === 'draft' || empty($post['NgayDang'])) {
-                    $updateDate = true; // Bài nháp hoặc chưa có ngày đăng -> Set ngày đăng = hiện tại
-                } elseif ($currentStatus === 'published') {
-                    $newStatus = 2; // Đang đăng -> Chuyển thành Ẩn
-                }
-
-                $this->model->updateStatus($id, $newStatus, $updateDate);
-                $_SESSION['success'] = "Đã cập nhật trạng thái bài viết.";
-            }
-            header("Location: " . $_SERVER['HTTP_REFERER']);
+        if ($data['TieuDe'] === '') {
+            $_SESSION['error'] = "Tiêu đề bài viết không được để trống.";
+            header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=adminblog"));
             exit;
         }
-    }
 
-    public function delete() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? 0;
+        $post = null;
+
+        if ($id > 0) {
             $post = $this->model->getBlogById($id);
 
             if (!$post) {
                 $_SESSION['error'] = "Không tìm thấy bài viết.";
-                header("Location: " . $_SERVER['HTTP_REFERER']);
+                header("Location: index.php?controller=adminblog");
                 exit;
             }
 
-            // Kiểm tra quyền xóa (Admin hoặc chính người tạo)
-            if (strtoupper($_SESSION['LoginInformation']['MaVaiTro']) === 'ADMIN' || $post['CreatedById'] == $_SESSION['LoginInformation']['TaiKhoanId']) {
-                if ($this->model->delete($id)) {
-                    $_SESSION['success'] = "Xóa bài viết thành công.";
-                }
-            } else {
-                $_SESSION['error'] = "Bạn không có quyền xóa bài viết này.";
+            if ($role !== 'ADMIN' && (int)$post['CreatedById'] !== (int)$user['TaiKhoanId']) {
+                $_SESSION['error'] = "Bạn không có quyền cập nhật bài viết này.";
+                header("Location: index.php?controller=adminblog");
+                exit;
             }
-            
-            header("Location: " . $_SERVER['HTTP_REFERER']);
-            exit;
+        } else {
+            $data['CreatedById'] = (int)$user['TaiKhoanId'];
         }
+
+        $currentImage = $_POST['CurrentAnhDaiDien'] ?? ($post['AnhDaiDien'] ?? '');
+        $data['AnhDaiDien'] = $currentImage;
+
+        $newImage = $this->uploadImage('imageAvatar');
+
+        if ($newImage) {
+            $data['AnhDaiDien'] = $newImage;
+
+            if ($id > 0 && !empty($currentImage)) {
+                @unlink(BASE_PATH . '/public/images/' . $currentImage);
+            }
+        }
+
+        if ($id > 0) {
+            $result = $this->model->updateBlog($id, $data);
+            $message = "Cập nhật bài viết thành công.";
+        } else {
+            $result = $this->model->createBlog($data);
+            $message = "Thêm bài viết thành công.";
+        }
+
+        $_SESSION[$result ? 'success' : 'error'] = $result
+            ? $message
+            : "Lưu bài viết thất bại.";
+
+        header("Location: index.php?controller=adminblog");
+        exit;
     }
 
-    private function getHeaderTitle($status) {
-        switch ($status) {
-            case 'draft': return "Bài viết nháp";
-            case 'hidden': return "Bài viết đã ẩn";
-            default: return "Bài viết đã đăng";
+    public function delete()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=adminblog");
+            exit;
         }
+
+        $id = (int)($_POST['id'] ?? 0);
+        $user = $_SESSION['LoginInformation'];
+        $role = strtoupper(trim($user['MaVaiTro'] ?? ''));
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Bài viết không hợp lệ.";
+            header("Location: index.php?controller=adminblog");
+            exit;
+        }
+
+        $post = $this->model->getBlogById($id);
+
+        if (!$post) {
+            $_SESSION['error'] = "Không tìm thấy bài viết.";
+            header("Location: index.php?controller=adminblog");
+            exit;
+        }
+
+        if ($role !== 'ADMIN' && (int)$post['CreatedById'] !== (int)$user['TaiKhoanId']) {
+            $_SESSION['error'] = "Bạn không có quyền xóa bài viết này.";
+            header("Location: index.php?controller=adminblog");
+            exit;
+        }
+
+        if ($this->model->deleteBlog($id)) {
+            if (!empty($post['AnhDaiDien'])) {
+                @unlink(BASE_PATH . '/public/images/' . $post['AnhDaiDien']);
+            }
+
+            $_SESSION['success'] = "Xóa bài viết thành công.";
+        } else {
+            $_SESSION['error'] = "Xóa bài viết thất bại.";
+        }
+
+        header("Location: index.php?controller=adminblog");
+        exit;
     }
-} 
+
+    private function uploadImage($fileField)
+    {
+        if (!isset($_FILES[$fileField]) || $_FILES[$fileField]['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
+
+        $allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
+        $originalName = $_FILES[$fileField]['name'];
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        if (!in_array($extension, $allowedExt)) {
+            $_SESSION['error'] = "Ảnh bài viết chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP.";
+            return null;
+        }
+
+        $uploadDir = BASE_PATH . '/public/images/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $fileName = 'blog_' . time() . '_' . mt_rand(1000, 9999) . '.' . $extension;
+        $targetPath = $uploadDir . $fileName;
+
+        if (move_uploaded_file($_FILES[$fileField]['tmp_name'], $targetPath)) {
+            return $fileName;
+        }
+
+        return null;
+    }
+
+    private function getHeaderTitle($status)
+    {
+        return match ($status) {
+            'draft' => 'Bài viết nháp',
+            'hidden' => 'Bài viết đã ẩn',
+            default => 'Quản lý bài viết',
+        };
+    }
+}

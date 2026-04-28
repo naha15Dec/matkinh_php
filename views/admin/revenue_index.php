@@ -1,115 +1,206 @@
-<div class="admin-page-header">
-    <div>
-        <h1 class="admin-page-title">Quản lý doanh thu</h1>
-        <p class="admin-page-subtitle">Theo dõi hiệu quả kinh doanh và các chỉ số bán hàng quan trọng của Karma Eyewear.</p>
-    </div>
+<?php
+$data = $data ?? [];
+$baseUrl = $baseUrl ?? '';
 
-    <ol class="breadcrumb admin-breadcrumb">
-        <li class="breadcrumb-item"><a href="index.php?controller=dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item active">Quản lý doanh thu</li>
-    </ol>
+$totalRevenue = (float)($data['TotalRevenue'] ?? 0);
+$monthRevenue = (float)($data['MonthRevenue'] ?? 0);
+$todayRevenue = (float)($data['TodayRevenue'] ?? 0);
+$revenueCOD = (float)($data['RevenueCOD'] ?? 0);
+$revenueVNPAY = (float)($data['RevenueVNPAY'] ?? 0);
+
+$totalPaymentRevenue = $revenueCOD + $revenueVNPAY;
+
+$codPercent = $totalPaymentRevenue > 0 ? round(($revenueCOD / $totalPaymentRevenue) * 100) : 0;
+$vnpayPercent = $totalPaymentRevenue > 0 ? round(($revenueVNPAY / $totalPaymentRevenue) * 100) : 0;
+?>
+
+<div class="admin-page-header mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <div>
+            <span class="admin-kicker">
+                <i class="fas fa-chart-line mr-1"></i>
+                Revenue Report
+            </span>
+
+            <h1 class="admin-page-title mb-1">Báo cáo doanh thu</h1>
+
+            <p class="admin-page-subtitle mb-0">
+                Theo dõi hiệu quả kinh doanh, doanh thu theo ngày, tháng và phương thức thanh toán.
+            </p>
+        </div>
+
+        <ol class="breadcrumb admin-breadcrumb mt-3 mt-md-0">
+            <li class="breadcrumb-item">
+                <a href="<?= $baseUrl ?>/index.php?controller=dashboard">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item active">Doanh thu</li>
+        </ol>
+    </div>
 </div>
 
 <section class="content">
     <div class="container-fluid p-0">
 
+        <?php if (!empty($_SESSION['success'])): ?>
+            <div class="alert alert-success admin-alert">
+                <i class="fas fa-check-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <?php if (!empty($_SESSION['error'])): ?>
+            <div class="alert alert-danger admin-alert">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
         <div class="row">
+
             <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card border-0 shadow-sm rounded-lg overflow-hidden h-100 bg-primary text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <div class="text-white-50 small font-weight-bold mb-1">TỔNG DOANH THU</div>
-                                <div class="h3 font-weight-bold"><?= number_format($data['TotalRevenue'] ?? 0, 0, ',', '.') ?> ₫</div>
-                            </div>
-                            <div class="opacity-5 h2"><i class="fas fa-wallet text-white-50"></i></div>
+                <div class="revenue-stat-card primary">
+                    <div class="revenue-stat-top">
+                        <div>
+                            <span class="revenue-stat-label">Tổng doanh thu</span>
+                            <h3><?= number_format($totalRevenue, 0, ',', '.') ?> ₫</h3>
                         </div>
-                        <p class="mt-3 mb-0 small opacity-7">Dữ liệu từ tất cả đơn hàng thành công.</p>
+
+                        <div class="revenue-stat-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
                     </div>
+
+                    <p>Dữ liệu từ các đơn hàng đã hoàn tất và được ghi nhận doanh thu.</p>
                 </div>
             </div>
 
             <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card border-0 shadow-sm rounded-lg overflow-hidden h-100 bg-success text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <div class="text-white-50 small font-weight-bold mb-1">DOANH THU THÁNG</div>
-                                <div class="h3 font-weight-bold"><?= number_format($data['MonthRevenue'] ?? 0, 0, ',', '.') ?> ₫</div>
-                            </div>
-                            <div class="opacity-5 h2"><i class="fas fa-chart-line text-white-50"></i></div>
+                <div class="revenue-stat-card gold">
+                    <div class="revenue-stat-top">
+                        <div>
+                            <span class="revenue-stat-label">Doanh thu tháng</span>
+                            <h3><?= number_format($monthRevenue, 0, ',', '.') ?> ₫</h3>
                         </div>
-                        <p class="mt-3 mb-0 small opacity-7">Số tiền thu được trong tháng <?= date('m/Y') ?>.</p>
+
+                        <div class="revenue-stat-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
                     </div>
+
+                    <p>Số tiền thu được trong tháng <?= date('m/Y') ?>.</p>
                 </div>
             </div>
 
             <div class="col-lg-4 col-md-12 mb-4">
-                <div class="card border-0 shadow-sm rounded-lg overflow-hidden h-100 bg-info text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <div class="text-white-50 small font-weight-bold mb-1">HÔM NAY</div>
-                                <div class="h3 font-weight-bold"><?= number_format($data['TodayRevenue'] ?? 0, 0, ',', '.') ?> ₫</div>
-                            </div>
-                            <div class="opacity-5 h2"><i class="fas fa-coins text-white-50"></i></div>
+                <div class="revenue-stat-card dark">
+                    <div class="revenue-stat-top">
+                        <div>
+                            <span class="revenue-stat-label">Hôm nay</span>
+                            <h3><?= number_format($todayRevenue, 0, ',', '.') ?> ₫</h3>
                         </div>
-                        <p class="mt-3 mb-0 small opacity-7">Doanh thu chốt trong ngày hôm nay.</p>
+
+                        <div class="revenue-stat-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
                     </div>
+
+                    <p>Doanh thu được chốt trong ngày hôm nay.</p>
                 </div>
             </div>
+
         </div>
 
         <div class="row">
+
             <div class="col-lg-6 mb-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body border-left-cod">
-                        <div class="small text-muted font-weight-bold">THANH TOÁN COD (Tiền mặt)</div>
-                        <div class="h4 font-weight-bold mt-1 text-dark"><?= number_format($data['RevenueCOD'] ?? 0, 0, ',', '.') ?> ₫</div>
-                        <div class="progress mt-3" style="height: 5px;">
-                            <div class="progress-bar bg-secondary" style="width: 100%"></div>
+                <div class="premium-panel revenue-panel h-100">
+                    <div class="premium-panel-header">
+                        <div>
+                            <span class="admin-kicker">Cash Payment</span>
+                            <h5 class="mb-0">Thanh toán COD</h5>
                         </div>
-                        <p class="mt-2 mb-0 small text-muted">Hỗ trợ bởi đơn vị vận chuyển.</p>
+
+                        <span class="revenue-percent-badge"><?= $codPercent ?>%</span>
+                    </div>
+
+                    <div class="premium-panel-body">
+                        <div class="revenue-payment-value">
+                            <?= number_format($revenueCOD, 0, ',', '.') ?> ₫
+                        </div>
+
+                        <p class="revenue-muted">
+                            Doanh thu từ các đơn hàng thanh toán tiền mặt khi nhận hàng.
+                        </p>
+
+                        <div class="revenue-progress">
+                            <div style="width: <?= $codPercent ?>%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-6 mb-4">
-                <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body border-left-vnpay">
-                        <div class="small text-muted font-weight-bold text-uppercase">Thanh toán Online (VNPay)</div>
-                        <div class="h4 font-weight-bold mt-1 text-primary"><?= number_format($data['RevenueVNPAY'] ?? 0, 0, ',', '.') ?> ₫</div>
-                        <div class="progress mt-3" style="height: 5px;">
-                            <div class="progress-bar bg-primary" style="width: 100%"></div>
+                <div class="premium-panel revenue-panel h-100">
+                    <div class="premium-panel-header">
+                        <div>
+                            <span class="admin-kicker">Online Payment</span>
+                            <h5 class="mb-0">Thanh toán VNPAY</h5>
                         </div>
-                        <p class="mt-2 mb-0 small text-muted">Cổng thanh toán điện tử VNPay.</p>
+
+                        <span class="revenue-percent-badge"><?= $vnpayPercent ?>%</span>
+                    </div>
+
+                    <div class="premium-panel-body">
+                        <div class="revenue-payment-value">
+                            <?= number_format($revenueVNPAY, 0, ',', '.') ?> ₫
+                        </div>
+
+                        <p class="revenue-muted">
+                            Doanh thu từ các đơn hàng đã thanh toán trực tuyến qua VNPAY.
+                        </p>
+
+                        <div class="revenue-progress">
+                            <div style="width: <?= $vnpayPercent ?>%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </div>
 
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header bg-white border-0 pt-4">
-                <h5 class="card-title font-weight-bold">Chỉ số bán hàng chi tiết</h5>
+        <div class="premium-panel revenue-panel">
+            <div class="premium-panel-header">
+                <div>
+                    <span class="admin-kicker">Business Summary</span>
+                    <h5 class="mb-0">Tổng hợp nhanh</h5>
+                </div>
             </div>
-            <div class="card-body">
+
+            <div class="premium-panel-body">
                 <div class="row">
-                    <div class="col-md-4 border-right">
-                        <div class="p-3">
-                            <div class="text-muted small">Tổng sản phẩm đã bán</div>
-                            <div class="h4 font-weight-bold"><?= $data['TotalProductSold'] ?? 0 ?> <small>SP</small></div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="revenue-summary-box">
+                            <span>Tỷ trọng COD</span>
+                            <strong><?= $codPercent ?>%</strong>
+                            <small>Thanh toán khi nhận hàng</small>
                         </div>
                     </div>
-                    <div class="col-md-4 border-right">
-                        <div class="p-3">
-                            <div class="text-muted small">Đơn hàng thành công</div>
-                            <div class="h4 font-weight-bold text-success"><?= $data['TotalOrders'] ?? 0 ?> <small>Đơn</small></div>
+
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="revenue-summary-box">
+                            <span>Tỷ trọng VNPAY</span>
+                            <strong><?= $vnpayPercent ?>%</strong>
+                            <small>Thanh toán online</small>
                         </div>
                     </div>
+
                     <div class="col-md-4">
-                        <div class="p-3">
-                            <div class="text-muted small">Thanh toán thất bại</div>
-                            <div class="h4 font-weight-bold text-danger"><?= $data['FailedPayments'] ?? 0 ?> <small>Đơn</small></div>
+                        <div class="revenue-summary-box">
+                            <span>Tổng theo phương thức</span>
+                            <strong><?= number_format($totalPaymentRevenue, 0, ',', '.') ?> ₫</strong>
+                            <small>COD + VNPAY</small>
                         </div>
                     </div>
                 </div>
@@ -118,11 +209,3 @@
 
     </div>
 </section>
-
-<style>
-    .rounded-lg { border-radius: 12px !important; }
-    .opacity-5 { opacity: 0.5; }
-    .opacity-7 { opacity: 0.7; }
-    .border-left-cod { border-left: 5px solid #6c757d; }
-    .border-left-vnpay { border-left: 5px solid #007bff; }
-</style>

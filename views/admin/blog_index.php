@@ -1,190 +1,262 @@
-<div class="admin-page-header">
-    <div>
-        <h1 class="admin-page-title">Danh sách bài viết của tôi</h1>
-        <p class="admin-page-subtitle">Quản lý bài viết và trạng thái nội dung của tài khoản hiện tại.</p>
-    </div>
+<?php
+$posts = $posts ?? [];
+$baseUrl = $baseUrl ?? '';
 
-    <ol class="breadcrumb admin-breadcrumb">
-        <li class="breadcrumb-item"><a href="index.php?controller=dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item active">Danh sách bài viết</li>
-    </ol>
+$keyword = $_GET['keyword'] ?? '';
+$status = $_GET['status'] ?? 'published';
+
+function blogStatusBadge($status)
+{
+    $status = (int)$status;
+
+    return match ($status) {
+        1 => ['class' => 'success', 'text' => 'Đã đăng'],
+        0 => ['class' => 'processing', 'text' => 'Nháp'],
+        default => ['class' => 'cancel', 'text' => 'Ẩn'],
+    };
+}
+?>
+
+<div class="admin-page-header mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <div>
+            <span class="admin-kicker">
+                <i class="fas fa-newspaper mr-1"></i>
+                Blog Management
+            </span>
+
+            <h1 class="admin-page-title mb-1">
+                <?= htmlspecialchars($title ?? 'Quản lý bài viết', ENT_QUOTES, 'UTF-8') ?>
+            </h1>
+
+            <p class="admin-page-subtitle mb-0">
+                Quản lý nội dung tư vấn, xu hướng và câu chuyện thương hiệu của Karma Eyewear.
+            </p>
+        </div>
+
+        <ol class="breadcrumb admin-breadcrumb mt-3 mt-md-0">
+            <li class="breadcrumb-item">
+                <a href="<?= $baseUrl ?>/index.php?controller=dashboard">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item active">Bài viết</li>
+        </ol>
+    </div>
 </div>
 
 <section class="content">
     <div class="container-fluid p-0">
-        <div class="card admin-card shadow-sm">
-            <div class="card-header admin-card-header border-0 d-flex justify-content-between align-items-center">
-                <div class="admin-card-title-wrap">
-                    <h3 class="admin-card-title">Danh sách bài viết</h3>
-                    <span class="admin-card-count"><?= count($posts) ?> bài viết</span>
+
+        <?php if (!empty($_SESSION['success'])): ?>
+            <div class="alert alert-success admin-alert">
+                <i class="fas fa-check-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <?php if (!empty($_SESSION['error'])): ?>
+            <div class="alert alert-danger admin-alert">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <div class="premium-panel blog-panel">
+
+            <div class="premium-panel-header blog-panel-header">
+                <div>
+                    <span class="admin-kicker">Karma Stories</span>
+                    <h5 class="mb-0">Danh sách bài viết</h5>
                 </div>
 
-                <div class="admin-card-tools">
-                    <form action="index.php" method="GET" class="admin-search-form">
-                        <input type="hidden" name="controller" value="adminblog">
-                        <input type="hidden" name="status" value="<?= $_GET['status'] ?? 'published' ?>">
-                        <div class="admin-search-box d-flex">
-                            <i class="fas fa-search pt-2"></i>
-                            <input class="form-control" type="search" name="keyword" 
-                                   value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>" placeholder="Nhập tiêu đề bài viết..." />
-                            <button class="btn admin-search-btn" type="submit">Tìm</button>
-                        </div>
-                    </form>
+                <div class="blog-header-actions">
+                    <span class="admin-card-count">
+                        <?= count($posts) ?> bài viết
+                    </span>
+
+                    <a href="<?= $baseUrl ?>/index.php?controller=adminblog&action=edit" class="btn blog-create-btn">
+                        <i class="fas fa-plus mr-1"></i>
+                        Thêm bài viết
+                    </a>
                 </div>
             </div>
 
-            <div class="card-body">
-                <div class="mb-3 text-left">
-                    <a href="index.php?controller=adminblog&action=edit" class="btn btn-success">
-                        <i class="fas fa-plus mr-1"></i> Thêm bài viết
+            <div class="blog-toolbar">
+                <div class="blog-status-tabs">
+                    <a href="<?= $baseUrl ?>/index.php?controller=adminblog&status=published"
+                       class="blog-tab <?= $status === 'published' ? 'active' : '' ?>">
+                        Đã đăng
+                    </a>
+
+                    <a href="<?= $baseUrl ?>/index.php?controller=adminblog&status=draft"
+                       class="blog-tab <?= $status === 'draft' ? 'active warning' : '' ?>">
+                        Nháp
+                    </a>
+
+                    <a href="<?= $baseUrl ?>/index.php?controller=adminblog&status=hidden"
+                       class="blog-tab <?= $status === 'hidden' ? 'active danger' : '' ?>">
+                        Đã ẩn
                     </a>
                 </div>
 
+                <form action="<?= $baseUrl ?>/index.php" method="GET" class="blog-filter-form">
+                    <input type="hidden" name="controller" value="adminblog">
+                    <input type="hidden" name="status" value="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>">
+
+                    <div class="blog-search-box">
+                        <i class="fas fa-search"></i>
+                        <input
+                            type="search"
+                            name="keyword"
+                            value="<?= htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8') ?>"
+                            placeholder="Tìm theo tiêu đề bài viết..."
+                        >
+                    </div>
+
+                    <button type="submit" class="btn blog-filter-btn">
+                        <i class="fas fa-filter mr-1"></i>
+                        Tìm
+                    </button>
+
+                    <?php if (!empty($keyword)): ?>
+                        <a href="<?= $baseUrl ?>/index.php?controller=adminblog&status=<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>"
+                           class="btn blog-reset-btn">
+                            Xóa lọc
+                        </a>
+                    <?php endif; ?>
+                </form>
+            </div>
+
+            <div class="premium-panel-body p-0">
                 <div class="table-responsive">
-                    <table class="table admin-table align-middle">
+                    <table class="table blog-table mb-0">
                         <thead>
                             <tr>
-                                <th>Mã bài viết</th>
-                                <th>Tên bài viết</th>
+                                <th>Mã</th>
+                                <th>Bài viết</th>
                                 <th>Ngày tạo / đăng</th>
                                 <th>Trạng thái</th>
-                                <th class="text-center">Lệnh</th>
+                                <th class="text-center">Thao tác</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             <?php if (!empty($posts)): ?>
                                 <?php foreach ($posts as $item): ?>
+                                    <?php
+                                    $postId = (int)($item['BaiVietId'] ?? 0);
+                                    $postCode = $item['MaBaiViet'] ?? $postId;
+                                    $statusInfo = blogStatusBadge($item['TrangThai'] ?? 0);
+
+                                    $imageName = $item['AnhDaiDien'] ?? '';
+                                    $imageSrc = $imageName
+                                        ? $baseUrl . '/images/' . $imageName
+                                        : $baseUrl . '/images/no-image.png';
+                                    ?>
+
                                     <tr>
-                                        <td><span class="admin-code-text">#<?= $item['MaBaiViet'] ?></span></td>
                                         <td>
-                                            <div class="admin-post-title font-weight-bold"><?= htmlspecialchars($item['TieuDe']) ?></div>
-                                            <div class="admin-post-summary text-muted small">
-                                                <?= empty($item['TomTat']) ? "Chưa có mô tả tóm tắt" : (mb_strlen($item['TomTat']) > 70 ? mb_substr($item['TomTat'], 0, 70) . "..." : $item['TomTat']) ?>
-                                            </div>
+                                            <span class="blog-code">
+                                                #<?= htmlspecialchars($postCode, ENT_QUOTES, 'UTF-8') ?>
+                                            </span>
                                         </td>
-                                        <td>
-                                            <div class="admin-date-text small"><b>Tạo:</b> <?= date('d/m/Y H:i', strtotime($item['CreatedAt'])) ?></div>
-                                            <div class="admin-post-summary small"><b>Đăng:</b> <?= $item['NgayDang'] ? date('d/m/Y H:i', strtotime($item['NgayDang'])) : 'Chưa đăng' ?></div>
-                                        </td>
-                                        <td>
-                                            <?php 
-                                                $badgeClass = ($item['TrangThai'] == 1) ? 'success' : (($item['TrangThai'] == 0) ? 'processing' : 'cancel');
-                                                $statusText = ($item['TrangThai'] == 1) ? 'Đã đăng' : (($item['TrangThai'] == 0) ? 'Nháp' : 'Ẩn');
-                                            ?>
-                                            <span class="admin-status-badge <?= $badgeClass ?>"><?= $statusText ?></span>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="admin-action-group d-flex justify-content-center" style="gap:5px">
-                                                
-                                                <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#postModal-<?= $item['BaiVietId'] ?>">
-                                                    <i class="fas fa-pen mr-1"></i> Sửa
-                                                </button>
 
-                                                <form action="index.php?controller=adminblog&action=delete" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa bài viết này?')">
-                                                    <input type="hidden" name="id" value="<?= $item['BaiVietId'] ?>">
-                                                    <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash-alt mr-1"></i> Xóa</button>
-                                                </form>
-                                            </div>
+                                        <td>
+                                            <div class="blog-title-cell">
+                                                <div class="blog-thumb">
+                                                    <img
+                                                        src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
+                                                        alt="Ảnh bài viết"
+                                                        onerror="this.src='<?= $baseUrl ?>/images/no-image.png'"
+                                                    >
+                                                </div>
 
-                                            <div class="modal fade" id="postModal-<?= $item['BaiVietId'] ?>" tabindex="-1" role="dialog" aria-hidden="true">
-                                                <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-                                                    <div class="modal-content text-left">
-                                                        <form action="index.php?controller=adminblog&action=save" method="POST" enctype="multipart/form-data">
-                                                            <div class="modal-header">
-                                                                <h5 class="modal-title font-weight-bold">Chỉnh sửa bài viết #<?= $item['MaBaiViet'] ?></h5>
-                                                                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                                            </div>
-                                                            <div class="modal-body bg-light">
-                                                                <input type="hidden" name="BaiVietId" value="<?= $item['BaiVietId'] ?>">
-                                                                <input type="hidden" name="CurrentAnhDaiDien" value="<?= $item['AnhDaiDien'] ?>">
-                                                                
-                                                                <div class="row">
-                                                                    <div class="col-lg-7">
-                                                                        <div class="card p-3 mb-3">
-                                                                            <div class="form-group">
-                                                                                <label>Tên bài viết</label>
-                                                                                <input type="text" name="TieuDe" class="form-control" value="<?= htmlspecialchars($item['TieuDe']) ?>" required>
-                                                                            </div>
-                                                                            <div class="form-group">
-                                                                                <label>Nội dung tóm tắt</label>
-                                                                                <textarea name="TomTat" class="form-control" rows="3"><?= htmlspecialchars($item['TomTat']) ?></textarea>
-                                                                            </div>
-                                                                            <div class="form-group">
-                                                                                <label>Nội dung chi tiết</label>
-                                                                                <textarea name="NoiDung" class="tinymce-editor"><?= $item['NoiDung'] ?></textarea>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-lg-5">
-                                                                        <div class="card p-3 mb-3 text-center">
-                                                                            <label>Ảnh đại diện</label>
-                                                                            <div id="imagePreview-<?= $item['BaiVietId'] ?>" class="mb-2">
-                                                                                <img src="/BanMatKinh/public/images/<?= $item['AnhDaiDien'] ?: 'no-image.png' ?>" style="max-width: 100%; border-radius: 5px;">
-                                                                            </div>
-                                                                            <input type="file" name="imageAvatar" class="form-control-file post-image-input" data-postid="<?= $item['BaiVietId'] ?>">
-                                                                        </div>
-                                                                        <div class="alert alert-warning small">
-                                                                            Lưu ý: Thay đổi nội dung sẽ cần được Admin duyệt lại nếu bạn đang sửa bài nháp.
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-                                                                <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Lưu thay đổi</button>
-                                                            </div>
-                                                        </form>
+                                                <div>
+                                                    <div class="blog-title">
+                                                        <?= htmlspecialchars($item['TieuDe'] ?? 'Không có tiêu đề', ENT_QUOTES, 'UTF-8') ?>
+                                                    </div>
+
+                                                    <div class="blog-summary">
+                                                        <?php
+                                                        $summary = $item['TomTat'] ?? '';
+                                                        echo htmlspecialchars(
+                                                            mb_strlen($summary, 'UTF-8') > 90
+                                                                ? mb_substr($summary, 0, 90, 'UTF-8') . '...'
+                                                                : ($summary ?: 'Chưa có mô tả tóm tắt'),
+                                                            ENT_QUOTES,
+                                                            'UTF-8'
+                                                        );
+                                                        ?>
                                                     </div>
                                                 </div>
                                             </div>
-                                            </td>
+                                        </td>
+
+                                        <td>
+                                            <div class="blog-date">
+                                                <strong>Tạo:</strong>
+                                                <?= !empty($item['CreatedAt']) ? date('d/m/Y H:i', strtotime($item['CreatedAt'])) : 'Chưa có' ?>
+                                            </div>
+
+                                            <div class="blog-date muted">
+                                                <strong>Đăng:</strong>
+                                                <?= !empty($item['NgayDang']) ? date('d/m/Y H:i', strtotime($item['NgayDang'])) : 'Chưa đăng' ?>
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <span class="blog-status <?= $statusInfo['class'] ?>">
+                                                <i class="fas fa-circle"></i>
+                                                <?= $statusInfo['text'] ?>
+                                            </span>
+                                        </td>
+
+                                        <td class="text-center">
+                                            <div class="blog-action-group">
+                                                <a href="<?= $baseUrl ?>/index.php?controller=adminblog&action=edit&id=<?= $postId ?>"
+                                                   class="btn blog-btn blog-btn-edit">
+                                                    <i class="fas fa-pen mr-1"></i>
+                                                    Sửa
+                                                </a>
+
+                                                <form
+                                                    action="<?= $baseUrl ?>/index.php?controller=adminblog&action=delete"
+                                                    method="POST"
+                                                    class="d-inline"
+                                                    onsubmit="return confirm('Bạn có chắc muốn xóa bài viết này?')"
+                                                >
+                                                    <input type="hidden" name="id" value="<?= $postId ?>">
+
+                                                    <button type="submit" class="btn blog-btn blog-btn-delete">
+                                                        <i class="fas fa-trash-alt mr-1"></i>
+                                                        Xóa
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <tr><td colspan="5" class="text-center py-4">Không có bài viết nào.</td></tr>
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="blog-empty-state">
+                                            <div class="blog-empty-icon">
+                                                <i class="fas fa-newspaper"></i>
+                                            </div>
+                                            <h6>Không có bài viết nào</h6>
+                                            <p>Hãy thêm bài viết mới hoặc thay đổi bộ lọc tìm kiếm.</p>
+                                        </div>
+                                    </td>
+                                </tr>
                             <?php endif; ?>
                         </tbody>
+
                     </table>
                 </div>
             </div>
+
         </div>
+
     </div>
 </section>
-
-<script src="https://cdn.tiny.cloud/1/zihqpwrk4mgc8xsa9hlg2hm0etuz7f7dh1ovyeioicuygk8v/tinymce/6/tinymce.min.js"></script>
-<script>
-$(document).ready(function () {
-    // Preview ảnh cho Modal
-    $(document).on('change', '.post-image-input', function () {
-        var postId = $(this).data('postid');
-        var input = this;
-        if (input.files && input.files[0]) {
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                $('#imagePreview-' + postId).html('<img src="' + e.target.result + '" style="max-width:100%;" />');
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    });
-
-    // Thêm vào trước khi khởi tạo tinymce.init
-$(document).on('focusin', function(e) {
-    if ($(e.target).closest(".tox-tinymce-aux, .moxman-window, .tam-assetmanager-root").length) {
-        e.stopImmediatePropagation();
-    }
-});
-
-// Đảm bảo dữ liệu editor được save vào textarea trước khi form submit
-$('form').on('submit', function() {
-    tinymce.triggerSave();
-});
-
-    // Khởi tạo TinyMCE cho class tinymce-editor
-    tinymce.init({
-        selector: '.tinymce-editor',
-        plugins: 'link image lists table media',
-        toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist',
-        height: 350
-    });
-});
-</script>

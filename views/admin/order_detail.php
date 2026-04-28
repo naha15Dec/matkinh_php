@@ -1,141 +1,167 @@
 <?php
-// Tái hiện logic phân quyền từ C#
-$login = $_SESSION['LoginInformation'];
+$order = $order ?? [];
+$items = $items ?? [];
+$histories = $histories ?? [];
+$shippers = $shippers ?? [];
+$baseUrl = $baseUrl ?? '';
+
+$login = $_SESSION['LoginInformation'] ?? [];
 $roleCode = strtoupper(trim($login['MaVaiTro'] ?? ''));
 
-$isAdmin = ($roleCode === 'ADMIN');
-$isStaff = ($roleCode === 'STAFF');
-$isShipper = ($roleCode === 'SHIPPER');
+$isAdmin = $roleCode === 'ADMIN';
+$isStaff = $roleCode === 'STAFF';
+$isShipper = $roleCode === 'SHIPPER';
+
+$orderId = (int)($order['DonHangId'] ?? 0);
+$orderCode = $order['MaDonHang'] ?? $orderId;
+$currentStatus = (int)($order['TrangThai'] ?? 0);
 
 $canAssignShipper = $isAdmin || $isStaff;
 $canUpdateStatus = $isAdmin || $isStaff || $isShipper;
+
+function orderStatusThemeClass($status)
+{
+    return match ((int)$status) {
+        OrderStatusConstants::PENDING => 'pending',
+        OrderStatusConstants::CONFIRMED => 'confirmed',
+        OrderStatusConstants::PREPARING => 'processing',
+        OrderStatusConstants::ASSIGNED_TO_SHIPPER => 'assigned',
+        OrderStatusConstants::DELIVERING => 'shipping',
+        OrderStatusConstants::DELIVERED => 'success',
+        OrderStatusConstants::DELIVERY_FAILED => 'failed',
+        OrderStatusConstants::CANCELLED => 'cancelled',
+        default => 'muted',
+    };
+}
 ?>
 
-<div class="admin-page-header">
-    <div>
-        <h1 class="admin-page-title">Chi tiết đơn hàng #<?= $order['MaDonHang'] ?></h1>
-        <p class="admin-page-subtitle">Theo dõi xử lý đơn, giao hàng và lịch sử trạng thái.</p>
-    </div>
+<div class="admin-page-header mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <div>
+            <span class="admin-kicker">
+                <i class="fas fa-shopping-bag mr-1"></i>
+                Order Detail
+            </span>
 
-    <ol class="breadcrumb admin-breadcrumb">
-        <li class="breadcrumb-item"><a href="index.php?controller=dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="index.php?controller=admindonhang">Quản lý đơn hàng</a></li>
-        <li class="breadcrumb-item active">#<?= $order['MaDonHang'] ?></li>
-    </ol>
+            <h1 class="admin-page-title mb-1">
+                Chi tiết đơn hàng #<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?>
+            </h1>
+
+            <p class="admin-page-subtitle mb-0">
+                Theo dõi trạng thái xử lý, thanh toán và giao hàng.
+            </p>
+        </div>
+
+        <ol class="breadcrumb admin-breadcrumb mt-3 mt-md-0">
+            <li class="breadcrumb-item">
+                <a href="<?= $baseUrl ?>/index.php?controller=dashboard">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="<?= $baseUrl ?>/index.php?controller=admindonhang">Đơn hàng</a>
+            </li>
+            <li class="breadcrumb-item active">
+                #<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?>
+            </li>
+        </ol>
+    </div>
 </div>
 
 <section class="content">
     <div class="container-fluid p-0">
 
-        <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success"><?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
+        <?php if (!empty($_SESSION['success'])): ?>
+            <div class="alert alert-success admin-alert">
+                <i class="fas fa-check-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
-        <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger"><?= $_SESSION['error']; unset($_SESSION['error']); ?></div>
+
+        <?php if (!empty($_SESSION['error'])): ?>
+            <div class="alert alert-danger admin-alert">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
 
         <div class="row">
-            <div class="col-lg-8">
+            <div class="col-lg-8 mb-4">
 
-                <div class="card admin-card mb-3">
-                    <div class="card-header admin-card-header border-0">
-                        <div class="admin-card-title-wrap">
-                            <h3 class="admin-card-title">Tổng quan đơn hàng</h3>
-                            <?php 
-                                $status = $order['TrangThai'];
-                                $badgeClass = "";
-                                switch ($status) {
-                                    case 1: $badgeClass = "warning"; break;
-                                    case 2: $badgeClass = "info"; break;
-                                    case 3: $badgeClass = "processing"; break;
-                                    case 4: $badgeClass = "assigned"; break;
-                                    case 5: $badgeClass = "shipping"; break;
-                                    case 6: $badgeClass = "success"; break;
-                                    case 7: $badgeClass = "danger"; break;
-                                    case 8: $badgeClass = "muted"; break;
-                                }
-                            ?>
-                            <span class="admin-status-badge <?= $badgeClass ?>"><?= OrderStatusConstants::getName($status) ?></span>
+                <div class="premium-panel order-detail-panel mb-4">
+                    <div class="premium-panel-header order-detail-header">
+                        <div>
+                            <span class="admin-kicker">Overview</span>
+                            <h5 class="mb-0">Tổng quan đơn hàng</h5>
                         </div>
+
+                        <span class="order-status <?= orderStatusThemeClass($currentStatus) ?>">
+                            <i class="fas fa-circle"></i>
+                            <?= OrderStatusConstants::getName($currentStatus) ?>
+                        </span>
                     </div>
 
-                    <div class="card-body">
-                        <div class="row admin-detail-grid">
+                    <div class="premium-panel-body">
+                        <div class="row">
                             <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Mã đơn hàng</div>
-                                    <div class="admin-detail-value">#<?= $order['MaDonHang'] ?></div>
+                                <div class="order-detail-box">
+                                    <span>Khách nhận</span>
+                                    <strong>
+                                        <?= htmlspecialchars($order['HoTenNguoiNhan'] ?? $order['TenKhachHang'] ?? 'Khách hàng', ENT_QUOTES, 'UTF-8') ?>
+                                    </strong>
+                                    <small><?= htmlspecialchars($order['SoDienThoaiNguoiNhan'] ?? 'Chưa có SĐT', ENT_QUOTES, 'UTF-8') ?></small>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Khách hàng</div>
-                                    <div class="admin-detail-value"><?= htmlspecialchars($order['TenKhachHang']) ?></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Ngày đặt</div>
-                                    <div class="admin-detail-value"><?= date('d/m/Y H:i', strtotime($order['NgayDat'])) ?></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Người xác nhận</div>
-                                    <div class="admin-detail-value"><?= !empty($order['ConfirmedByName']) ? htmlspecialchars($order['ConfirmedByName']) : "—" ?></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Shipper</div>
-                                    <div class="admin-detail-value"><?= !empty($order['ShipperName']) ? htmlspecialchars($order['ShipperName']) : "Chưa gán" ?></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Ghi chú đơn</div>
-                                    <div class="admin-detail-value"><?= !empty($order['GhiChu']) ? htmlspecialchars($order['GhiChu']) : "Không có ghi chú" ?></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="card admin-card mb-3">
-                    <div class="card-header admin-card-header border-0">
-                        <h3 class="admin-card-title">Thông tin nhận hàng</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="row admin-detail-grid">
                             <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Người nhận</div>
-                                    <div class="admin-detail-value"><?= htmlspecialchars($order['HoTenNguoiNhan']) ?></div>
+                                <div class="order-detail-box">
+                                    <span>Ngày đặt</span>
+                                    <strong>
+                                        <?= !empty($order['NgayDat']) ? date('d/m/Y H:i', strtotime($order['NgayDat'])) : 'Chưa có' ?>
+                                    </strong>
+                                    <small>Mã đơn: #<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?></small>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Số điện thoại</div>
-                                    <div class="admin-detail-value"><?= $order['SoDienThoaiNguoiNhan'] ?></div>
+
+                            <div class="col-md-12 mb-3">
+                                <div class="order-detail-box">
+                                    <span>Địa chỉ nhận hàng</span>
+                                    <strong>
+                                        <?= htmlspecialchars($order['DiaChiNguoiNhan'] ?? $order['DiaChiNhanHang'] ?? $order['DiaChi'] ?? 'Chưa có địa chỉ', ENT_QUOTES, 'UTF-8') ?>
+                                    </strong>
                                 </div>
                             </div>
-                            <div class="col-12">
-                                <div class="admin-detail-box">
-                                    <div class="admin-detail-label">Địa chỉ nhận hàng</div>
-                                    <div class="admin-detail-value"><?= htmlspecialchars($order['DiaChiNhanHang']) ?></div>
+
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <div class="order-detail-box">
+                                    <span>Thanh toán</span>
+                                    <strong><?= htmlspecialchars($order['PhuongThucThanhToan'] ?? PaymentConstants::COD, ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <small><?= htmlspecialchars($order['TrangThaiThanhToan'] ?? PaymentConstants::PENDING, ENT_QUOTES, 'UTF-8') ?></small>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="order-detail-box">
+                                    <span>Shipper</span>
+                                    <strong><?= htmlspecialchars($order['ShipperName'] ?? $order['TenShipper'] ?? 'Chưa gán', ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <small>Nhân viên giao hàng phụ trách</small>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card admin-card mb-3">
-                    <div class="card-header admin-card-header border-0">
-                        <h3 class="admin-card-title">Sản phẩm trong đơn</h3>
+                <div class="premium-panel order-detail-panel mb-4">
+                    <div class="premium-panel-header">
+                        <div>
+                            <span class="admin-kicker">Products</span>
+                            <h5 class="mb-0">Sản phẩm trong đơn</h5>
+                        </div>
                     </div>
-                    <div class="card-body">
+
+                    <div class="premium-panel-body p-0">
                         <div class="table-responsive">
-                            <table class="table admin-table align-middle">
+                            <table class="table order-detail-table mb-0">
                                 <thead>
                                     <tr>
                                         <th>Sản phẩm</th>
@@ -144,147 +170,216 @@ $canUpdateStatus = $isAdmin || $isStaff || $isShipper;
                                         <th class="text-right">Thành tiền</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
-                                    <?php foreach ($items as $item): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="admin-product-cell">
-                                                <div class="admin-product-thumb">
-                                                    <?php if(!empty($item['HinhAnhChinh'])): ?>
-                                                        <img src="/BanMatKinh/public/images/<?= $item['HinhAnhChinh'] ?>" alt="">
-                                                    <?php else: ?>
-                                                        <div class="admin-product-thumb-placeholder"><i class="fas fa-image"></i></div>
-                                                    <?php endif; ?>
+                                    <?php if (!empty($items)): ?>
+                                        <?php foreach ($items as $item): ?>
+                                            <?php
+                                            $image = $item['AnhDaiDien'] ?? $item['HinhAnh'] ?? '';
+                                            $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/no-image.png';
+                                            $price = (float)($item['DonGia'] ?? $item['GiaBan'] ?? 0);
+                                            $qty = (int)($item['SoLuong'] ?? 0);
+                                            $lineTotal = (float)($item['ThanhTien'] ?? ($price * $qty));
+                                            ?>
+
+                                            <tr>
+                                                <td>
+                                                    <div class="order-product-cell">
+                                                        <div class="order-product-thumb">
+                                                            <img src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
+                                                                 alt="product"
+                                                                 onerror="this.src='<?= $baseUrl ?>/images/no-image.png'">
+                                                        </div>
+
+                                                        <div>
+                                                            <div class="order-product-name">
+                                                                <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
+                                                            </div>
+                                                            <div class="order-product-meta">
+                                                                <?= htmlspecialchars($item['MaSanPham'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td class="text-right">
+                                                    <?= number_format($price, 0, ',', '.') ?> đ
+                                                </td>
+
+                                                <td class="text-center">
+                                                    <span class="order-qty"><?= $qty ?></span>
+                                                </td>
+
+                                                <td class="text-right order-money">
+                                                    <?= number_format($lineTotal, 0, ',', '.') ?> đ
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="4">
+                                                <div class="order-empty-state">
+                                                    <div class="order-empty-icon">
+                                                        <i class="fas fa-box-open"></i>
+                                                    </div>
+                                                    <h6>Không có sản phẩm</h6>
+                                                    <p>Đơn hàng này chưa có dòng sản phẩm nào.</p>
                                                 </div>
-                                                <div>
-                                                    <div class="admin-product-name"><?= htmlspecialchars($item['TenSanPhamSnapshot']) ?></div>
-                                                    <div class="admin-product-sub">#<?= $item['MaSanPham'] ?></div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-right"><?= number_format($item['DonGiaSnapshot'], 0, ',', '.') ?> đ</td>
-                                        <td class="text-center"><?= $item['SoLuong'] ?></td>
-                                        <td class="text-right admin-price-strong"><?= number_format($item['ThanhTien'], 0, ',', '.') ?> đ</td>
-                                    </tr>
-                                    <?php endforeach; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
 
-                <div class="card admin-card">
-                    <div class="card-header admin-card-header border-0">
-                        <h3 class="admin-card-title">Lịch sử trạng thái</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="admin-timeline">
-                            <?php foreach ($histories as $h): ?>
-                            <div class="admin-timeline-item">
-                                <div class="admin-timeline-dot"></div>
-                                <div class="admin-timeline-content">
-                                    <div class="admin-timeline-title">
-                                        <?= OrderStatusConstants::getName($h['TrangThaiCu']) ?> → <?= OrderStatusConstants::getName($h['TrangThaiMoi']) ?>
-                                    </div>
-                                    <div class="admin-timeline-meta">
-                                        <?= date('d/m/Y H:i', strtotime($h['CreatedAt'])) ?> • <?= htmlspecialchars($h['NguoiCapNhat']) ?>
-                                    </div>
-                                    <?php if(!empty($h['GhiChu'])): ?>
-                                        <div class="admin-timeline-note"><?= htmlspecialchars($h['GhiChu']) ?></div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
+                        <div class="order-total-panel">
+                            <span>Tổng thanh toán</span>
+                            <strong>
+                                <?= number_format((float)($order['TongTien'] ?? $order['ThanhTien'] ?? 0), 0, ',', '.') ?> đ
+                            </strong>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-lg-4">
-                <div class="card admin-card mb-3">
-                    <div class="card-header admin-card-header border-0">
-                        <h3 class="admin-card-title">Thanh toán</h3>
+                <div class="premium-panel order-detail-panel">
+                    <div class="premium-panel-header">
+                        <div>
+                            <span class="admin-kicker">History</span>
+                            <h5 class="mb-0">Lịch sử trạng thái</h5>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="admin-summary-row"><span>Tiền hàng</span><strong><?= number_format($order['TongTienHang'], 0, ',', '.') ?> đ</strong></div>
-                        <div class="admin-summary-row"><span>Phí vận chuyển</span><strong><?= number_format($order['PhiVanChuyen'], 0, ',', '.') ?> đ</strong></div>
-                        <div class="admin-summary-row"><span>Giảm giá</span><strong>- <?= number_format($order['GiamGia'], 0, ',', '.') ?> đ</strong></div>
-                        <hr />
-                        <div class="admin-summary-row total"><span>Tổng thanh toán</span><strong><?= number_format($order['TongThanhToan'], 0, ',', '.') ?> đ</strong></div>
+
+                    <div class="premium-panel-body">
+                        <div class="order-timeline">
+                            <?php if (!empty($histories)): ?>
+                                <?php foreach ($histories as $history): ?>
+                                    <div class="order-timeline-item">
+                                        <div class="order-timeline-dot"></div>
+
+                                        <div class="order-timeline-content">
+                                            <div class="order-timeline-title">
+                                                <?= OrderStatusConstants::getName($history['TrangThaiCu'] ?? 0) ?>
+                                                <i class="fas fa-arrow-right mx-1"></i>
+                                                <?= OrderStatusConstants::getName($history['TrangThaiMoi'] ?? 0) ?>
+                                            </div>
+
+                                            <div class="order-timeline-meta">
+                                                <?= !empty($history['CreatedAt']) ? date('d/m/Y H:i', strtotime($history['CreatedAt'])) : '' ?>
+                                                <?php if (!empty($history['NguoiCapNhat'])): ?>
+                                                    • <?= htmlspecialchars($history['NguoiCapNhat'], ENT_QUOTES, 'UTF-8') ?>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <?php if (!empty($history['GhiChu'])): ?>
+                                                <div class="order-timeline-note">
+                                                    <?= htmlspecialchars($history['GhiChu'], ENT_QUOTES, 'UTF-8') ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <div class="order-empty-state">
+                                    <div class="order-empty-icon">
+                                        <i class="fas fa-history"></i>
+                                    </div>
+                                    <h6>Chưa có lịch sử</h6>
+                                    <p>Đơn hàng chưa phát sinh lịch sử cập nhật.</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
+
+            </div>
+
+            <div class="col-lg-4 mb-4">
 
                 <?php if ($canUpdateStatus): ?>
-                <div class="card admin-card mb-3">
-                    <div class="card-header admin-card-header border-0"><h3 class="admin-card-title">Xử lý đơn</h3></div>
-                    <div class="card-body">
-                        <form action="index.php?controller=admindonhang&action=updateStatus" method="POST">
-                            <input type="hidden" name="DonHangId" value="<?= $order['DonHangId'] ?>">
-                            <div class="form-group">
-                                <label>Trạng thái mới</label>
-                                <select name="TrangThaiMoi" class="form-control admin-input">
-                                    <?php 
-                                        $current = $order['TrangThai'];
-                                        if ($isAdmin || $isStaff) {
-                                            if ($current == 1) { echo '<option value="2">Đã xác nhận</option><option value="8">Đã hủy</option>'; }
-                                            elseif ($current == 2) { echo '<option value="3">Đang chuẩn bị</option>'; }
-                                            elseif ($current == 3) { echo '<option value="4">Đã giao shipper</option><option value="8">Đã hủy</option>'; }
-                                        }
-                                        if ($isAdmin || $isShipper) {
-                                            if ($current == 4) { echo '<option value="5">Đang giao</option>'; }
-                                            elseif ($current == 5) { echo '<option value="6">Giao thành công</option><option value="7">Giao thất bại</option>'; }
-                                        }
-                                        if ($isAdmin && $current < 6) { echo '<option value="8">Hủy đơn (Admin)</option>'; }
-                                    ?>
-                                </select>
+                    <div class="premium-panel order-action-panel mb-4">
+                        <div class="premium-panel-header">
+                            <div>
+                                <span class="admin-kicker">Update</span>
+                                <h5 class="mb-0">Cập nhật trạng thái</h5>
                             </div>
-                            <div class="form-group">
-                                <label>Ghi chú</label>
-                                <textarea name="GhiChu" rows="2" class="form-control admin-input" placeholder="Lý do cập nhật..."></textarea>
-                            </div>
-                            <button type="submit" class="btn admin-btn admin-btn-save w-100">Cập nhật</button>
-                        </form>
+                        </div>
+
+                        <div class="premium-panel-body">
+                            <form action="<?= $baseUrl ?>/index.php?controller=admindonhang&action=updateStatus" method="POST">
+                                <input type="hidden" name="DonHangId" value="<?= $orderId ?>">
+
+                                <div class="form-group">
+                                    <label class="order-form-label">Trạng thái mới</label>
+                                    <select name="TrangThaiMoi" class="form-control order-input" required>
+                                        <option value="">-- Chọn trạng thái --</option>
+                                        <option value="<?= OrderStatusConstants::CONFIRMED ?>">Đã xác nhận</option>
+                                        <option value="<?= OrderStatusConstants::PREPARING ?>">Đang chuẩn bị</option>
+                                        <option value="<?= OrderStatusConstants::DELIVERING ?>">Đang giao</option>
+                                        <option value="<?= OrderStatusConstants::DELIVERED ?>">Giao thành công</option>
+                                        <option value="<?= OrderStatusConstants::DELIVERY_FAILED ?>">Giao thất bại</option>
+                                        <option value="<?= OrderStatusConstants::CANCELLED ?>">Đã hủy</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="order-form-label">Ghi chú</label>
+                                    <textarea name="GhiChu"
+                                              class="form-control order-input order-textarea"
+                                              rows="4"
+                                              placeholder="Nhập ghi chú xử lý đơn hàng..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn order-submit-btn btn-block">
+                                    <i class="fas fa-save mr-1"></i>
+                                    Cập nhật trạng thái
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
                 <?php endif; ?>
 
-                <?php if ($canAssignShipper && ($order['TrangThai'] == 3 || $order['TrangThai'] == 4)): ?>
-                <div class="card admin-card">
-                    <div class="card-header admin-card-header border-0"><h3 class="admin-card-title">Gán shipper</h3></div>
-                    <div class="card-body">
-                        <form action="index.php?controller=admindonhang&action=assignShipper" method="POST">
-                            <input type="hidden" name="DonHangId" value="<?= $order['DonHangId'] ?>">
-                            <div class="form-group">
-                                <select name="ShipperId" class="form-control admin-input">
-                                    <option value="">-- Chọn shipper --</option>
-                                    <?php foreach ($shippers as $s): ?>
-                                        <option value="<?= $s['TaiKhoanId'] ?>" <?= ($order['ShipperId'] == $s['TaiKhoanId']) ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($s['HoTen']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                <?php if ($canAssignShipper): ?>
+                    <div class="premium-panel order-action-panel">
+                        <div class="premium-panel-header">
+                            <div>
+                                <span class="admin-kicker">Shipping</span>
+                                <h5 class="mb-0">Gán shipper</h5>
                             </div>
-                            <button type="submit" class="btn admin-btn admin-btn-detail w-100">Xác nhận gán</button>
-                        </form>
+                        </div>
+
+                        <div class="premium-panel-body">
+                            <form action="<?= $baseUrl ?>/index.php?controller=admindonhang&action=assignShipper" method="POST">
+                                <input type="hidden" name="DonHangId" value="<?= $orderId ?>">
+
+                                <div class="form-group">
+                                    <label class="order-form-label">Nhân viên giao hàng</label>
+                                    <select name="ShipperId" class="form-control order-input" required>
+                                        <option value="">-- Chọn shipper --</option>
+
+                                        <?php foreach ($shippers as $shipper): ?>
+                                            <option value="<?= (int)$shipper['TaiKhoanId'] ?>">
+                                                <?= htmlspecialchars($shipper['HoTen'] ?? $shipper['TenDangNhap'] ?? 'Shipper', ENT_QUOTES, 'UTF-8') ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <button type="submit" class="btn order-submit-btn btn-block">
+                                    <i class="fas fa-truck mr-1"></i>
+                                    Gán shipper
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
                 <?php endif; ?>
+
+                <a href="<?= $baseUrl ?>/index.php?controller=admindonhang" class="btn order-back-btn btn-block mt-3">
+                    <i class="fas fa-arrow-left mr-1"></i>
+                    Quay lại danh sách
+                </a>
+
             </div>
         </div>
+
     </div>
 </section>
-
-<style>
-    /* ... Copy toàn bộ phần <style> từ bản C# bạn gửi vào đây ... */
-    .admin-detail-box { background: #fafafa; border: 1px solid #ececec; border-radius: 12px; padding: 14px 16px; height: 100%; }
-    .admin-detail-label { font-size: 12px; color: #8a8f98; text-transform: uppercase; margin-bottom: 6px; }
-    .admin-detail-value { font-size: 15px; color: #2f3542; font-weight: 600; }
-    .admin-product-thumb { width: 58px; height: 58px; border-radius: 12px; overflow: hidden; border: 1px solid #ececec; }
-    .admin-product-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .admin-timeline-item { position: relative; padding-left: 20px; margin-bottom: 20px; border-left: 2px solid #f0e7d6; }
-    .admin-timeline-dot { position: absolute; left: -7px; top: 2px; width: 12px; height: 12px; background: #d8b67a; border-radius: 50%; border: 2px solid #fff; }
-    .admin-timeline-note { font-size: 14px; color: #4b5563; background: #faf8f3; border: 1px solid #f0e7d6; border-radius: 10px; padding: 10px 12px; }
-    .admin-summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #ececec; }
-    .admin-summary-row.total { font-size: 16px; color: #2f3542; border-bottom: none; }
-    /* ... (Các class badge khác giữ nguyên như trang index) ... */
-</style>

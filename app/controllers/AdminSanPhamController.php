@@ -1,177 +1,258 @@
 <?php
 require_once BASE_PATH . '/app/models/AdminSanPhamModel.php';
 
-class AdminSanPhamController {
+class AdminSanPhamController
+{
     private $model;
     private $pdo;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->pdo = $pdo;
         $this->model = new AdminSanPhamModel($pdo);
-        
-        // Kiểm tra quyền truy cập (Admin hoặc Staff)
-        if (!isset($_SESSION['LoginInformation']) || !in_array(strtoupper($_SESSION['LoginInformation']['MaVaiTro']), ['ADMIN', 'STAFF'])) {
+
+        $sessionAccount = $_SESSION['LoginInformation'] ?? null;
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        if (!$sessionAccount || !in_array($roleCode, ['ADMIN', 'STAFF'])) {
+            $_SESSION['error'] = "Bạn không có quyền truy cập module sản phẩm.";
             header("Location: index.php?controller=dashboard");
             exit;
         }
     }
 
-    // Hiển thị danh sách sản phẩm
-    public function index() {
-    $user = $_SESSION['LoginInformation'];
-    $role = strtoupper($user['MaVaiTro']);
+    public function index()
+    {
+        $pdo = $this->pdo;
 
-    $statusProduct = $_GET['statusProduct'] ?? 'stock';
-    $keyword = $_GET['keyword'] ?? '';
-    
-    // Nếu là nhân viên (STAFF), chỉ lấy sản phẩm của họ
-    $userId = ($role === 'ADMIN') ? null : $user['TaiKhoanId'];
-    
-    $products = $this->model->getProducts($statusProduct, $keyword, $userId);
-    
-    $title = "Quản lý sản phẩm";
-    $viewContent = BASE_PATH . '/views/admin/product_index.php';
-    require_once BASE_PATH . '/views/admin/layout.php';
-}
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
 
-    // Bật/Tắt trạng thái sản phẩm nổi bật (Featured)
-    public function toggleFeatured() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['id'] ?? 0;
-            if ($this->model->toggleFeatured($id)) {
-                $_SESSION['success'] = "Cập nhật trạng thái nổi bật thành công.";
-            }
-        }
-        header("Location: " . $_SERVER['HTTP_REFERER']);
-        exit;
+        $statusProduct = $_GET['statusProduct'] ?? 'stock';
+        $keyword = trim($_GET['keyword'] ?? '');
+
+        $userId = ($roleCode === 'ADMIN') ? null : (int)$sessionAccount['TaiKhoanId'];
+
+        $products = $this->model->getProducts($statusProduct, $keyword, $userId);
+
+        $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Tài khoản';
+        $isAdmin = $roleCode === 'ADMIN';
+        $isStaff = $roleCode === 'STAFF';
+        $isShipper = $roleCode === 'SHIPPER';
+
+        $title = "Quản lý sản phẩm";
+        $viewContent = BASE_PATH . '/views/admin/product_index.php';
+
+        require_once BASE_PATH . '/views/admin/layout.php';
     }
 
-    // Xử lý Cập nhật hoặc Thêm mới sản phẩm
-    public function save() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = $_POST['SanPhamId'] ?? 0;
-            $user = $_SESSION['LoginInformation'];
-            $role = strtoupper($user['MaVaiTro']);
-            $data = $_POST;
+    public function edit()
+    {
+        $pdo = $this->pdo;
 
-            if ($id > 0) {
-                // Kiểm tra quyền sửa
-                $product = $this->model->getProductById($id);
-                if (!$product || ($role !== 'ADMIN' && $product['CreatedById'] != $user['TaiKhoanId'])) {
-                    $_SESSION['error'] = "Bạn không có quyền chỉnh sửa sản phẩm này.";
-                    header("Location: index.php?controller=adminsanpham");
-                    exit;
-                }
-            } else {
-                // Khi thêm mới, phải gán ID người tạo
-                $data['CreatedById'] = $user['TaiKhoanId'];
-                // Tự tạo mã sản phẩm nếu để trống (Giống C#)
-                if (empty($data['MaSanPham'])) {
-                    $data['MaSanPham'] = date("mdHis");
-                }
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        $id = (int)($_GET['id'] ?? 0);
+        $product = null;
+
+        if ($id > 0) {
+            $product = $this->model->getProductById($id);
+
+            if (!$product) {
+                $_SESSION['error'] = "Không tìm thấy sản phẩm.";
+                header("Location: index.php?controller=adminsanpham");
+                exit;
             }
 
-            // Xử lý upload ảnh
-            $newImage = $this->uploadImage('imageAvatar');
-            if ($newImage) {
-                $data['HinhAnhChinh'] = $newImage;
-                // Xóa ảnh cũ trên server nếu là update
-                if ($id > 0 && !empty($product['HinhAnhChinh'])) {
-                    @unlink(BASE_PATH . '/public/images/' . $product['HinhAnhChinh']);
-                }
+            if ($roleCode !== 'ADMIN' && (int)$product['CreatedById'] !== (int)$sessionAccount['TaiKhoanId']) {
+                $_SESSION['error'] = "Bạn không có quyền chỉnh sửa sản phẩm này.";
+                header("Location: index.php?controller=adminsanpham");
+                exit;
             }
+        }
 
-            if ($id > 0) {
-                $result = $this->model->updateProduct($id, $data);
-                $message = "Cập nhật sản phẩm thành công.";
-            } else {
-                $result = $this->model->createProduct($data);
-                $message = "Thêm sản phẩm mới thành công.";
-            }
+        $brands = $this->model->getAllBrands();
+        $categories = $this->model->getAllCategories();
 
-            if ($result) {
-                $_SESSION['success'] = $message;
-            } else {
-                $_SESSION['error'] = "Có lỗi xảy ra trong quá trình lưu dữ liệu.";
-            }
+        $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Tài khoản';
+        $isAdmin = $roleCode === 'ADMIN';
+        $isStaff = $roleCode === 'STAFF';
+        $isShipper = $roleCode === 'SHIPPER';
 
+        $title = $id > 0 ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới";
+        $viewContent = BASE_PATH . '/views/admin/product_form.php';
+
+        require_once BASE_PATH . '/views/admin/layout.php';
+    }
+
+    public function save()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: index.php?controller=adminsanpham");
             exit;
         }
+
+        $id = (int)($_POST['SanPhamId'] ?? 0);
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        $data = $_POST;
+        $product = null;
+
+        if ($id > 0) {
+            $product = $this->model->getProductById($id);
+
+            if (!$product || ($roleCode !== 'ADMIN' && (int)$product['CreatedById'] !== (int)$sessionAccount['TaiKhoanId'])) {
+                $_SESSION['error'] = "Bạn không có quyền chỉnh sửa sản phẩm này.";
+                header("Location: index.php?controller=adminsanpham");
+                exit;
+            }
+        } else {
+            $data['CreatedById'] = (int)$sessionAccount['TaiKhoanId'];
+
+            if (empty($data['MaSanPham'])) {
+                $data['MaSanPham'] = "SP" . date("ymdHis");
+            }
+        }
+
+        $data['GiaGoc'] = $this->normalizeMoney($data['GiaGoc'] ?? 0);
+        $data['GiaBan'] = $this->normalizeMoney($data['GiaBan'] ?? 0);
+        $data['SoLuongTon'] = (int)($data['SoLuongTon'] ?? 0);
+        $data['IsFeatured'] = (int)($data['IsFeatured'] ?? 0);
+        $data['TrangThai'] = (int)($data['TrangThai'] ?? 1);
+
+        $newImage = $this->uploadImage('imageAvatar');
+
+        if ($newImage) {
+            $data['HinhAnhChinh'] = $newImage;
+
+            if ($id > 0 && !empty($product['HinhAnhChinh'])) {
+                @unlink(BASE_PATH . '/public/images/' . $product['HinhAnhChinh']);
+            }
+        }
+
+        if ($id > 0) {
+            $result = $this->model->updateProduct($id, $data);
+            $message = "Cập nhật sản phẩm thành công.";
+        } else {
+            $result = $this->model->createProduct($data);
+            $message = "Thêm sản phẩm mới thành công.";
+        }
+
+        $_SESSION[$result ? 'success' : 'error'] = $result
+            ? $message
+            : "Có lỗi xảy ra trong quá trình lưu dữ liệu.";
+
+        header("Location: index.php?controller=adminsanpham");
+        exit;
     }
 
-    // Ngừng bán sản phẩm (Soft Delete)
-    public function delete() {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $id = $_POST['id'] ?? 0;
-        $user = $_SESSION['LoginInformation'];
+    public function toggleFeatured()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=adminsanpham");
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Sản phẩm không hợp lệ.";
+            $this->redirectBack();
+        }
+
+        if ($this->model->toggleFeatured($id)) {
+            $_SESSION['success'] = "Cập nhật trạng thái nổi bật thành công.";
+        } else {
+            $_SESSION['error'] = "Cập nhật trạng thái nổi bật thất bại.";
+        }
+
+        $this->redirectBack();
+    }
+
+    public function delete()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=adminsanpham");
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Sản phẩm không hợp lệ.";
+            header("Location: index.php?controller=adminsanpham");
+            exit;
+        }
+
         $product = $this->model->getProductById($id);
 
-        // 1. Kiểm tra quyền sở hữu
-        if (!$product || (strtoupper($user['MaVaiTro']) !== 'ADMIN' && $product['CreatedById'] != $user['TaiKhoanId'])) {
+        if (!$product || ($roleCode !== 'ADMIN' && (int)$product['CreatedById'] !== (int)$sessionAccount['TaiKhoanId'])) {
             $_SESSION['error'] = "Bạn không có quyền thực hiện thao tác này.";
             header("Location: index.php?controller=adminsanpham");
             exit;
         }
 
-        // 2. Kiểm tra đơn hàng
         $hasOrders = $this->model->checkProductInOrders($id);
-        
+
         if ($hasOrders) {
-            // Nếu có đơn hàng -> Soft Delete (Ngừng bán)
             $this->model->softDelete($id);
-            $_SESSION['success'] = "Sản phẩm đã phát sinh đơn hàng nên hệ thống chỉ chuyển sang trạng thái 'Ngừng bán'.";
+            $_SESSION['success'] = "Sản phẩm đã phát sinh đơn hàng nên chỉ chuyển sang trạng thái ngừng bán.";
         } else {
             if (!empty($product['HinhAnhChinh'])) {
                 @unlink(BASE_PATH . '/public/images/' . $product['HinhAnhChinh']);
             }
+
             $this->model->delete($id);
             $_SESSION['success'] = "Đã xóa sản phẩm vĩnh viễn khỏi hệ thống.";
         }
-        
+
         header("Location: index.php?controller=adminsanpham");
         exit;
     }
-}
 
-    // Helper: Xử lý upload ảnh vào thư mục thực tế
-    private function uploadImage($fileField) {
-        if (isset($_FILES[$fileField]) && $_FILES[$fileField]['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = BASE_PATH . '/public/images/';
-            
-            // Đảm bảo thư mục tồn tại
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0777, true);
-            }
-
-            // Tạo tên file duy nhất tránh trùng lặp
-            $fileName = time() . '_' . basename($_FILES[$fileField]['name']);
-            $targetPath = $uploadDir . $fileName;
-
-            if (move_uploaded_file($_FILES[$fileField]['tmp_name'], $targetPath)) {
-                return $fileName; 
-            }
+    private function uploadImage($fileField)
+    {
+        if (!isset($_FILES[$fileField]) || $_FILES[$fileField]['error'] !== UPLOAD_ERR_OK) {
+            return null;
         }
+
+        $allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
+        $originalName = $_FILES[$fileField]['name'];
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+        if (!in_array($extension, $allowedExt)) {
+            $_SESSION['error'] = "Ảnh sản phẩm chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP.";
+            return null;
+        }
+
+        $uploadDir = BASE_PATH . '/public/images/';
+
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0777, true);
+        }
+
+        $fileName = 'product_' . time() . '_' . mt_rand(1000, 9999) . '.' . $extension;
+        $targetPath = $uploadDir . $fileName;
+
+        if (move_uploaded_file($_FILES[$fileField]['tmp_name'], $targetPath)) {
+            return $fileName;
+        }
+
         return null;
     }
 
-    public function edit() {
-        $pdo = $this->pdo;
+    private function normalizeMoney($value)
+    {
+        return (float)str_replace(['.', ',', '₫', ' '], '', (string)$value);
+    }
 
-        $id = $_GET['id'] ?? 0;
-        
-        // Lấy dữ liệu sản phẩm để sửa (nếu id = 0 thì coi như thêm mới)
-        $product = null;
-        if ($id > 0) {
-            $product = $this->model->getProductById($id);
-        }
-
-        // Lấy dữ liệu cho các thẻ select trong form
-        $brands = $this->model->getAllBrands();
-        $categories = $this->model->getAllCategories();
-
-        $title = $id > 0 ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới";
-        $viewContent = BASE_PATH . '/views/admin/product_form.php';
-        require_once BASE_PATH . '/views/admin/layout.php';
+    private function redirectBack()
+    {
+        header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=adminsanpham"));
+        exit;
     }
 }

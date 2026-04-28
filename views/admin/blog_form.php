@@ -1,133 +1,244 @@
-<div class="admin-page-header">
-    <div>
-        <h1 class="admin-page-title"><?= $title ?></h1>
-        <p class="admin-page-subtitle">Tạo nội dung bài viết mới cho website.</p>
-    </div>
+<?php
+$post = $post ?? [];
+$baseUrl = $baseUrl ?? '';
 
-    <ol class="breadcrumb admin-breadcrumb">
-        <li class="breadcrumb-item"><a href="index.php?controller=dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="index.php?controller=adminblog">Quản lý bài viết</a></li>
-        <li class="breadcrumb-item active"><?= $title ?></li>
-    </ol>
+$isEdit = !empty($post['BaiVietId']);
+$pageTitle = $title ?? ($isEdit ? 'Cập nhật bài viết' : 'Thêm bài viết mới');
+
+$imageName = $post['AnhDaiDien'] ?? '';
+$imageSrc = $imageName
+    ? $baseUrl . '/images/' . $imageName
+    : $baseUrl . '/images/no-image.png';
+?>
+
+<div class="admin-page-header mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+        <div>
+            <span class="admin-kicker">
+                <i class="fas fa-pen-fancy mr-1"></i>
+                Blog Editor
+            </span>
+
+            <h1 class="admin-page-title mb-1">
+                <?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?>
+            </h1>
+
+            <p class="admin-page-subtitle mb-0">
+                Tạo nội dung tư vấn, xu hướng và câu chuyện thương hiệu cho Karma Eyewear.
+            </p>
+        </div>
+
+        <ol class="breadcrumb admin-breadcrumb mt-3 mt-md-0">
+            <li class="breadcrumb-item">
+                <a href="<?= $baseUrl ?>/index.php?controller=dashboard">Dashboard</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="<?= $baseUrl ?>/index.php?controller=adminblog">Bài viết</a>
+            </li>
+            <li class="breadcrumb-item active">
+                <?= $isEdit ? 'Chỉnh sửa' : 'Thêm mới' ?>
+            </li>
+        </ol>
+    </div>
 </div>
 
 <section class="content">
     <div class="container-fluid p-0">
-        <form action="index.php?controller=adminblog&action=save" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="BaiVietId" value="<?= $post['BaiVietId'] ?? 0 ?>">
-            <input type="hidden" name="CurrentAnhDaiDien" value="<?= $post['AnhDaiDien'] ?? '' ?>">
+
+        <?php if (!empty($_SESSION['success'])): ?>
+            <div class="alert alert-success admin-alert">
+                <i class="fas fa-check-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <?php if (!empty($_SESSION['error'])): ?>
+            <div class="alert alert-danger admin-alert">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
+        <form
+            action="<?= $baseUrl ?>/index.php?controller=adminblog&action=save"
+            method="POST"
+            enctype="multipart/form-data"
+            id="blogForm"
+        >
+            <input type="hidden" name="BaiVietId" value="<?= (int)($post['BaiVietId'] ?? 0) ?>">
+            <input type="hidden" name="CurrentAnhDaiDien" value="<?= htmlspecialchars($imageName, ENT_QUOTES, 'UTF-8') ?>">
 
             <div class="row">
-                <div class="col-lg-7">
-                    <div class="card admin-form-card mb-4 shadow-sm">
-                        <div class="card-header border-0 bg-white">
-                            <h3 class="card-title font-weight-bold">Thông tin chính</h3>
+
+                <div class="col-lg-8 mb-4">
+                    <div class="premium-panel blog-edit-panel mb-4">
+                        <div class="premium-panel-header">
+                            <div>
+                                <span class="admin-kicker">Main Content</span>
+                                <h5 class="mb-0">Thông tin bài viết</h5>
+                            </div>
                         </div>
-                        <div class="card-body">
+
+                        <div class="premium-panel-body">
                             <div class="form-group">
-                                <label>Tiêu đề bài viết</label>
-                                <input type="text" name="TieuDe" class="form-control admin-input" 
-                                       placeholder="Nhập tiêu đề..." value="<?= htmlspecialchars($post['TieuDe'] ?? '') ?>" required>
+                                <label class="blog-edit-label">Tiêu đề bài viết</label>
+                                <input
+                                    type="text"
+                                    name="TieuDe"
+                                    class="form-control blog-edit-input"
+                                    placeholder="Ví dụ: Cách chọn kính phù hợp với khuôn mặt..."
+                                    value="<?= htmlspecialchars($post['TieuDe'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                    required
+                                >
                             </div>
 
-                            <div class="form-group">
-                                <label>Nội dung tóm tắt</label>
-                                <textarea name="TomTat" class="form-control admin-input" rows="3" 
-                                          placeholder="Tóm tắt ngắn..."><?= htmlspecialchars($post['TomTat'] ?? '') ?></textarea>
+                            <div class="form-group mb-0">
+                                <label class="blog-edit-label">Nội dung tóm tắt</label>
+                                <textarea
+                                    name="TomTat"
+                                    class="form-control blog-edit-input blog-edit-textarea"
+                                    rows="4"
+                                    placeholder="Nhập mô tả ngắn hiển thị ở danh sách bài viết..."
+                                ><?= htmlspecialchars($post['TomTat'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card admin-form-card shadow-sm">
-                        <div class="card-header border-0 bg-white">
-                            <h3 class="card-title font-weight-bold">Nội dung chi tiết bài viết</h3>
+                    <div class="premium-panel blog-edit-panel">
+                        <div class="premium-panel-header">
+                            <div>
+                                <span class="admin-kicker">Article Body</span>
+                                <h5 class="mb-0">Nội dung chi tiết</h5>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <textarea name="NoiDung" id="tinymce-editor" class="admin-textarea">
-                                <?= $post['NoiDung'] ?? '' ?>
-                            </textarea>
+
+                        <div class="premium-panel-body">
+                            <textarea
+                                name="NoiDung"
+                                id="tinymce-editor"
+                                class="blog-editor-textarea"
+                            ><?= htmlspecialchars($post['NoiDung'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-5">
-                    <div class="card admin-form-card mb-4 shadow-sm">
-                        <div class="card-header border-0 bg-white">
-                            <h3 class="card-title font-weight-bold">Ảnh đại diện bài viết</h3>
+                <div class="col-lg-4 mb-4">
+                    <div class="premium-panel blog-edit-panel mb-4">
+                        <div class="premium-panel-header">
+                            <div>
+                                <span class="admin-kicker">Cover Image</span>
+                                <h5 class="mb-0">Ảnh đại diện</h5>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div id="imagePreviewSingle" class="admin-image-preview-single border rounded d-flex align-items-center justify-content-center" style="height: 250px; overflow: hidden; background: #f8f9fa;">
-                                <?php if(!empty($post['AnhDaiDien'])): ?>
-                                    <img src="/BanMatKinh/public/images/<?= $post['AnhDaiDien'] ?>" style="width: 100%; height: 100%; object-fit: cover;" />
-                                <?php else: ?>
-                                    <span class="admin-image-placeholder text-muted">Xem trước ảnh đại diện</span>
-                                <?php endif; ?>
+
+                        <div class="premium-panel-body">
+                            <div id="imagePreviewSingle" class="blog-edit-image-preview">
+                                <img
+                                    src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
+                                    alt="Ảnh bài viết"
+                                    onerror="this.src='<?= $baseUrl ?>/images/no-image.png'"
+                                >
                             </div>
 
-                            <div class="input-group mt-3">
-                                <div class="custom-file">
-                                    <input type="file" class="custom-file-input" id="inputSingleFile" name="imageAvatar" onchange="previewImage(this)">
-                                    <label class="custom-file-label" for="inputSingleFile">Chọn ảnh</label>
-                                </div>
+                            <div class="custom-file mt-3">
+                                <input
+                                    type="file"
+                                    name="imageAvatar"
+                                    class="custom-file-input"
+                                    id="imageAvatar"
+                                    accept=".jpg,.jpeg,.png,.webp"
+                                >
+                                <label class="custom-file-label" for="imageAvatar">
+                                    Chọn ảnh đại diện
+                                </label>
+                            </div>
+
+                            <div class="blog-edit-note mt-3">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Nên dùng ảnh ngang, rõ sản phẩm hoặc phong cách eyewear boutique.
                             </div>
                         </div>
                     </div>
 
-                    <div class="card admin-form-card shadow-sm">
-                        <div class="card-header border-0 bg-white">
-                            <h3 class="card-title font-weight-bold">Xuất bản</h3>
+                    <div class="premium-panel blog-edit-panel">
+                        <div class="premium-panel-header">
+                            <div>
+                                <span class="admin-kicker">Publish</span>
+                                <h5 class="mb-0">Xuất bản</h5>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="admin-publish-note p-2 mb-3 rounded" style="background: #fff3cd; border-left: 4px solid #ffc107;">
-                                <small>Bài viết sẽ được lưu dưới dạng <b>nháp</b> và chờ admin duyệt.</small>
+
+                        <div class="premium-panel-body">
+                            <div class="blog-publish-note">
+                                <i class="fas fa-clock mr-1"></i>
+                                Sau khi lưu, bài viết sẽ được xử lý theo controller `adminblog&action=save`.
                             </div>
 
-                            <div class="admin-form-actions mt-3">
-                                <button type="submit" class="btn btn-primary btn-block btn-lg">
-                                    <i class="fas fa-paper-plane mr-1"></i> <?= isset($post) ? 'Cập nhật bài viết' : 'Tạo bài viết' ?>
-                                </button>
-                                <a href="index.php?controller=adminblog" class="btn btn-link btn-block text-muted">Hủy bỏ</a>
-                            </div>
+                            <button type="submit" class="btn blog-submit-btn btn-block mt-3">
+                                <i class="fas fa-paper-plane mr-1"></i>
+                                <?= $isEdit ? 'Cập nhật bài viết' : 'Tạo bài viết' ?>
+                            </button>
+
+                            <a href="<?= $baseUrl ?>/index.php?controller=adminblog" class="btn blog-cancel-btn btn-block mt-2">
+                                Hủy bỏ
+                            </a>
                         </div>
                     </div>
                 </div>
+
             </div>
         </form>
+
     </div>
 </section>
 
 <script src="https://cdn.tiny.cloud/1/zihqpwrk4mgc8xsa9hlg2hm0etuz7f7dh1ovyeioicuygk8v/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
 <script>
-    // Khởi tạo trình soạn thảo TinyMCE
     tinymce.init({
         selector: '#tinymce-editor',
         plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | removeformat',
         height: 500,
-        language: 'vi', // Nếu muốn tiếng Việt
+        branding: false,
+        menubar: false,
         setup: function (editor) {
             editor.on('change', function () {
-                editor.save(); // Tự động đồng bộ dữ liệu sang textarea khi có thay đổi
+                editor.save();
             });
         }
     });
 
-    $('form').on('submit', function() {
-        tinymce.triggerSave();
-    })
+    const imageInput = document.getElementById('imageAvatar');
 
-    // Hàm preview ảnh khi chọn file
-    function previewImage(input) {
-        if (input.files && input.files[0]) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('imagePreviewSingle').innerHTML = 
-                    '<img src="' + e.target.result + '" style="width: 100%; height: 100%; object-fit: cover;" />';
-                // Cập nhật tên file vào label
-                $(input).next('.custom-file-label').html(input.files[0].name);
+    if (imageInput) {
+        imageInput.addEventListener('change', function () {
+            const file = this.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                document.getElementById('imagePreviewSingle').innerHTML =
+                    '<img src="' + e.target.result + '" alt="preview">';
             };
-            reader.readAsDataURL(input.files[0]);
-        }
+
+            reader.readAsDataURL(file);
+
+            if (this.nextElementSibling) {
+                this.nextElementSibling.innerText = file.name;
+            }
+        });
     }
+
+    document.getElementById('blogForm').addEventListener('submit', function () {
+        if (typeof tinymce !== 'undefined') {
+            tinymce.triggerSave();
+        }
+    });
 </script>

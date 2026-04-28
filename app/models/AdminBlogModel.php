@@ -1,107 +1,189 @@
 <?php
-class AdminBlogModel {
+
+class AdminBlogModel
+{
     private $db;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->db = $pdo;
     }
 
-    // Lấy danh sách bài viết (Có phân quyền)
-    public function getBlogs($status = "published", $keyword = "", $userId = null) {
+    public function getBlogs($status = "published", $keyword = "", $userId = null)
+    {
         $statusValue = $this->getStatusValue($status);
         $params = [$statusValue];
 
-        // JOIN với bảng tài khoản để lấy tên người tạo (Sửa từ TaiKhoanId thành CreatedById)
-        $sql = "SELECT bv.*, tk.HoTen as NguoiTao 
-                FROM baiviet bv 
-                LEFT JOIN taikhoan tk ON bv.CreatedById = tk.TaiKhoanId 
-                WHERE bv.TrangThai = ?";
+        $sql = "
+            SELECT bv.*, tk.HoTen AS NguoiTao
+            FROM baiviet bv
+            LEFT JOIN taikhoan tk ON bv.CreatedById = tk.TaiKhoanId
+            WHERE bv.TrangThai = ?
+        ";
 
-        // Nếu có userId truyền vào (Nhân viên), chỉ lấy bài của họ
         if ($userId !== null) {
             $sql .= " AND bv.CreatedById = ?";
-            $params[] = $userId;
+            $params[] = (int)$userId;
         }
 
         if (!empty($keyword)) {
             $sql .= " AND (bv.MaBaiViet LIKE ? OR bv.TieuDe LIKE ?)";
-            $search = "%$keyword%";
-            array_push($params, $search, $search);
+            $search = "%" . $keyword . "%";
+            $params[] = $search;
+            $params[] = $search;
         }
 
         $sql .= " ORDER BY COALESCE(bv.UpdatedAt, bv.CreatedAt) DESC";
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Lấy chi tiết 1 bài viết
-    public function getBlogById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM baiviet WHERE BaiVietId = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch();
+    public function getBlogById($id)
+    {
+        $stmt = $this->db->prepare("
+            SELECT *
+            FROM baiviet
+            WHERE BaiVietId = ?
+        ");
+
+        $stmt->execute([(int)$id]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    // THÊM MỚI BÀI VIẾT
-    public function createBlog($data) {
-        $sql = "INSERT INTO baiviet (MaBaiViet, TieuDe, TomTat, NoiDung, AnhDaiDien, CreatedById, TrangThai, CreatedAt) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
-        return $this->db->prepare($sql)->execute([
-            $data['MaBaiViet'], 
-            $data['TieuDe'], 
-            $data['TomTat'], 
-            $data['NoiDung'], 
-            $data['AnhDaiDien'], 
-            $data['CreatedById'], 
-            $data['TrangThai']
+    public function createBlog($data)
+    {
+        $maBaiViet = !empty($data['MaBaiViet'])
+            ? $data['MaBaiViet']
+            : 'BV' . date('ymdHis');
+
+        $trangThai = isset($data['TrangThai'])
+            ? (int)$data['TrangThai']
+            : 1;
+
+        $ngayDang = $trangThai === 1 ? date('Y-m-d H:i:s') : null;
+
+        $sql = "
+            INSERT INTO baiviet
+            (
+                MaBaiViet,
+                TieuDe,
+                TomTat,
+                NoiDung,
+                AnhDaiDien,
+                CreatedById,
+                TrangThai,
+                NgayDang,
+                CreatedAt
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ";
+
+        $stmt = $this->db->prepare($sql);
+
+        return $stmt->execute([
+            $maBaiViet,
+            $data['TieuDe'] ?? '',
+            $data['TomTat'] ?? '',
+            $data['NoiDung'] ?? '',
+            $data['AnhDaiDien'] ?? '',
+            (int)($data['CreatedById'] ?? 0),
+            $trangThai,
+            $ngayDang
         ]);
     }
 
-    // CẬP NHẬT NỘI DUNG BÀI VIẾT
-    public function updateBlog($id, $data) {
-        $sql = "UPDATE baiviet SET TieuDe = ?, TomTat = ?, NoiDung = ?, UpdatedAt = NOW()";
-        $params = [$data['TieuDe'], $data['TomTat'], $data['NoiDung']];
+    public function updateBlog($id, $data)
+    {
+        $sql = "
+            UPDATE baiviet
+            SET TieuDe = ?,
+                TomTat = ?,
+                NoiDung = ?,
+                UpdatedAt = NOW()
+        ";
 
-        // Chỉ cập nhật ảnh nếu có ảnh mới
-        if (!empty($data['AnhDaiDien'])) {
+        $params = [
+            $data['TieuDe'] ?? '',
+            $data['TomTat'] ?? '',
+            $data['NoiDung'] ?? ''
+        ];
+
+        if (array_key_exists('AnhDaiDien', $data)) {
             $sql .= ", AnhDaiDien = ?";
-            $params[] = $data['AnhDaiDien'];
+            $params[] = $data['AnhDaiDien'] ?? '';
+        }
+
+        if (isset($data['TrangThai'])) {
+            $sql .= ", TrangThai = ?";
+            $params[] = (int)$data['TrangThai'];
+
+            if ((int)$data['TrangThai'] === 1) {
+                $sql .= ", NgayDang = COALESCE(NgayDang, NOW())";
+            }
         }
 
         $sql .= " WHERE BaiVietId = ?";
-        $params[] = $id;
+        $params[] = (int)$id;
 
-        return $this->db->prepare($sql)->execute($params);
+        $stmt = $this->db->prepare($sql);
+
+        return $stmt->execute($params);
     }
 
-    // CẬP NHẬT TRẠNG THÁI (Duyệt bài/Ẩn bài)
-    public function updateStatus($id, $newStatus, $updatePublishDate = false) {
-        $sql = "UPDATE baiviet SET TrangThai = ?, UpdatedAt = NOW()";
-        $params = [$newStatus];
+    public function updateStatus($id, $newStatus, $updatePublishDate = false)
+    {
+        $sql = "
+            UPDATE baiviet
+            SET TrangThai = ?,
+                UpdatedAt = NOW()
+        ";
+
+        $params = [(int)$newStatus];
 
         if ($updatePublishDate) {
             $sql .= ", NgayDang = NOW()";
         }
 
         $sql .= " WHERE BaiVietId = ?";
-        $params[] = $id;
+        $params[] = (int)$id;
 
-        return $this->db->prepare($sql)->execute($params);
+        $stmt = $this->db->prepare($sql);
+
+        return $stmt->execute($params);
     }
 
-    // XÓA BÀI VIẾT (Xóa vĩnh viễn theo code C#)
-    public function delete($id) {
-        $sql = "DELETE FROM baiviet WHERE BaiVietId = ?";
-        return $this->db->prepare($sql)->execute([$id]);
+    public function deleteBlog($id)
+    {
+        $stmt = $this->db->prepare("
+            DELETE FROM baiviet
+            WHERE BaiVietId = ?
+        ");
+
+        return $stmt->execute([(int)$id]);
     }
 
-    // Chuyển đổi text status sang số int trong DB
-    private function getStatusValue($status) {
-        switch (strtolower($status)) {
-            case 'draft': return 0;   // Nháp
-            case 'hidden': return 2;  // Ẩn
-            default: return 1;        // Đăng
+    // Giữ lại alias này nếu code cũ còn gọi delete()
+    public function delete($id)
+    {
+        return $this->deleteBlog($id);
+    }
+
+    private function getStatusValue($status)
+    {
+        switch (strtolower((string)$status)) {
+            case 'draft':
+                return 0;
+
+            case 'hidden':
+                return 2;
+
+            case 'published':
+            default:
+                return 1;
         }
     }
 }
