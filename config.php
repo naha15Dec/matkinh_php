@@ -1,4 +1,6 @@
 <?php
+date_default_timezone_set('Asia/Ho_Chi_Minh');
+
 // 1. Cấu hình các thông số kết nối
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3307'); 
@@ -15,14 +17,16 @@ try {
         PDO::ATTR_EMULATE_PREPARES   => false,
     ];
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+
+    // Không bắt buộc, nhưng nên có để NOW() trong MySQL cũng theo giờ Việt Nam
+    $pdo->exec("SET time_zone = '+07:00'");
 } catch (PDOException $e) {
     die("Lỗi kết nối Cơ sở dữ liệu: " . $e->getMessage());
 }
 
 // 2. Thông số VNPay
-define('VNP_TMNCODE', 'PA5Y9318'); 
-define('VNP_HASHSECRET', 'SVJ6GFPH8K3AII7K29A2XNTJJCT2R0N4'); 
+define('VNP_TMNCODE', 'LGSP27OB'); 
+define('VNP_HASHSECRET', 'EGTC7ALE3XK9E8K204PUIS6DXZORGD2I'); 
 define('VNP_URL', "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html");
 
-// Lưu ý: Kiểm tra kỹ đường dẫn này có khớp với thư mục XAMPP của bạn không
 define('VNP_RETURNURL', "http://localhost/BanMatKinh/public/index.php?controller=thanhtoan&action=vnpay_return");

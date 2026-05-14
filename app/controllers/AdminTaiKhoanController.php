@@ -9,6 +9,10 @@ class AdminTaiKhoanController
 
     public function __construct($pdo)
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $this->pdo = $pdo;
         $this->model = new AdminTaiKhoanModel($pdo);
 
@@ -17,7 +21,7 @@ class AdminTaiKhoanController
 
         if (!$sessionAccount || $roleCode !== 'ADMIN') {
             $_SESSION['error'] = "Chỉ Quản trị viên mới có quyền truy cập module này.";
-            header("Location: index.php?controller=dashboard");
+            header("Location: /BanMatKinh/public/index.php?controller=dashboard");
             exit;
         }
     }
@@ -48,45 +52,45 @@ class AdminTaiKhoanController
     }
 
     public function detail()
-{
-    $pdo = $this->pdo;
+    {
+        $pdo = $this->pdo;
 
-    $id = (int)($_GET['id'] ?? 0);
+        $id = (int)($_GET['id'] ?? 0);
 
-    if ($id <= 0) {
-        $_SESSION['error'] = "Mã tài khoản không hợp lệ.";
-        header("Location: index.php?controller=admintaikhoan");
-        exit;
+        if ($id <= 0) {
+            $_SESSION['error'] = "Mã tài khoản không hợp lệ.";
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
+            exit;
+        }
+
+        $accountDetail = $this->model->getAccountById($id);
+        $roles = $this->model->getAllRoles();
+
+        if (!$accountDetail) {
+            $_SESSION['error'] = "Không tìm thấy tài khoản.";
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
+            exit;
+        }
+
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        $isAdmin = $roleCode === 'ADMIN';
+        $isStaff = $roleCode === 'STAFF';
+        $isShipper = $roleCode === 'SHIPPER';
+
+        $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Admin';
+
+        $title = "Chi tiết tài khoản: " . ($accountDetail['TenDangNhap'] ?? '');
+        $viewContent = BASE_PATH . '/views/admin/account_detail.php';
+
+        require_once BASE_PATH . '/views/admin/layout.php';
     }
-
-    $accountDetail = $this->model->getAccountById($id);
-    $roles = $this->model->getAllRoles();
-
-    if (!$accountDetail) {
-        $_SESSION['error'] = "Không tìm thấy tài khoản.";
-        header("Location: index.php?controller=admintaikhoan");
-        exit;
-    }
-
-    $sessionAccount = $_SESSION['LoginInformation'];
-    $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
-
-    $isAdmin = $roleCode === 'ADMIN';
-    $isStaff = $roleCode === 'STAFF';
-    $isShipper = $roleCode === 'SHIPPER';
-
-    $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Admin';
-
-    $title = "Chi tiết tài khoản: " . ($accountDetail['TenDangNhap'] ?? '');
-    $viewContent = BASE_PATH . '/views/admin/account_detail.php';
-
-    require_once BASE_PATH . '/views/admin/layout.php';
-}
 
     public function toggleActive()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: index.php?controller=admintaikhoan");
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
             exit;
         }
 
@@ -133,10 +137,108 @@ class AdminTaiKhoanController
         $this->redirectBack();
     }
 
+    public function updateInfo()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = "Phương thức cập nhật không hợp lệ.";
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
+            exit;
+        }
+
+        $id = (int)($_POST['TaiKhoanId'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Tài khoản không hợp lệ.";
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
+            exit;
+        }
+
+        $account = $this->model->getAccountById($id);
+
+        if (!$account) {
+            $_SESSION['error'] = "Không tìm thấy tài khoản cần cập nhật.";
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
+            exit;
+        }
+
+        $hoTen = trim($_POST['HoTen'] ?? '');
+        $email = strtolower(trim($_POST['Email'] ?? ''));
+        $soDienThoai = trim($_POST['SoDienThoai'] ?? '');
+        $diaChi = trim($_POST['DiaChi'] ?? '');
+
+        if ($hoTen === '') {
+            $_SESSION['error'] = "Họ tên không được để trống.";
+            $this->redirectToDetail($id);
+        }
+
+        if (mb_strlen($hoTen, 'UTF-8') > 150) {
+            $_SESSION['error'] = "Họ tên không được vượt quá 150 ký tự.";
+            $this->redirectToDetail($id);
+        }
+
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = "Email không đúng định dạng.";
+            $this->redirectToDetail($id);
+        }
+
+        if ($email !== '' && mb_strlen($email, 'UTF-8') > 100) {
+            $_SESSION['error'] = "Email không được vượt quá 100 ký tự.";
+            $this->redirectToDetail($id);
+        }
+
+        if ($email !== '' && $this->model->isEmailExists($email, $id)) {
+            $_SESSION['error'] = "Email đã được sử dụng bởi tài khoản khác.";
+            $this->redirectToDetail($id);
+        }
+
+        if ($soDienThoai !== '') {
+            $soDienThoai = $this->normalizePhone($soDienThoai);
+
+            if (!$this->isValidVietnamPhone($soDienThoai)) {
+                $_SESSION['error'] = "Số điện thoại không hợp lệ. Ví dụ đúng: 0912345678.";
+                $this->redirectToDetail($id);
+            }
+
+            if ($this->model->isPhoneExists($soDienThoai, $id)) {
+                $_SESSION['error'] = "Số điện thoại đã được sử dụng bởi tài khoản khác.";
+                $this->redirectToDetail($id);
+            }
+        }
+
+        if ($diaChi !== '' && mb_strlen($diaChi, 'UTF-8') > 255) {
+            $_SESSION['error'] = "Địa chỉ không được vượt quá 255 ký tự.";
+            $this->redirectToDetail($id);
+        }
+
+        $data = [
+            'HoTen' => $hoTen,
+            'Email' => $email !== '' ? $email : null,
+            'SoDienThoai' => $soDienThoai !== '' ? $soDienThoai : null,
+            'DiaChi' => $diaChi !== '' ? $diaChi : null
+        ];
+
+        $result = $this->model->updateInfo($id, $data);
+
+        if ($result === true) {
+            $_SESSION['success'] = "Cập nhật thông tin tài khoản thành công.";
+
+            if ($id === (int)($_SESSION['LoginInformation']['TaiKhoanId'] ?? 0)) {
+                $_SESSION['LoginInformation']['HoTen'] = $data['HoTen'];
+                $_SESSION['LoginInformation']['Email'] = $data['Email'];
+                $_SESSION['LoginInformation']['SoDienThoai'] = $data['SoDienThoai'];
+                $_SESSION['LoginInformation']['DiaChi'] = $data['DiaChi'];
+            }
+        } else {
+            $_SESSION['error'] = "Cập nhật thất bại: " . $result;
+        }
+
+        $this->redirectToDetail($id);
+    }
+
     public function changePassword()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: index.php?controller=admintaikhoan");
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
             exit;
         }
 
@@ -146,7 +248,7 @@ class AdminTaiKhoanController
 
         if ($id <= 0) {
             $_SESSION['error'] = "Tài khoản không hợp lệ.";
-            header("Location: index.php?controller=admintaikhoan");
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
             exit;
         }
 
@@ -154,12 +256,14 @@ class AdminTaiKhoanController
 
         if (!$account) {
             $_SESSION['error'] = "Không tìm thấy tài khoản.";
-            header("Location: index.php?controller=admintaikhoan");
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
             exit;
         }
 
         if (strlen($newPassword) < 6) {
             $_SESSION['error'] = "Mật khẩu mới phải từ 6 ký tự trở lên.";
+        } elseif (strlen($newPassword) > 72) {
+            $_SESSION['error'] = "Mật khẩu mới không được vượt quá 72 ký tự.";
         } elseif ($newPassword !== $confirmPassword) {
             $_SESSION['error'] = "Xác nhận mật khẩu không khớp.";
         } else {
@@ -172,14 +276,13 @@ class AdminTaiKhoanController
             }
         }
 
-        header("Location: index.php?controller=admintaikhoan&action=detail&id=" . $id);
-        exit;
+        $this->redirectToDetail($id);
     }
 
     public function updateRole()
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: index.php?controller=admintaikhoan");
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
             exit;
         }
 
@@ -189,7 +292,7 @@ class AdminTaiKhoanController
 
         if ($id <= 0 || $roleId <= 0) {
             $_SESSION['error'] = "Dữ liệu phân quyền không hợp lệ.";
-            header("Location: index.php?controller=admintaikhoan");
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
             exit;
         }
 
@@ -197,7 +300,7 @@ class AdminTaiKhoanController
 
         if (!$account) {
             $_SESSION['error'] = "Không tìm thấy tài khoản.";
-            header("Location: index.php?controller=admintaikhoan");
+            header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan");
             exit;
         }
 
@@ -205,8 +308,7 @@ class AdminTaiKhoanController
 
         if (!$newRole) {
             $_SESSION['error'] = "Vai trò không tồn tại hoặc đã bị khóa.";
-            header("Location: index.php?controller=admintaikhoan&action=detail&id=" . $id);
-            exit;
+            $this->redirectToDetail($id);
         }
 
         $oldRoleCode = strtoupper(trim($account['MaVaiTro'] ?? ''));
@@ -232,79 +334,37 @@ class AdminTaiKhoanController
             }
         }
 
-        header("Location: index.php?controller=admintaikhoan&action=detail&id=" . $id);
-        exit;
+        $this->redirectToDetail($id);
     }
 
-    public function updateInfo()
-{
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        header("Location: index.php?controller=admintaikhoan");
-        exit;
-    }
+    private function normalizePhone($phone)
+    {
+        $phone = trim((string)$phone);
+        $phone = preg_replace('/[\s\.\-\(\)]/', '', $phone);
 
-    $id = (int)($_POST['TaiKhoanId'] ?? 0);
-
-    if ($id <= 0) {
-        $_SESSION['error'] = "Tài khoản không hợp lệ.";
-        header("Location: index.php?controller=admintaikhoan");
-        exit;
-    }
-
-    $account = $this->model->getAccountById($id);
-
-    if (!$account) {
-        $_SESSION['error'] = "Không tìm thấy tài khoản.";
-        header("Location: index.php?controller=admintaikhoan");
-        exit;
-    }
-
-    $hoTen = trim($_POST['HoTen'] ?? '');
-    $email = trim($_POST['Email'] ?? '');
-    $soDienThoai = trim($_POST['SoDienThoai'] ?? '');
-    $diaChi = trim($_POST['DiaChi'] ?? '');
-
-    $email = $email !== '' ? $email : null;
-    $soDienThoai = $soDienThoai !== '' ? $soDienThoai : null;
-    $diaChi = $diaChi !== '' ? $diaChi : null;
-
-    if ($hoTen === '') {
-        $_SESSION['error'] = "Họ tên không được để trống.";
-    } elseif ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $_SESSION['error'] = "Email không đúng định dạng.";
-    } elseif ($email !== null && $this->model->isEmailExists($email, $id)) {
-        $_SESSION['error'] = "Email đã được sử dụng bởi tài khoản khác.";
-    } elseif ($soDienThoai !== null && $this->model->isPhoneExists($soDienThoai, $id)) {
-        $_SESSION['error'] = "Số điện thoại đã được sử dụng bởi tài khoản khác.";
-    } else {
-        $data = [
-            'HoTen' => $hoTen,
-            'Email' => $email,
-            'SoDienThoai' => $soDienThoai,
-            'DiaChi' => $diaChi
-        ];
-
-        if ($this->model->updateInfo($id, $data)) {
-            $_SESSION['success'] = "Cập nhật thông tin tài khoản thành công.";
-
-            if ($id === (int)($_SESSION['LoginInformation']['TaiKhoanId'] ?? 0)) {
-                $_SESSION['LoginInformation']['HoTen'] = $hoTen;
-                $_SESSION['LoginInformation']['Email'] = $email;
-                $_SESSION['LoginInformation']['SoDienThoai'] = $soDienThoai;
-                $_SESSION['LoginInformation']['DiaChi'] = $diaChi;
-            }
-        } else {
-            $_SESSION['error'] = "Thông tin không thay đổi hoặc cập nhật thất bại.";
+        if (str_starts_with($phone, '+84')) {
+            $phone = '0' . substr($phone, 3);
+        } elseif (str_starts_with($phone, '84') && strlen($phone) === 11) {
+            $phone = '0' . substr($phone, 2);
         }
+
+        return $phone;
     }
 
-    header("Location: index.php?controller=admintaikhoan&action=detail&id=" . $id);
-    exit;
-}
+    private function isValidVietnamPhone($phone)
+    {
+        return (bool)preg_match('/^0(3|5|7|8|9)[0-9]{8}$/', $phone);
+    }
+
+    private function redirectToDetail($id)
+    {
+        header("Location: /BanMatKinh/public/index.php?controller=admintaikhoan&action=detail&id=" . (int)$id);
+        exit;
+    }
 
     private function redirectBack()
     {
-        header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=admintaikhoan"));
+        header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "/BanMatKinh/public/index.php?controller=admintaikhoan"));
         exit;
     }
 }

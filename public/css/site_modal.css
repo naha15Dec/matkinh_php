@@ -115,3 +115,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+.lux-confirm-icon.danger {
+  background: #fff0f0;
+  color: #dc3545;
+}
+
+.lux-confirm-icon.warning {
+  background: #fff8e5;
+  color: #b7791f;
+}
+
+.lux-confirm-icon.success {
+  background: #eefaf3;
+  color: #198754;
+}
+
+.btn-lux-confirm.danger {
+  background: #dc3545;
+  color: #fff;
+}
+
+.btn-lux-confirm.danger:hover {
+  background: #b02a37;
+  color: #fff;
+}
+
+.btn-lux-confirm.warning {
+  background: #b88a44;
+  color: #fff;
+}
+
+.btn-lux-confirm.warning:hover {
+  background: #9a7134;
+  color: #fff;
+}
+
+.btn-lux-confirm.success {
+  background: #198754;
+  color: #fff;
+}
+
+.btn-lux-confirm.success:hover {
+  background: #146c43;
+  color: #fff;
+}

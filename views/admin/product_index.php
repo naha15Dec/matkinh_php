@@ -1,6 +1,7 @@
 <?php
 $products = $products ?? [];
-$baseUrl = $baseUrl ?? '';
+$pagination = $pagination ?? [];
+$baseUrl = $baseUrl ?? '/BanMatKinh/public';
 
 $keyword = $_GET['keyword'] ?? '';
 $currStatus = $_GET['statusProduct'] ?? 'stock';
@@ -12,41 +13,79 @@ if (!in_array($currStatus, $allowedStatus, true)) {
 
 $userRole = strtoupper($_SESSION['LoginInformation']['MaVaiTro'] ?? '');
 $isAdmin = $userRole === 'ADMIN';
+$isStaff = $userRole === 'STAFF';
 
-function adminProductStatusText($status)
-{
-    return ((int)$status === 1) ? 'Đang bán' : 'Ngừng bán';
+$page = (int)($pagination['CurrentPage'] ?? 1);
+$totalPages = (int)($pagination['TotalPages'] ?? 1);
+$displayStart = (int)($pagination['DisplayStart'] ?? 1);
+$displayEnd = (int)($pagination['DisplayEnd'] ?? 1);
+$totalCount = (int)($pagination['TotalCount'] ?? count($products));
+
+if (!function_exists('adminProductStatusText')) {
+    function adminProductStatusText($status)
+    {
+        return ((int)$status === 1) ? 'Đang bán' : 'Ngừng bán';
+    }
 }
 
-function adminProductStatusClass($status)
-{
-    return ((int)$status === 1) ? 'active' : 'inactive';
+if (!function_exists('adminProductStatusClass')) {
+    function adminProductStatusClass($status)
+    {
+        return ((int)$status === 1) ? 'active' : 'inactive';
+    }
 }
 
-function adminProductImageSrc($image, $baseUrl)
-{
-    $image = trim((string)$image);
+if (!function_exists('adminProductImageSrc')) {
+    function adminProductImageSrc($image, $baseUrl)
+    {
+        $image = trim((string)$image);
 
-    if ($image === '') {
-        return $baseUrl . '/images/default.jpg';
+        if ($image === '') {
+            return $baseUrl . '/images/default.jpg';
+        }
+
+        if (preg_match('/^https?:\/\//i', $image)) {
+            return $image;
+        }
+
+        if (str_starts_with($image, '/BanMatKinh/')) {
+            return $image;
+        }
+
+        if (str_starts_with($image, '/')) {
+            return $image;
+        }
+
+        if (str_starts_with($image, 'public/')) {
+            return '/BanMatKinh/' . ltrim($image, '/');
+        }
+
+        return $baseUrl . '/images/' . ltrim($image, '/');
     }
-
-    if (preg_match('/^https?:\/\//i', $image)) {
-        return $image;
-    }
-
-    return $baseUrl . '/images/' . ltrim($image, '/');
 }
 
-function adminProductTabUrl($baseUrl, $status, $keyword = '')
-{
-    $url = $baseUrl . '/index.php?controller=adminsanpham&statusProduct=' . urlencode($status);
+if (!function_exists('adminProductTabUrl')) {
+    function adminProductTabUrl($baseUrl, $status, $keyword = '')
+    {
+        $url = $baseUrl . '/index.php?controller=adminsanpham&statusProduct=' . urlencode($status);
 
-    if (trim($keyword) !== '') {
-        $url .= '&keyword=' . urlencode($keyword);
+        if (trim($keyword) !== '') {
+            $url .= '&keyword=' . urlencode($keyword);
+        }
+
+        return $url;
     }
+}
 
-    return $url;
+if (!function_exists('adminProductPageUrl')) {
+    function adminProductPageUrl($baseUrl, $pageNum)
+    {
+        $params = $_GET;
+        $params['controller'] = 'adminsanpham';
+        $params['page'] = (int)$pageNum;
+
+        return $baseUrl . '/index.php?' . http_build_query($params);
+    }
 }
 ?>
 
@@ -62,6 +101,10 @@ function adminProductTabUrl($baseUrl, $status, $keyword = '')
 
             <p class="admin-page-subtitle mb-0">
                 Quản lý sản phẩm kính mắt, giá bán, tồn kho và trạng thái kinh doanh.
+                <?php if ($isStaff): ?>
+                    <br>
+                    <small>Nhân viên chỉ quản lý các sản phẩm do mình tạo.</small>
+                <?php endif; ?>
             </p>
         </div>
 
@@ -103,7 +146,7 @@ function adminProductTabUrl($baseUrl, $status, $keyword = '')
 
                 <div class="product-header-actions">
                     <span class="admin-card-count">
-                        <?= count($products) ?> sản phẩm
+                        <?= number_format($totalCount, 0, ',', '.') ?> sản phẩm
                     </span>
 
                     <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham&action=edit"
@@ -192,12 +235,13 @@ function adminProductTabUrl($baseUrl, $status, $keyword = '')
                                     $status = (int)($item['TrangThai'] ?? 1);
                                     $stock = (int)($item['SoLuongTon'] ?? 0);
                                     $isFeatured = !empty($item['IsFeatured']);
+                                    $creatorName = $item['NguoiTao'] ?? $item['TenDangNhapNguoiTao'] ?? '';
                                     ?>
 
                                     <tr>
                                         <td>
                                             <?php if ($status === 1): ?>
-                                                <a href="<?= $baseUrl ?>/index.php?controller=product&action=detail&id=<?= urlencode($code) ?>"
+                                                <a href="<?= $baseUrl ?>/index.php?controller=sanpham&action=detail&id=<?= $id ?>"
                                                    target="_blank"
                                                    class="product-code">
                                                     #<?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?>
@@ -234,6 +278,13 @@ function adminProductTabUrl($baseUrl, $status, $keyword = '')
                                                         );
                                                         ?>
                                                     </div>
+
+                                                    <?php if ($isAdmin && !empty($creatorName)): ?>
+                                                        <div class="product-summary">
+                                                            Người tạo:
+                                                            <strong><?= htmlspecialchars($creatorName, ENT_QUOTES, 'UTF-8') ?></strong>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </td>
@@ -267,20 +318,27 @@ function adminProductTabUrl($baseUrl, $status, $keyword = '')
                                         </td>
 
                                         <td class="text-center">
-                                            <form action="<?= $baseUrl ?>/index.php?controller=adminsanpham&action=toggleFeatured"
-                                                  method="POST"
-                                                  class="d-inline">
-                                                <input type="hidden" name="id" value="<?= $id ?>">
+                                            <?php if ($isAdmin): ?>
+                                                <form action="<?= $baseUrl ?>/index.php?controller=adminsanpham&action=toggleFeatured"
+                                                      method="POST"
+                                                      class="d-inline">
+                                                    <input type="hidden" name="id" value="<?= $id ?>">
 
-                                                <button type="submit"
-                                                        class="product-feature-btn"
-                                                        title="<?= $isFeatured ? 'Tắt nổi bật' : 'Bật nổi bật' ?>"
-                                                        data-confirm
-                                                        data-confirm-title="<?= $isFeatured ? 'Tắt sản phẩm nổi bật' : 'Bật sản phẩm nổi bật' ?>"
-                                                        data-confirm-ok="<?= $isFeatured ? 'Tắt nổi bật' : 'Bật nổi bật' ?>">
+                                                    <button type="submit"
+                                                            class="product-feature-btn"
+                                                            title="<?= $isFeatured ? 'Tắt nổi bật' : 'Bật nổi bật' ?>"
+                                                            data-confirm
+                                                            data-confirm-title="<?= $isFeatured ? 'Tắt sản phẩm nổi bật' : 'Bật sản phẩm nổi bật' ?>"
+                                                            data-confirm-ok="<?= $isFeatured ? 'Tắt nổi bật' : 'Bật nổi bật' ?>">
+                                                        <i class="<?= $isFeatured ? 'fas fa-star' : 'far fa-star' ?>"></i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                <span class="product-feature-btn disabled"
+                                                      title="Chỉ Admin được cập nhật nổi bật">
                                                     <i class="<?= $isFeatured ? 'fas fa-star' : 'far fa-star' ?>"></i>
-                                                </button>
-                                            </form>
+                                                </span>
+                                            <?php endif; ?>
                                         </td>
 
                                         <td>
@@ -306,10 +364,10 @@ function adminProductTabUrl($baseUrl, $status, $keyword = '')
                                                     <button type="submit"
                                                             class="btn product-btn product-btn-delete"
                                                             data-confirm
-                                                            data-confirm-title="Xóa hoặc ngừng bán sản phẩm"
-                                                            data-confirm-ok="Xác nhận">
+                                                            data-confirm-title="<?= $isAdmin ? 'Xóa hoặc ngừng bán sản phẩm' : 'Ngừng bán sản phẩm' ?>"
+                                                            data-confirm-ok="<?= $isAdmin ? 'Xác nhận' : 'Ngừng bán' ?>">
                                                         <i class="fas fa-trash-alt mr-1"></i>
-                                                        Xóa
+                                                        <?= $isAdmin ? 'Xóa' : 'Ngừng' ?>
                                                     </button>
                                                 </form>
                                             </div>
@@ -334,6 +392,39 @@ function adminProductTabUrl($baseUrl, $status, $keyword = '')
 
                     </table>
                 </div>
+
+                <?php if ($totalPages > 1): ?>
+                    <div class="admin-pagination-wrap">
+                        <nav class="admin-pagination">
+                            <?php if ($page > 1): ?>
+                                <a href="<?= adminProductPageUrl($baseUrl, $page - 1) ?>" class="admin-page-btn">
+                                    <i class="fas fa-angle-left"></i>
+                                </a>
+                            <?php else: ?>
+                                <span class="admin-page-btn disabled">
+                                    <i class="fas fa-angle-left"></i>
+                                </span>
+                            <?php endif; ?>
+
+                            <?php for ($i = $displayStart; $i <= $displayEnd; $i++): ?>
+                                <a href="<?= adminProductPageUrl($baseUrl, $i) ?>"
+                                   class="admin-page-btn <?= $i === $page ? 'active' : '' ?>">
+                                    <?= $i ?>
+                                </a>
+                            <?php endfor; ?>
+
+                            <?php if ($page < $totalPages): ?>
+                                <a href="<?= adminProductPageUrl($baseUrl, $page + 1) ?>" class="admin-page-btn">
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                            <?php else: ?>
+                                <span class="admin-page-btn disabled">
+                                    <i class="fas fa-angle-right"></i>
+                                </span>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
+                <?php endif; ?>
             </div>
 
         </div>

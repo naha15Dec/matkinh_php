@@ -244,4 +244,121 @@ class AdminDonHangModel
 
         return (int)$stmt->fetchColumn() > 0;
     }
+
+    public function cancelOrderAndRestoreStock($orderId, $oldStatus, $userId, $note, $paymentMethod, $paymentStatus)
+    {
+        try {
+            $this->db->beginTransaction();
+
+            $order = $this->getOrderById($orderId);
+
+            if (!$order) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            if ((int)$order['TrangThai'] === OrderStatusConstants::CANCELLED) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            if ((int)$order['TrangThai'] === OrderStatusConstants::DELIVERED) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            $items = $this->getOrderItems($orderId);
+
+            foreach ($items as $item) {
+                $productId = (int)($item['SanPhamId'] ?? 0);
+                $qty = (int)($item['SoLuong'] ?? 0);
+
+                if ($productId > 0 && $qty > 0) {
+                    $this->restoreProductStock($productId, $qty);
+                }
+            }
+
+            $fields = [
+                "TrangThai = ?",
+                "NgayHuy = NOW()",
+                "UpdatedAt = NOW()"
+            ];
+
+            $params = [
+                OrderStatusConstants::CANCELLED
+            ];
+
+            $paymentMethod = strtoupper(trim((string)$paymentMethod));
+            $paymentStatusUpper = strtoupper(trim((string)$paymentStatus));
+
+            if ($paymentMethod === PaymentConstants::VNPAY) {
+                if ($paymentStatusUpper === strtoupper(PaymentConstants::PAID)) {
+                    $fields[] = "TrangThaiThanhToan = ?";
+                    $params[] = PaymentConstants::REFUNDED;
+                } else {
+                    $fields[] = "TrangThaiThanhToan = ?";
+                    $params[] = PaymentConstants::FAILED;
+                }
+            }
+
+            $params[] = (int)$orderId;
+
+            $sql = "
+                UPDATE donhang
+                SET " . implode(", ", $fields) . "
+                WHERE DonHangId = ?
+                AND TrangThai <> ?
+            ";
+
+            $params[] = OrderStatusConstants::CANCELLED;
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+
+            if ($stmt->rowCount() <= 0) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            $this->addHistory(
+                $orderId,
+                $oldStatus,
+                OrderStatusConstants::CANCELLED,
+                $note,
+                $userId
+            );
+
+            $this->db->commit();
+            return true;
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            return false;
+        }
+    }
+
+    public function restoreProductStock($productId, $qty)
+    {
+        if ($productId <= 0 || $qty <= 0) {
+            return false;
+        }
+
+        $sql = "
+            UPDATE sanpham
+            SET 
+                SoLuongTon = SoLuongTon + ?,
+                UpdatedAt = NOW()
+            WHERE SanPhamId = ?
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            (int)$qty,
+            (int)$productId
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
 }

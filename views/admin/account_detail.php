@@ -283,7 +283,7 @@ $avatarLetter = function_exists('mb_substr')
                                                class="form-control admin-input"
                                                required
                                                minlength="6"
-                                               autocomplete="new-password">
+                                               autocomplete="off">
                                     </div>
 
                                     <div class="form-group">
@@ -294,7 +294,7 @@ $avatarLetter = function_exists('mb_substr')
                                                class="form-control admin-input"
                                                required
                                                minlength="6"
-                                               autocomplete="new-password">
+                                               autocomplete="off">
                                     </div>
 
                                     <div class="text-right mt-4">

@@ -50,10 +50,12 @@ if (!function_exists('activeMenu')) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($title ?? 'Trang chủ', ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <link rel="stylesheet" href="/BanMatKinh/public/css/client_layout.css?v=<?= time() ?>">
 
     <link rel="stylesheet" href="/BanMatKinh/public/css/home_style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="/BanMatKinh/public/css/product_style.css?v=<?= time() ?>">
@@ -69,330 +71,82 @@ if (!function_exists('activeMenu')) {
     <link rel="stylesheet" href="/BanMatKinh/public/css/profile_style.css?v=<?= time() ?>">
     <link rel="stylesheet" href="/BanMatKinh/public/css/order-detail.css?v=<?= time() ?>">
     <link rel="stylesheet" href="/BanMatKinh/public/css/site_modal.css?v=<?= time() ?>">
-
-    <style>
-        :root {
-            --black: #111111;
-            --dark: #1b1b1b;
-            --gray: #666666;
-            --light: #f7f4ef;
-            --cream: #f3eadf;
-            --gold: #b88a44;
-            --border: #e8e2d8;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #fff;
-            color: var(--black);
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: none;
-            color: var(--gold);
-        }
-
-        .topbar {
-            background: var(--black);
-            color: #f5f5f5;
-            font-size: 13px;
-            padding: 9px 0;
-        }
-
-        .site-header {
-            background: rgba(255, 255, 255, .96);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            z-index: 1000;
-        }
-
-        .brand-logo {
-            line-height: 1;
-            display: inline-block;
-        }
-
-        .brand-logo .name {
-            font-family: 'Playfair Display', serif;
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: .5px;
-        }
-
-        .brand-logo .sub {
-            display: block;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: var(--gold);
-            margin-top: 4px;
-        }
-
-        .navbar-nav .nav-link {
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .7px;
-            padding: 30px 14px !important;
-            color: var(--dark) !important;
-            position: relative;
-        }
-
-        .navbar-nav .nav-link.active::after,
-        .navbar-nav .nav-link:hover::after {
-            content: "";
-            position: absolute;
-            left: 14px;
-            right: 14px;
-            bottom: 22px;
-            height: 2px;
-            background: var(--gold);
-        }
-
-        .header-action {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 1px solid var(--border);
-            background: #fff;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 8px;
-            transition: .25s;
-            position: relative;
-        }
-
-        .header-action:hover {
-            background: var(--black);
-            color: #fff;
-            border-color: var(--black);
-        }
-
-        .header-cart-count {
-            position: absolute;
-            top: -5px;
-            right: -6px;
-            min-width: 17px;
-            height: 17px;
-            padding: 0 5px;
-            border-radius: 999px;
-            background: var(--gold);
-            color: #fff;
-            font-size: 10px;
-            font-weight: 800;
-            line-height: 17px;
-            text-align: center;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, .18);
-        }
-
-        .account-chip {
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 10px 14px;
-            font-size: 14px;
-            font-weight: 600;
-            background: #fff;
-            max-width: 180px;
-            display: inline-flex;
-            align-items: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .dropdown-menu {
-            border-radius: 16px;
-            padding: 10px;
-        }
-
-        .dropdown-item {
-            border-radius: 10px;
-            font-size: 14px;
-            padding: 10px 14px;
-        }
-
-        .search-panel {
-            display: none;
-            background: var(--light);
-            border-top: 1px solid var(--border);
-            padding: 18px 0;
-        }
-
-        .search-input {
-            height: 48px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            padding: 0 20px;
-        }
-
-        .btn-luxury {
-            border-radius: 999px;
-            padding: 11px 24px;
-            background: var(--black);
-            color: #fff;
-            border: none;
-            font-weight: 700;
-        }
-
-        .btn-luxury:hover {
-            background: var(--gold);
-            color: #fff;
-        }
-
-        .page-alert {
-            border-radius: 16px;
-            border: 0;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, .06);
-        }
-
-        main {
-            min-height: 60vh;
-        }
-
-        .site-footer {
-            background: var(--black);
-            color: #fff;
-            padding: 60px 0 24px;
-            margin-top: 60px;
-        }
-
-        .footer-brand {
-            font-family: 'Playfair Display', serif;
-            font-size: 28px;
-            font-weight: 800;
-        }
-
-        .footer-title {
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 18px;
-            color: var(--cream);
-        }
-
-        .site-footer p,
-        .site-footer a,
-        .site-footer li {
-            color: #bdbdbd;
-            font-size: 14px;
-            line-height: 1.9;
-        }
-
-        .site-footer a:hover {
-            color: var(--gold);
-        }
-
-        .footer-socials {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 18px;
-        }
-
-        .footer-socials a {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: 1px solid rgba(255,255,255,.14);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-        }
-
-        .footer-socials a:hover {
-            background: var(--gold);
-            border-color: var(--gold);
-            color: #fff;
-        }
-
-        .footer-bottom {
-            border-top: 1px solid rgba(255, 255, 255, .1);
-            margin-top: 35px;
-            padding-top: 20px;
-            color: #999;
-            font-size: 13px;
-        }
-
-        @media (max-width: 991px) {
-            .navbar-nav .nav-link {
-                padding: 14px 0 !important;
-            }
-
-            .navbar-nav .nav-link.active::after,
-            .navbar-nav .nav-link:hover::after {
-                display: none;
-            }
-
-            .header-actions {
-                padding: 15px 0;
-            }
-        }
-    </style>
 </head>
 
 <body>
 
-<div class="topbar d-none d-md-block">
-    <div class="container d-flex justify-content-between">
-        <span><i class="fas fa-shipping-fast mr-2"></i> Miễn phí giao hàng cho đơn từ 1.000.000đ</span>
-        <span><i class="fas fa-phone-alt mr-2"></i> Hotline: <?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?></span>
+<div class="client-topbar d-none d-md-block">
+    <div class="container">
+        <div class="client-topbar__inner">
+            <span class="client-topbar__item">
+                <i class="fas fa-shipping-fast"></i>
+                Miễn phí giao hàng cho đơn từ 1.000.000đ
+            </span>
+
+            <span class="client-topbar__item">
+                <i class="fas fa-gem"></i>
+                Chính hãng · Bảo hành · Tư vấn chọn kính
+            </span>
+
+            <span class="client-topbar__item">
+                <i class="fas fa-phone-alt"></i>
+                Hotline: <?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?>
+            </span>
+        </div>
     </div>
 </div>
 
-<header class="site-header sticky-top">
+<header class="client-header sticky-top">
     <div class="container">
-        <nav class="navbar navbar-expand-lg navbar-light p-0">
-            <a class="brand-logo" href="index.php?controller=home">
-                <span class="name"><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></span>
-                <span class="sub">Premium Eyewear</span>
+        <nav class="navbar navbar-expand-lg navbar-light client-navbar p-0">
+            <a class="client-brand" href="index.php?controller=home">
+                <span class="client-brand__name"><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="client-brand__sub">Premium Eyewear</span>
             </a>
 
-            <button class="navbar-toggler ml-auto" type="button" data-toggle="collapse" data-target="#mainNavbar">
+            <button class="navbar-toggler client-toggler ml-auto" type="button" data-toggle="collapse" data-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Mở menu">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div class="collapse navbar-collapse" id="mainNavbar">
-                <ul class="navbar-nav mx-auto">
+            <div class="collapse navbar-collapse client-navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav client-menu mx-auto">
                     <li class="nav-item">
                         <a class="nav-link <?= activeMenu('home', $currentController) ?>" href="index.php?controller=home">Trang chủ</a>
                     </li>
+
                     <li class="nav-item">
                         <a class="nav-link <?= activeMenu('sanpham', $currentController) ?>" href="index.php?controller=sanpham">Mắt kính</a>
                     </li>
+
                     <li class="nav-item">
                         <a class="nav-link <?= activeMenu('blog', $currentController) ?>" href="index.php?controller=blog">Tạp chí</a>
                     </li>
+
                     <li class="nav-item">
                         <a class="nav-link <?= activeMenu('contact', $currentController) ?>" href="index.php?controller=contact">Liên hệ</a>
                     </li>
                 </ul>
 
-                <div class="header-actions d-flex align-items-center">
-                    <button type="button" class="header-action" id="btnOpenSearch" title="Tìm kiếm">
+                <div class="client-header-actions">
+                    <button type="button" class="client-header-action" id="btnOpenSearch" title="Tìm kiếm" aria-label="Tìm kiếm">
                         <i class="fas fa-search"></i>
                     </button>
 
-                    <a class="header-action" href="index.php?controller=giohang" title="Giỏ hàng">
+                    <a class="client-header-action client-cart-link" href="index.php?controller=giohang" title="Giỏ hàng" aria-label="Giỏ hàng">
                         <i class="fas fa-shopping-bag"></i>
+
                         <?php if ($cartCount > 0): ?>
-                            <span class="header-cart-count"><?= $cartCount > 99 ? '99+' : (int)$cartCount ?></span>
+                            <span class="client-cart-count"><?= $cartCount > 99 ? '99+' : (int)$cartCount ?></span>
                         <?php endif; ?>
                     </a>
 
-                    <div class="dropdown ml-2">
-                        <a href="#" class="account-chip dropdown-toggle" data-toggle="dropdown">
-                            <i class="far fa-user mr-1"></i>
-                            <?= htmlspecialchars($accountDisplay, ENT_QUOTES, 'UTF-8') ?>
+                    <div class="dropdown client-account-dropdown">
+                        <a href="#" class="client-account-chip dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="far fa-user"></i>
+                            <span><?= htmlspecialchars($accountDisplay, ENT_QUOTES, 'UTF-8') ?></span>
                         </a>
 
-                        <div class="dropdown-menu dropdown-menu-right shadow border-0">
+                        <div class="dropdown-menu dropdown-menu-right client-dropdown-menu shadow border-0">
                             <?php if ($isLoggedIn): ?>
                                 <a class="dropdown-item" href="index.php?controller=profile">
                                     <i class="far fa-id-card mr-2"></i> Hồ sơ cá nhân
@@ -413,6 +167,7 @@ if (!function_exists('activeMenu')) {
                                 <a class="dropdown-item" href="index.php?controller=taikhoan&action=login">
                                     <i class="fas fa-sign-in-alt mr-2"></i> Đăng nhập
                                 </a>
+
                                 <a class="dropdown-item" href="index.php?controller=taikhoan&action=register">
                                     <i class="fas fa-user-plus mr-2"></i> Đăng ký
                                 </a>
@@ -424,17 +179,27 @@ if (!function_exists('activeMenu')) {
         </nav>
     </div>
 
-    <div class="search-panel" id="searchPanel">
+    <div class="client-search-panel" id="searchPanel">
         <div class="container">
-            <form action="index.php" method="GET" class="d-flex">
+            <form action="index.php" method="GET" class="client-search-box">
                 <input type="hidden" name="controller" value="sanpham">
-                <input class="form-control search-input"
+
+                <span class="client-search-icon">
+                    <i class="fas fa-search"></i>
+                </span>
+
+                <input class="form-control client-search-input"
                        type="text"
                        name="Keyword"
                        placeholder="Tìm kính râm, gọng kính, thương hiệu..."
-                       autocomplete="off">
-                <button class="btn btn-luxury ml-2" type="submit">Tìm kiếm</button>
-                <button class="btn btn-light ml-2 rounded-circle" type="button" id="btnCloseSearch">
+                       autocomplete="off"
+                       id="luxSearchInput">
+
+                <button class="client-btn-luxury" type="submit">
+                    Tìm kiếm
+                </button>
+
+                <button class="client-search-close" type="button" id="btnCloseSearch" aria-label="Đóng tìm kiếm">
                     <i class="fas fa-times"></i>
                 </button>
             </form>
@@ -442,54 +207,68 @@ if (!function_exists('activeMenu')) {
     </div>
 </header>
 
-<div class="container mt-3">
+<div class="container mt-3 client-alert-wrap">
     <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success alert-dismissible fade show page-alert" role="alert">
-            <i class="fas fa-check-circle mr-2"></i>
-            <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+        <div class="alert alert-success alert-dismissible fade show client-page-alert" role="alert">
+            <i class="fas fa-check-circle"></i>
+            <span>
+                <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+            </span>
             <?php unset($_SESSION['success']); ?>
-            <button type="button" class="close" data-dismiss="alert">
+
+            <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
                 <span>&times;</span>
             </button>
         </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger alert-dismissible fade show page-alert" role="alert">
-            <i class="fas fa-exclamation-circle mr-2"></i>
-            <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+        <div class="alert alert-danger alert-dismissible fade show client-page-alert" role="alert">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>
+                <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+            </span>
             <?php unset($_SESSION['error']); ?>
-            <button type="button" class="close" data-dismiss="alert">
+
+            <button type="button" class="close" data-dismiss="alert" aria-label="Đóng">
                 <span>&times;</span>
             </button>
         </div>
     <?php endif; ?>
 </div>
 
-<main>
+<main class="client-main">
     <?php
     if (isset($viewContent) && file_exists($viewContent)) {
         include $viewContent;
     } else {
         echo "
-            <div class='container py-5 text-center'>
-                <h3>Nội dung đang được cập nhật</h3>
-                <p class='text-muted'>Vui lòng quay lại sau.</p>
+            <div class='container'>
+                <div class='client-empty-content'>
+                    <div class='client-empty-content__icon'>
+                        <i class='far fa-file-alt'></i>
+                    </div>
+                    <h3>Nội dung đang được cập nhật</h3>
+                    <p class='text-muted mb-0'>Vui lòng quay lại sau.</p>
+                </div>
             </div>
         ";
     }
     ?>
 </main>
 
-<footer class="site-footer">
+<footer class="client-footer">
     <div class="container">
         <div class="row">
             <div class="col-lg-4 mb-4">
-                <div class="footer-brand mb-3"><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></div>
-                <p><?= htmlspecialchars($moTaNgan, ENT_QUOTES, 'UTF-8') ?></p>
+                <div class="client-footer__brand"><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></div>
+
+                <p class="client-footer__desc">
+                    <?= htmlspecialchars($moTaNgan, ENT_QUOTES, 'UTF-8') ?>
+                </p>
 
                 <?php if (!empty($facebookUrl) || !empty($instagramUrl) || !empty($zaloUrl)): ?>
-                    <div class="footer-socials">
+                    <div class="client-footer-socials">
                         <?php if (!empty($facebookUrl)): ?>
                             <a href="<?= htmlspecialchars($facebookUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" title="Facebook">
                                 <i class="fab fa-facebook-f"></i>
@@ -512,8 +291,9 @@ if (!function_exists('activeMenu')) {
             </div>
 
             <div class="col-lg-2 col-md-4 mb-4">
-                <h6 class="footer-title">Danh mục</h6>
-                <ul class="list-unstyled">
+                <h6 class="client-footer__title">Danh mục</h6>
+
+                <ul class="list-unstyled mb-0">
                     <li><a href="index.php?controller=home">Trang chủ</a></li>
                     <li><a href="index.php?controller=sanpham">Mắt kính</a></li>
                     <li><a href="index.php?controller=blog">Tạp chí</a></li>
@@ -522,8 +302,9 @@ if (!function_exists('activeMenu')) {
             </div>
 
             <div class="col-lg-3 col-md-4 mb-4">
-                <h6 class="footer-title">Hỗ trợ</h6>
-                <ul class="list-unstyled">
+                <h6 class="client-footer__title">Hỗ trợ</h6>
+
+                <ul class="list-unstyled mb-0">
                     <li><a href="index.php?controller=contact">Tư vấn chọn kính</a></li>
                     <li><a href="index.php?controller=contact">Chính sách đổi trả</a></li>
                     <li><a href="index.php?controller=contact">Bảo hành sản phẩm</a></li>
@@ -532,18 +313,28 @@ if (!function_exists('activeMenu')) {
             </div>
 
             <div class="col-lg-3 col-md-4 mb-4">
-                <h6 class="footer-title">Liên hệ</h6>
-                <p>
-                    <i class="fas fa-map-marker-alt mr-2"></i> <?= htmlspecialchars($diaChi, ENT_QUOTES, 'UTF-8') ?><br>
-                    <i class="fas fa-phone-alt mr-2"></i> <?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?><br>
-                    <i class="fas fa-envelope mr-2"></i> <?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>
-                </p>
+                <h6 class="client-footer__title">Liên hệ</h6>
+
+                <div class="client-footer-contact">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span><?= htmlspecialchars($diaChi, ENT_QUOTES, 'UTF-8') ?></span>
+                </div>
+
+                <div class="client-footer-contact">
+                    <i class="fas fa-phone-alt"></i>
+                    <span><?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?></span>
+                </div>
+
+                <div class="client-footer-contact">
+                    <i class="fas fa-envelope"></i>
+                    <span><?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?></span>
+                </div>
             </div>
         </div>
 
-        <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between">
+        <div class="client-footer-bottom">
             <span>© <?= date('Y') ?> <?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?>. All rights reserved.</span>
-            <span>Designed for modern eyewear shopping experience.</span>
+            <span>Premium Eyewear.</span>
         </div>
     </div>
 </footer>
@@ -554,18 +345,28 @@ if (!function_exists('activeMenu')) {
 <script>
     $(function () {
         $('#btnOpenSearch').on('click', function () {
-            $('#searchPanel').slideToggle(180);
+            $('#searchPanel').stop(true, true).slideToggle(180, function () {
+                if ($('#searchPanel').is(':visible')) {
+                    $('#luxSearchInput').trigger('focus');
+                }
+            });
         });
 
         $('#btnCloseSearch').on('click', function () {
-            $('#searchPanel').slideUp(180);
+            $('#searchPanel').stop(true, true).slideUp(180);
+        });
+
+        $(document).on('keydown', function (e) {
+            if (e.key === 'Escape') {
+                $('#searchPanel').stop(true, true).slideUp(180);
+            }
         });
 
         setTimeout(function () {
-            $('.alert').fadeTo(400, 0).slideUp(400, function () {
+            $('.client-page-alert').fadeTo(400, 0).slideUp(400, function () {
                 $(this).remove();
             });
-        }, 3000);
+        }, 3200);
     });
 </script>
 

@@ -296,14 +296,20 @@ if (!function_exists('formatMoney')) {
 
                                             <?php if ($status === OrderStatusConstants::PENDING): ?>
                                                 <form action="index.php?controller=profile&action=cancelOrder"
-                                                      method="POST"
-                                                      class="client-cancel-order-form"
-                                                      onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng này không?');">
+                                                        method="POST"
+                                                        class="client-cancel-order-form">
                                                     <input type="hidden"
                                                            name="MaDonHang"
                                                            value="<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?>">
 
-                                                    <button type="submit" class="btn-order-cancel">
+                                                    <button type="submit"
+                                                            class="btn-order-cancel"
+                                                            data-confirm
+                                                            data-confirm-title="Hủy đơn hàng?"
+                                                            data-confirm-message="Bạn có chắc muốn hủy đơn hàng <strong>#<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?></strong> không?"
+                                                            data-confirm-ok="Hủy đơn"
+                                                            data-confirm-icon="fas fa-times-circle"
+                                                            data-confirm-type="danger">
                                                         Hủy đơn
                                                     </button>
                                                 </form>

@@ -10,6 +10,10 @@ $currentCode = !empty($post['MaBaiViet']) ? $post['MaBaiViet'] : $autoCode;
 
 $imageName = $post['AnhDaiDien'] ?? '';
 
+$login = $_SESSION['LoginInformation'] ?? [];
+$formRoleCode = strtoupper(trim($login['MaVaiTro'] ?? ''));
+$isAdminBlogForm = $formRoleCode === 'ADMIN';
+
 function blogFormImageSrc($image, $baseUrl)
 {
     $image = trim((string)$image);
@@ -204,26 +208,46 @@ $currentStatus = (int)($post['TrangThai'] ?? 1);
                             </div>
                         </div>
 
-                        <div class="premium-panel-body">
-                            <div class="form-group">
-                                <label class="blog-edit-label">Trạng thái bài viết</label>
-                                <select name="TrangThai" class="form-control blog-edit-input">
-                                    <option value="1" <?= $currentStatus === 1 ? 'selected' : '' ?>>
-                                        Đã đăng
-                                    </option>
-                                    <option value="0" <?= $currentStatus === 0 ? 'selected' : '' ?>>
-                                        Nháp
-                                    </option>
-                                    <option value="2" <?= $currentStatus === 2 ? 'selected' : '' ?>>
-                                        Ẩn
-                                    </option>
-                                </select>
-                            </div>
+                        <?php
+                        $login = $_SESSION['LoginInformation'] ?? [];
+                        $formRoleCode = strtoupper(trim($login['MaVaiTro'] ?? ''));
+                        $isAdminBlogForm = $formRoleCode === 'ADMIN';
+                        ?>
 
-                            <div class="blog-publish-note">
-                                <i class="fas fa-clock mr-1"></i>
-                                Nếu chọn “Đã đăng”, hệ thống sẽ tự ghi nhận ngày đăng nếu bài chưa từng được đăng.
-                            </div>
+                        <div class="premium-panel-body">
+
+                            <?php if ($isAdminBlogForm): ?>
+                                <div class="form-group">
+                                    <label class="blog-edit-label">Trạng thái bài viết</label>
+
+                                    <select name="TrangThai" class="form-control blog-edit-input">
+                                        <option value="1" <?= $currentStatus === 1 ? 'selected' : '' ?>>
+                                            Đã đăng
+                                        </option>
+
+                                        <option value="0" <?= $currentStatus === 0 ? 'selected' : '' ?>>
+                                            Nháp / Chờ duyệt
+                                        </option>
+
+                                        <option value="2" <?= $currentStatus === 2 ? 'selected' : '' ?>>
+                                            Ẩn
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="blog-publish-note">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Quản trị viên có thể đăng, ẩn hoặc chuyển bài viết về trạng thái nháp/chờ duyệt.
+                                </div>
+                            <?php else: ?>
+                                <input type="hidden" name="TrangThai" value="0">
+
+                                <div class="blog-publish-note">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Bài viết của nhân viên sẽ được lưu ở trạng thái nháp/chờ duyệt.
+                                    Quản trị viên sẽ kiểm duyệt trước khi đăng.
+                                </div>
+                            <?php endif; ?>
 
                             <button type="submit"
                                     class="btn blog-submit-btn btn-block mt-3"

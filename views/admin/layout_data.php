@@ -146,3 +146,5 @@ if (!empty($rawAvatar)) {
 } else {
     $avatar = '/BanMatKinh/public/images/admin/default-avatar.png';
 }
+
+$baseUrl = '/BanMatKinh/public';

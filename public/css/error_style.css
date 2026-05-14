@@ -1,9 +1,16 @@
 :root {
-  --gold: #b88a44;
-  --gold-light: #f2d8a6;
-  --dark: #111111;
-  --cream: #fffaf3;
-  --border: #eadfce;
+  --error-black: #111111;
+  --error-dark: #1c1a17;
+  --error-text: #2b2926;
+  --error-muted: #746b60;
+  --error-soft: #f8f3eb;
+  --error-cream: #fffaf3;
+  --error-card: #ffffff;
+  --error-gold: #b88a44;
+  --error-gold-2: #d2a35a;
+  --error-border: #eadfce;
+  --error-danger: #dc3545;
+  --error-shadow: 0 30px 80px rgba(17, 17, 17, 0.16);
 }
 
 * {
@@ -15,285 +22,346 @@
 body.error-page-luxury {
   min-height: 100vh;
   overflow: hidden;
+  font-family: "Inter", sans-serif;
+  color: var(--error-text);
   background:
     radial-gradient(
       circle at top left,
-      rgba(184, 138, 68, 0.12),
-      transparent 28%
+      rgba(184, 138, 68, 0.16),
+      transparent 30%
     ),
     radial-gradient(
       circle at bottom right,
-      rgba(184, 138, 68, 0.08),
-      transparent 32%
+      rgba(17, 17, 17, 0.08),
+      transparent 34%
     ),
-    #fffaf3;
-  font-family: "Inter", sans-serif;
+    linear-gradient(135deg, #fffaf3 0%, #f7efe3 100%);
   position: relative;
 }
 
-/* =========================
-   WRAPPER
-========================= */
+.error-background-glow {
+  position: fixed;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(10px);
+  opacity: 0.8;
+}
+
+.error-background-glow.glow-1 {
+  width: 280px;
+  height: 280px;
+  top: -90px;
+  left: -70px;
+  background: rgba(184, 138, 68, 0.16);
+}
+
+.error-background-glow.glow-2 {
+  width: 360px;
+  height: 360px;
+  right: -130px;
+  bottom: -150px;
+  background: rgba(17, 17, 17, 0.08);
+}
 
 .error-wrapper {
+  position: relative;
+  z-index: 2;
   min-height: 100vh;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 18px;
-  position: relative;
-  z-index: 2;
+  padding: 28px;
 }
-
-/* =========================
-   BACKGROUND GLOW
-========================= */
-
-.error-background-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.45;
-}
-
-.glow-1 {
-  width: 260px;
-  height: 260px;
-  background: #d7b47a;
-  top: -100px;
-  left: -60px;
-}
-
-.glow-2 {
-  width: 280px;
-  height: 280px;
-  background: #111;
-  bottom: -140px;
-  right: -90px;
-  opacity: 0.12;
-}
-
-/* =========================
-   CARD
-========================= */
 
 .error-card-modern {
-  width: 100%;
-  max-width: 620px;
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 30px;
-  padding: 36px 42px;
-  text-align: center;
-  box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  width: min(100%, 760px);
+  max-height: calc(100vh - 56px);
+  overflow: auto;
   position: relative;
+  padding: 38px;
+  border: 1px solid rgba(234, 223, 206, 0.95);
+  border-radius: 36px;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(184, 138, 68, 0.12),
+      transparent 35%
+    ),
+    rgba(255, 255, 255, 0.9);
+  box-shadow: var(--error-shadow);
+  text-align: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-/* =========================
-   LOGO
-========================= */
+.error-card-modern::-webkit-scrollbar {
+  width: 6px;
+}
+
+.error-card-modern::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(184, 138, 68, 0.35);
+}
+
+.error-card-modern::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border: 1px solid rgba(184, 138, 68, 0.12);
+  border-radius: 28px;
+  pointer-events: none;
+}
 
 .error-logo {
-  color: #111;
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 18px;
+  color: var(--error-black);
+  font-family: "Playfair Display", serif;
+  font-size: 25px;
   font-weight: 800;
-  font-size: 17px;
-  margin-bottom: 10px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
 }
 
 .error-logo span {
-  color: var(--gold);
+  color: var(--error-gold);
 }
 
-/* =========================
-   ERROR CODE
-========================= */
-
 .error-status {
-  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+  margin-bottom: 8px;
 }
 
 .error-status span {
-  font-size: 86px;
-  line-height: 1;
-  font-weight: 900;
   font-family: "Playfair Display", serif;
-  background: linear-gradient(180deg, #111 0%, #b88a44 100%);
-
-  background-clip: text;
-  -webkit-background-clip: text;
-
+  font-size: clamp(86px, 13vw, 150px);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -4px;
   color: transparent;
-  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 2px rgba(17, 17, 17, 0.9);
+  text-shadow: 0 14px 35px rgba(17, 17, 17, 0.08);
 }
-
-/* =========================
-   ICON
-========================= */
 
 .error-icon-wrap {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #111, #2c2c2c);
-  color: #fff;
-  margin: 0 auto 18px;
-  display: flex;
+  position: relative;
+  z-index: 1;
+  width: 78px;
+  height: 78px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+  margin: 2px auto 18px;
+  border-radius: 999px;
+  background: #fff0f0;
+  color: var(--error-danger);
+  font-size: 29px;
+  box-shadow: 0 18px 40px rgba(220, 53, 69, 0.14);
 }
 
-/* =========================
-   TITLE + DESC
-========================= */
-
 .error-card-modern h1 {
-  font-size: 34px;
-  line-height: 1.2;
-  font-weight: 900;
-  color: #111;
-  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+  margin: 0 auto;
+  color: var(--error-black);
   font-family: "Playfair Display", serif;
+  font-size: clamp(32px, 4.5vw, 48px);
+  font-weight: 900;
+  line-height: 1.12;
 }
 
 .error-card-modern p {
-  max-width: 520px;
-  margin: 0 auto;
-  color: #666;
-  line-height: 1.65;
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+  margin: 16px auto 0;
+  color: var(--error-muted);
   font-size: 15px;
+  line-height: 1.85;
+  font-weight: 600;
 }
 
-/* =========================
-   INFO BOX
-========================= */
-
 .error-info-box {
-  margin: 22px 0;
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 26px auto 0;
+  max-width: 620px;
 }
 
 .error-info-box div {
+  min-height: 78px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 15px;
-  min-height: 46px;
-  color: #444;
-  font-weight: 600;
-  font-size: 14px;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid var(--error-border);
+  border-radius: 22px;
+  background: rgba(255, 250, 243, 0.75);
+  text-align: left;
 }
 
 .error-info-box i {
-  color: var(--gold);
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  background: var(--error-black);
+  color: #ffffff;
+  font-size: 16px;
 }
 
-/* =========================
-   ACTION BUTTONS
-========================= */
+.error-info-box span {
+  color: var(--error-text);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
+}
 
 .error-actions {
+  position: relative;
+  z-index: 1;
   display: flex;
+  align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 28px;
 }
 
 .btn-error-primary,
 .btn-error-secondary {
-  min-width: 185px;
-  min-height: 46px;
-  border-radius: 999px;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 9px;
+  padding: 0 23px;
+  border-radius: 999px;
   text-decoration: none;
-  font-weight: 800;
   font-size: 14px;
-  transition: 0.25s ease;
+  font-weight: 900;
+  transition: 0.22s ease;
 }
 
 .btn-error-primary {
-  background: #111;
-  color: #fff;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--error-black);
+  background: var(--error-black);
+  color: #ffffff;
+  box-shadow: 0 16px 34px rgba(17, 17, 17, 0.14);
 }
 
 .btn-error-primary:hover {
-  background: var(--gold);
-  color: #fff;
+  border-color: var(--error-gold);
+  background: var(--error-gold);
+  color: #ffffff;
   transform: translateY(-2px);
 }
 
 .btn-error-secondary {
-  background: #fff;
-  color: #111;
-  border: 1px solid var(--border);
+  border: 1px solid var(--error-border);
+  background: #ffffff;
+  color: var(--error-black);
 }
 
 .btn-error-secondary:hover {
-  background: #f7efe2;
-  color: #111;
+  border-color: var(--error-black);
+  background: var(--error-black);
+  color: #ffffff;
   transform: translateY(-2px);
 }
 
-/* =========================
-   FOOTER
-========================= */
-
 .error-footer {
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  color: #888;
+  position: relative;
+  z-index: 1;
+  max-width: 580px;
+  margin: 24px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--error-border);
+  color: #90877d;
   font-size: 13px;
-  line-height: 1.6;
+  font-weight: 600;
+  line-height: 1.65;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
-
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   body.error-page-luxury {
     overflow: auto;
   }
 
   .error-wrapper {
-    padding: 18px 14px;
+    min-height: 100vh;
+    padding: 20px;
   }
 
   .error-card-modern {
-    max-width: 520px;
-    padding: 28px 22px;
+    max-height: none;
+    padding: 30px 22px;
+    border-radius: 30px;
+  }
+
+  .error-card-modern::before {
+    inset: 10px;
     border-radius: 24px;
   }
 
-  .error-status span {
-    font-size: 72px;
+  .error-info-box {
+    grid-template-columns: 1fr;
   }
 
-  .error-card-modern h1 {
-    font-size: 28px;
-  }
-
-  .error-card-modern p {
-    font-size: 14px;
+  .error-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .btn-error-primary,
   .btn-error-secondary {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .error-wrapper {
+    padding: 14px;
+  }
+
+  .error-card-modern {
+    padding: 26px 18px;
+    border-radius: 26px;
+  }
+
+  .error-logo {
+    font-size: 22px;
+  }
+
+  .error-status span {
+    font-size: 82px;
+    letter-spacing: -2px;
+  }
+
+  .error-icon-wrap {
+    width: 68px;
+    height: 68px;
+    font-size: 25px;
+  }
+
+  .error-card-modern h1 {
+    font-size: 30px;
+  }
+
+  .error-card-modern p {
+    font-size: 14px;
   }
 }

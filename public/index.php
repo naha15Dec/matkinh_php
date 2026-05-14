@@ -162,23 +162,30 @@ switch ($controllerName) {
         break;
 
     case 'profile':
-        $ctrl = new ProfileController($pdo);
+    $ctrl = new ProfileController($pdo);
 
-        switch ($actionName) {
-            case 'updateinfo':
-                $ctrl->updateInfo();
-                break;
-            case 'changepassword':
-                $ctrl->changePassword();
-                break;
-            case 'orderdetail':
-                $ctrl->orderDetail();
-                break;
-            default:
-                $ctrl->index();
-                break;
-        }
-        break;
+    switch ($actionName) {
+        case 'updateinfo':
+            $ctrl->updateInfo();
+            break;
+
+        case 'changepassword':
+            $ctrl->changePassword();
+            break;
+
+        case 'orderdetail':
+            $ctrl->orderDetail();
+            break;
+
+        case 'cancelorder':
+            $ctrl->cancelOrder();
+            break;
+
+        default:
+            $ctrl->index();
+            break;
+    }
+    break;
 
     case 'blog':
         $ctrl = new BlogController($pdo);
@@ -191,9 +198,18 @@ switch ($controllerName) {
         break;
 
     case 'contact':
-        $ctrl = new ContactController($pdo);
-        $ctrl->index();
-        break;
+    $ctrl = new ContactController($pdo);
+
+    switch ($actionName) {
+        case 'send':
+            $ctrl->send();
+            break;
+
+        default:
+            $ctrl->index();
+            break;
+    }
+    break;
 
     case 'error':
         $ctrl = new ErrorController($pdo);
@@ -207,26 +223,34 @@ switch ($controllerName) {
         break;
 
     case 'admintaikhoan':
-        $ctrl = new AdminTaiKhoanController($pdo);
+    $ctrl = new AdminTaiKhoanController($pdo);
 
-        switch ($actionName) {
-            case 'detail':
-                $ctrl->detail();
-                break;
-            case 'toggleactive':
-                $ctrl->toggleActive();
-                break;
-            case 'changepassword':
-                $ctrl->changePassword();
-                break;
-            case 'updaterole':
-                $ctrl->updateRole();
-                break;
-            default:
-                $ctrl->index();
-                break;
-        }
-        break;
+    switch ($actionName) {
+        case 'detail':
+            $ctrl->detail();
+            break;
+
+        case 'toggleactive':
+            $ctrl->toggleActive();
+            break;
+
+        case 'changepassword':
+            $ctrl->changePassword();
+            break;
+
+        case 'updaterole':
+            $ctrl->updateRole();
+            break;
+
+        case 'updateinfo':
+            $ctrl->updateInfo();
+            break;
+
+        default:
+            $ctrl->index();
+            break;
+    }
+    break;
 
     case 'admindonhang':
         $ctrl = new AdminDonHangController($pdo);
@@ -270,55 +294,74 @@ switch ($controllerName) {
         break;
 
     case 'adminblog':
-        $ctrl = new AdminBlogController($pdo);
+    $ctrl = new AdminBlogController($pdo);
 
-        switch ($actionName) {
-            case 'edit':
-                $ctrl->edit();
-                break;
-            case 'save':
-                $ctrl->save();
-                break;
-            case 'delete':
-                $ctrl->delete();
-                break;
-            default:
-                $ctrl->index();
-                break;
-        }
-        break;
+    switch ($actionName) {
+        case 'edit':
+            $ctrl->edit();
+            break;
+
+        case 'save':
+            $ctrl->save();
+            break;
+
+        case 'delete':
+            $ctrl->delete();
+            break;
+
+        case 'updatestatus':
+            $ctrl->updateStatus();
+            break;
+
+        default:
+            $ctrl->index();
+            break;
+    }
+    break;
 
     case 'adminbrand':
-        $ctrl = new AdminBrandController($pdo);
+    $ctrl = new AdminBrandController($pdo);
 
-        switch ($actionName) {
-            case 'save':
-                $ctrl->save();
-                break;
-            case 'delete':
-                $ctrl->delete();
-                break;
-            default:
-                $ctrl->index();
-                break;
-        }
-        break;
+    switch ($actionName) {
+        case 'save':
+            $ctrl->save();
+            break;
+
+        case 'delete':
+            $ctrl->delete();
+            break;
+
+        case 'togglestatus':
+            $ctrl->toggleStatus();
+            break;
+
+        default:
+            $ctrl->index();
+            break;
+    }
+    break;
 
     case 'admintype':
-        $ctrl = new AdminTypeController($pdo);
+    $ctrl = new AdminTypeController($pdo);
 
-        switch ($actionName) {
-            case 'save':
-                $ctrl->save();
-                break;
-            case 'delete':
-                $ctrl->delete();
-                break;
-            default:
-                $ctrl->index();
-                break;
-        }
-        break;
+    switch ($actionName) {
+        case 'save':
+            $ctrl->save();
+            break;
+
+        case 'delete':
+            $ctrl->delete();
+            break;
+
+        case 'togglestatus':
+            $ctrl->toggleStatus();
+            break;
+
+        default:
+            $ctrl->index();
+            break;
+    }
+    break;
 
     case 'adminrevenue':
         $ctrl = new AdminRevenueController($pdo);

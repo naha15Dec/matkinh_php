@@ -75,6 +75,12 @@ class HomeModel
 
     public function getDealHotProducts($limit = 4)
     {
+        $discountProducts = $this->getDiscountProducts($limit);
+
+        if (!empty($discountProducts)) {
+            return $discountProducts;
+        }
+
         $sql = "
             SELECT 
                 sp.*,
@@ -102,13 +108,7 @@ class HomeModel
         $stmt->bindValue(':limit', max(1, (int)$limit), PDO::PARAM_INT);
         $stmt->execute();
 
-        $featured = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if (!empty($featured)) {
-            return $featured;
-        }
-
-        return $this->getDiscountProducts($limit);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getLatestBlogs($limit = 3)

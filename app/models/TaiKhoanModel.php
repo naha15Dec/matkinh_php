@@ -9,37 +9,37 @@ class TaiKhoanModel
         $this->db = $pdo;
     }
 
-    public function getAccountByUsername($username)
-    {
-        $sql = "
-            SELECT 
-                tk.*,
-                vt.MaVaiTro,
-                vt.TenVaiTro
-            FROM taikhoan tk
-            LEFT JOIN vaitro vt ON tk.VaiTroId = vt.VaiTroId
-            WHERE 
-                tk.IsActive = 1
-                AND vt.IsActive = 1
-                AND (
-                    tk.TenDangNhap = :login_username
-                    OR tk.Email = :login_email
-                    OR tk.SoDienThoai = :login_phone
-                )
-            LIMIT 1
-        ";
+public function getAccountByUsername($username)
+{
+    $sql = "
+        SELECT 
+            tk.*,
+            vt.MaVaiTro,
+            vt.TenVaiTro
+        FROM taikhoan tk
+        LEFT JOIN vaitro vt ON tk.VaiTroId = vt.VaiTroId
+        WHERE 
+            tk.IsActive = 1
+            AND vt.IsActive = 1
+            AND (
+                tk.TenDangNhap = :login_username
+                OR LOWER(tk.Email) = LOWER(:login_email)
+                OR tk.SoDienThoai = :login_phone
+            )
+        LIMIT 1
+    ";
 
-        $login = trim($username);
+    $login = trim((string)$username);
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            'login_username' => $login,
-            'login_email'    => $login,
-            'login_phone'    => $login
-        ]);
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([
+        'login_username' => $login,
+        'login_email'    => $login,
+        'login_phone'    => $login
+    ]);
 
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
     public function getAccountById($id)
     {
@@ -97,26 +97,26 @@ class TaiKhoanModel
         return (bool)$stmt->fetchColumn();
     }
 
-    public function checkEmailExists($email)
-    {
-        if ($email === null || trim($email) === '') {
-            return false;
-        }
-
-        $sql = "
-            SELECT 1 
-            FROM taikhoan 
-            WHERE Email = :email 
-            LIMIT 1
-        ";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            'email' => strtolower(trim($email))
-        ]);
-
-        return (bool)$stmt->fetchColumn();
+public function checkEmailExists($email)
+{
+    if ($email === null || trim($email) === '') {
+        return false;
     }
+
+    $sql = "
+        SELECT 1 
+        FROM taikhoan 
+        WHERE LOWER(Email) = LOWER(:email)
+        LIMIT 1
+    ";
+
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([
+        'email' => trim($email)
+    ]);
+
+    return (bool)$stmt->fetchColumn();
+}
 
     public function checkPhoneExists($phone)
     {

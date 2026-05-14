@@ -179,7 +179,7 @@ $imageSrc = adminProductFormImageSrc($image, $baseUrl);
                                             <input type="text"
                                                    name="GiaGoc"
                                                    class="form-control product-input currency-input text-right"
-                                                   value="<?= htmlspecialchars($product['GiaGoc'] ?? 0, ENT_QUOTES, 'UTF-8') ?>"
+                                                   value="<?= htmlspecialchars(number_format((float)($product['GiaGoc'] ?? 0), 0, '', ''), ENT_QUOTES, 'UTF-8') ?>"
                                                    inputmode="numeric">
                                             <div class="input-group-append">
                                                 <span class="input-group-text">₫</span>
@@ -195,7 +195,7 @@ $imageSrc = adminProductFormImageSrc($image, $baseUrl);
                                             <input type="text"
                                                    name="GiaBan"
                                                    class="form-control product-input currency-input text-right"
-                                                   value="<?= htmlspecialchars($product['GiaBan'] ?? 0, ENT_QUOTES, 'UTF-8') ?>"
+                                                   value="<?= htmlspecialchars(number_format((float)($product['GiaBan'] ?? 0), 0, '', ''), ENT_QUOTES, 'UTF-8') ?>"
                                                    inputmode="numeric"
                                                    required>
                                             <div class="input-group-append">

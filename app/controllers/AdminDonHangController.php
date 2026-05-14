@@ -9,6 +9,10 @@ class AdminDonHangController
 
     public function __construct($pdo)
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $this->pdo = $pdo;
         $this->model = new AdminDonHangModel($pdo);
 
@@ -137,6 +141,12 @@ class AdminDonHangController
 
         $oldStatus = (int)($order['TrangThai'] ?? 0);
 
+        if ($newStatus === OrderStatusConstants::ASSIGNED_TO_SHIPPER) {
+            $_SESSION['error'] = "Vui lòng dùng chức năng gán shipper để chuyển đơn sang trạng thái đã giao shipper.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
         if ($oldStatus === $newStatus) {
             $_SESSION['error'] = "Đơn hàng đã ở trạng thái này, không có thay đổi mới.";
             header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
@@ -161,6 +171,33 @@ class AdminDonHangController
             exit;
         }
 
+        if ($newStatus === OrderStatusConstants::CANCELLED) {
+            if (!in_array($roleCode, ['ADMIN', 'STAFF'], true)) {
+                $_SESSION['error'] = "Shipper không có quyền hủy đơn hàng.";
+                header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+                exit;
+            }
+
+            $paymentMethod = strtoupper(trim($order['PhuongThucThanhToan'] ?? ''));
+            $paymentStatus = $order['TrangThaiThanhToan'] ?? PaymentConstants::PENDING;
+
+            if ($this->model->cancelOrderAndRestoreStock(
+                $id,
+                $oldStatus,
+                $currentUserId,
+                $note !== '' ? $note : 'Hủy đơn hàng từ khu vực quản trị.',
+                $paymentMethod,
+                $paymentStatus
+            )) {
+                $_SESSION['success'] = "Đã hủy đơn hàng và hoàn lại tồn kho.";
+            } else {
+                $_SESSION['error'] = "Hủy đơn hàng thất bại.";
+            }
+
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
         $paymentMethod = strtoupper(trim($order['PhuongThucThanhToan'] ?? ''));
         $updateData = [];
 
@@ -180,10 +217,6 @@ class AdminDonHangController
                 $updateData['TrangThaiThanhToan'] = PaymentConstants::PAID;
                 $updateData['NgayThanhToan'] = true;
             }
-        }
-
-        if ($newStatus === OrderStatusConstants::CANCELLED) {
-            $updateData['NgayHuy'] = true;
         }
 
         if ($this->model->updateStatus($id, $newStatus, $updateData)) {
@@ -264,13 +297,20 @@ class AdminDonHangController
             exit;
         }
 
-        $newStatus = OrderStatusConstants::ASSIGNED_TO_SHIPPER;
+        $canAssignFromStatus = in_array($oldStatus, [
+            OrderStatusConstants::CONFIRMED,
+            OrderStatusConstants::PREPARING,
+            OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+            OrderStatusConstants::DELIVERY_FAILED
+        ], true);
 
-        if (!$this->isValidStatusTransition($oldStatus, $newStatus) && $oldStatus !== $newStatus) {
-            $_SESSION['error'] = "Không thể gán shipper ở trạng thái hiện tại.";
+        if (!$canAssignFromStatus) {
+            $_SESSION['error'] = "Chỉ có thể gán shipper cho đơn đã xác nhận, đang chuẩn bị, đã giao shipper hoặc giao thất bại.";
             header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
             exit;
         }
+
+        $newStatus = OrderStatusConstants::ASSIGNED_TO_SHIPPER;
 
         $updateData = [
             'ShipperId' => $shipperId
@@ -309,12 +349,32 @@ class AdminDonHangController
 
     private function canUpdateStatusByRole($roleCode, $order, $newStatus, $currentUserId)
     {
+        $roleCode = strtoupper(trim($roleCode));
+        $newStatus = (int)$newStatus;
+
+        /*
+            ADMIN / STAFF:
+            - Được xác nhận đơn
+            - Được chuyển sang đang chuẩn bị
+            - Được hủy đơn nếu luồng trạng thái cho phép
+            - Không được tự cập nhật trạng thái giao hàng
+            - Muốn giao hàng phải dùng form gán shipper
+        */
         if (in_array($roleCode, ['ADMIN', 'STAFF'], true)) {
-            return true;
+            return in_array($newStatus, [
+                OrderStatusConstants::CONFIRMED,
+                OrderStatusConstants::PREPARING,
+                OrderStatusConstants::CANCELLED
+            ], true);
         }
 
+        /*
+            SHIPPER:
+            - Chỉ được thao tác đơn đã gán cho mình
+            - Được cập nhật trạng thái giao hàng
+        */
         if ($roleCode === 'SHIPPER') {
-            if ((int)($order['ShipperId'] ?? 0) !== $currentUserId) {
+            if ((int)($order['ShipperId'] ?? 0) !== (int)$currentUserId) {
                 return false;
             }
 
@@ -356,7 +416,8 @@ class AdminDonHangController
                 OrderStatusConstants::PENDING,
                 OrderStatusConstants::CONFIRMED,
                 OrderStatusConstants::PREPARING,
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+                OrderStatusConstants::DELIVERY_FAILED
             ], true);
         }
 
@@ -366,12 +427,11 @@ class AdminDonHangController
             ],
 
             OrderStatusConstants::CONFIRMED => [
-                OrderStatusConstants::PREPARING,
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER
+                OrderStatusConstants::PREPARING
             ],
 
             OrderStatusConstants::PREPARING => [
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER
+                // Chuyển sang ASSIGNED_TO_SHIPPER phải dùng assignShipper().
             ],
 
             OrderStatusConstants::ASSIGNED_TO_SHIPPER => [
@@ -385,8 +445,8 @@ class AdminDonHangController
             ],
 
             OrderStatusConstants::DELIVERY_FAILED => [
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
-                OrderStatusConstants::CANCELLED
+                // Giao thất bại: Admin/Staff có thể hủy ở nhánh CANCELLED.
+                // Muốn giao lại thì dùng assignShipper().
             ]
         ];
 

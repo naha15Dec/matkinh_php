@@ -8,6 +8,10 @@ class AdminBlogController
 
     public function __construct($pdo)
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $this->pdo = $pdo;
         $this->model = new AdminBlogModel($pdo);
 
@@ -32,11 +36,13 @@ class AdminBlogController
         $keyword = trim($_GET['keyword'] ?? '');
 
         $allowedStatus = ['published', 'draft', 'hidden', 'all'];
+
         if (!in_array($status, $allowedStatus, true)) {
             $status = 'published';
         }
 
         $userId = $role === 'ADMIN' ? null : (int)$user['TaiKhoanId'];
+
         $posts = $this->model->getBlogs($status, $keyword, $userId);
 
         $displayName = $user['HoTen'] ?? $user['TenDangNhap'] ?? 'Tài khoản';
@@ -123,7 +129,17 @@ class AdminBlogController
         $data['TieuDe'] = trim($_POST['TieuDe'] ?? '');
         $data['TomTat'] = trim($_POST['TomTat'] ?? '');
         $data['NoiDung'] = trim($_POST['NoiDung'] ?? '');
-        $data['TrangThai'] = (int)($_POST['TrangThai'] ?? 1);
+
+        /*
+            Phân quyền trạng thái:
+            ADMIN được chọn Đã đăng / Nháp / Ẩn.
+            STAFF luôn lưu về Nháp / Chờ duyệt.
+        */
+        if ($role === 'ADMIN') {
+            $data['TrangThai'] = (int)($_POST['TrangThai'] ?? 1);
+        } else {
+            $data['TrangThai'] = 0;
+        }
 
         if ($data['MaBaiViet'] === '') {
             $data['MaBaiViet'] = 'BV' . date('ymdHis') . mt_rand(100, 999);
@@ -160,10 +176,20 @@ class AdminBlogController
 
         if ($id > 0) {
             $result = $this->model->updateBlog($id, $data);
-            $message = "Cập nhật bài viết thành công.";
+
+            if ($role === 'ADMIN') {
+                $message = "Cập nhật bài viết thành công.";
+            } else {
+                $message = "Đã lưu bài viết. Bài viết đang chờ Quản trị viên kiểm duyệt.";
+            }
         } else {
             $result = $this->model->createBlog($data);
-            $message = "Thêm bài viết thành công.";
+
+            if ($role === 'ADMIN') {
+                $message = "Thêm bài viết thành công.";
+            } else {
+                $message = "Đã tạo bài viết. Bài viết đang chờ Quản trị viên kiểm duyệt.";
+            }
         }
 
         $_SESSION[$result ? 'success' : 'error'] = $result
@@ -206,6 +232,16 @@ class AdminBlogController
             exit;
         }
 
+        /*
+            STAFF chỉ được xóa bài đang Nháp / Chờ duyệt.
+            Bài đã đăng hoặc đã ẩn thì để Admin xử lý.
+        */
+        if ($role !== 'ADMIN' && (int)($post['TrangThai'] ?? 0) !== 0) {
+            $_SESSION['error'] = "Nhân viên chỉ được xóa bài viết đang ở trạng thái nháp/chờ duyệt.";
+            header("Location: index.php?controller=adminblog");
+            exit;
+        }
+
         if ($this->model->deleteBlog($id)) {
             if ($this->isLocalImage($post['AnhDaiDien'] ?? '')) {
                 @unlink(BASE_PATH . '/public/images/' . $post['AnhDaiDien']);
@@ -233,6 +269,12 @@ class AdminBlogController
         $user = $_SESSION['LoginInformation'];
         $role = strtoupper(trim($user['MaVaiTro'] ?? ''));
 
+        if ($role !== 'ADMIN') {
+            $_SESSION['error'] = "Chỉ Quản trị viên mới có quyền kiểm duyệt và cập nhật trạng thái bài viết.";
+            header("Location: index.php?controller=adminblog");
+            exit;
+        }
+
         if ($id <= 0 || !in_array($newStatus, [0, 1, 2], true)) {
             $_SESSION['error'] = "Dữ liệu trạng thái bài viết không hợp lệ.";
             header("Location: index.php?controller=adminblog");
@@ -247,16 +289,16 @@ class AdminBlogController
             exit;
         }
 
-        if (!$this->canManagePost($post, $user, $role)) {
-            $_SESSION['error'] = "Bạn không có quyền cập nhật trạng thái bài viết này.";
-            header("Location: index.php?controller=adminblog");
-            exit;
-        }
-
         $updatePublishDate = ((int)$post['TrangThai'] !== 1 && $newStatus === 1);
 
         if ($this->model->updateStatus($id, $newStatus, $updatePublishDate)) {
-            $_SESSION['success'] = "Cập nhật trạng thái bài viết thành công.";
+            if ($newStatus === 1) {
+                $_SESSION['success'] = "Đã duyệt và đăng bài viết.";
+            } elseif ($newStatus === 2) {
+                $_SESSION['success'] = "Đã ẩn bài viết.";
+            } else {
+                $_SESSION['success'] = "Đã chuyển bài viết về nháp/chờ duyệt.";
+            }
         } else {
             $_SESSION['error'] = "Trạng thái không thay đổi hoặc cập nhật thất bại.";
         }
@@ -413,7 +455,7 @@ class AdminBlogController
     private function getHeaderTitle($status)
     {
         return match ($status) {
-            'draft' => 'Bài viết nháp',
+            'draft' => 'Bài viết nháp / chờ duyệt',
             'hidden' => 'Bài viết đã ẩn',
             'all' => 'Tất cả bài viết',
             default => 'Quản lý bài viết',

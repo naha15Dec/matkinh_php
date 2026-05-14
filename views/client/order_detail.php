@@ -79,13 +79,19 @@ $isPaid = strtoupper($paymentStatus) === strtoupper(PaymentConstants::PAID);
                     <div class="order-detail-actions">
                         <?php if ($status === OrderStatusConstants::PENDING): ?>
                             <form action="index.php?controller=profile&action=cancelOrder"
-                                  method="POST"
-                                  onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng này không?');">
+                                  method="POST">
                                 <input type="hidden"
                                        name="MaDonHang"
                                        value="<?= htmlspecialchars($order['MaDonHang'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-                                <button type="submit" class="btn-order-cancel-detail">
+                                <button type="submit"
+                                        class="btn-order-cancel-detail"
+                                        data-confirm
+                                        data-confirm-title="Hủy đơn hàng?"
+                                        data-confirm-message="Bạn có chắc muốn hủy đơn hàng <strong>#<?= htmlspecialchars($order['MaDonHang'] ?? '', ENT_QUOTES, 'UTF-8') ?></strong> không?"
+                                        data-confirm-ok="Hủy đơn"
+                                        data-confirm-icon="fas fa-times-circle"
+                                        data-confirm-type="danger">
                                     <i class="fas fa-times-circle"></i>
                                     Hủy đơn hàng
                                 </button>

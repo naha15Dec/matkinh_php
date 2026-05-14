@@ -19,8 +19,6 @@ $phoneDisplay = !empty($user['SoDienThoai']) ? $user['SoDienThoai'] : 'Chưa c�
 $addressDisplay = !empty($user['DiaChi']) ? $user['DiaChi'] : 'Chưa cập nhật';
 ?>
 
-<link rel="stylesheet" href="/BanMatKinh/public/css/admin-profile.css">
-
 <div class="eyewear-profile-page">
 
     <div class="profile-hero">
@@ -206,7 +204,7 @@ $addressDisplay = !empty($user['DiaChi']) ? $user['DiaChi'] : 'Chưa cập nhậ
                         <label>Mật khẩu hiện tại</label>
                         <input type="password"
                                name="CurrentPassword"
-                               autocomplete="current-password"
+                               autocomplete="off"
                                required>
                     </div>
 
@@ -216,7 +214,7 @@ $addressDisplay = !empty($user['DiaChi']) ? $user['DiaChi'] : 'Chưa cập nhậ
                             <input type="password"
                                    name="NewPassword"
                                    minlength="6"
-                                   autocomplete="new-password"
+                                   autocomplete="off"
                                    required>
                         </div>
 
@@ -225,7 +223,7 @@ $addressDisplay = !empty($user['DiaChi']) ? $user['DiaChi'] : 'Chưa cập nhậ
                             <input type="password"
                                    name="ConfirmPassword"
                                    minlength="6"
-                                   autocomplete="new-password"
+                                   autocomplete="off"
                                    required>
                         </div>
                     </div>

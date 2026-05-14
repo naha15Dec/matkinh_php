@@ -48,33 +48,35 @@ $bannerSrc = !empty($storeInfo['Banner'])
     : '/BanMatKinh/public/images/banner/default-hero.png';
 ?>
 
-<div class="home-modern">
+<div class="home-page">
 
-    <section class="hero-eyewear">
+    <section class="home-hero">
         <div class="container">
-            <div class="hero-shell">
+            <div class="home-hero__shell">
                 <div class="row align-items-center">
                     <div class="col-lg-6 mb-4 mb-lg-0">
-
-                        <div class="hero-tag">
-                            <i class="fa fa-star-o"></i>
+                        <div class="home-eyebrow">
+                            <i class="far fa-star"></i>
                             Bộ sưu tập kính thời trang hiện đại
                         </div>
 
-                        <h1 class="hero-title">
-                            Tôn phong cách riêng với <br>
-                            những mẫu kính tinh tế.
+                        <h1 class="home-hero__title">
+                            Tôn phong cách riêng với những mẫu kính tinh tế.
                         </h1>
 
-                        <p class="hero-desc">
+                        <p class="home-hero__desc">
                             <?= !empty($storeInfo['MoTaNgan'])
                                 ? htmlspecialchars($storeInfo['MoTaNgan'], ENT_QUOTES, 'UTF-8')
                                 : "Khám phá các thiết kế mắt kính thời trang, thanh lịch hằng ngày tại Karma Eyewear." ?>
                         </p>
 
-                        <form action="index.php" method="GET" class="hero-search-box">
+                        <form action="index.php" method="GET" class="home-quick-search">
                             <input type="hidden" name="controller" value="home">
                             <input type="hidden" name="action" value="findProductByID">
+
+                            <span class="home-quick-search__icon">
+                                <i class="fas fa-barcode"></i>
+                            </span>
 
                             <input 
                                 type="text" 
@@ -89,38 +91,38 @@ $bannerSrc = !empty($storeInfo['Banner'])
                             </button>
                         </form>
 
-                        <div class="hero-actions">
-                            <a href="index.php?controller=sanpham" class="btn-luxury primary">
+                        <div class="home-hero__actions">
+                            <a href="index.php?controller=sanpham" class="home-btn home-btn--dark">
                                 Khám phá sản phẩm
+                                <i class="fas fa-arrow-right"></i>
                             </a>
 
-                            <a href="index.php?controller=blog" class="btn-luxury secondary">
+                            <a href="index.php?controller=blog" class="home-btn home-btn--light">
                                 Xem xu hướng
                             </a>
                         </div>
 
-                        <div class="hero-metrics">
-                            <div class="hero-metric-item">
-                                <h4><?= (int)$totalFeatured ?></h4>
-                                <p>Sản phẩm nổi bật</p>
+                        <div class="home-hero__metrics">
+                            <div class="home-metric">
+                                <strong><?= (int)$totalFeatured ?></strong>
+                                <span>Sản phẩm nổi bật</span>
                             </div>
 
-                            <div class="hero-metric-item">
-                                <h4>24/7</h4>
-                                <p>Hỗ trợ tận tâm</p>
+                            <div class="home-metric">
+                                <strong>24/7</strong>
+                                <span>Hỗ trợ tận tâm</span>
                             </div>
 
-                            <div class="hero-metric-item">
-                                <h4><?= count($listLatestBlog) ?></h4>
-                                <p>Bài viết mới</p>
+                            <div class="home-metric">
+                                <strong><?= count($listLatestBlog) ?></strong>
+                                <span>Bài viết mới</span>
                             </div>
                         </div>
-
                     </div>
 
                     <div class="col-lg-6">
-                        <div class="position-relative">
-                            <div class="hero-visual-card">
+                        <div class="home-hero__visual-wrap">
+                            <div class="home-hero__visual">
                                 <img 
                                     src="<?= htmlspecialchars($bannerSrc, ENT_QUOTES, 'UTF-8') ?>" 
                                     alt="Karma Eyewear"
@@ -128,68 +130,77 @@ $bannerSrc = !empty($storeInfo['Banner'])
                                 >
                             </div>
 
-                            <div class="floating-badge top">
+                            <div class="home-floating-card home-floating-card--top">
                                 <span>Xu hướng nổi bật</span>
                                 <strong>Gọng tối giản cao cấp</strong>
                             </div>
+
+                            <div class="home-floating-card home-floating-card--bottom">
+                                <span>Premium look</span>
+                                <strong>Thanh lịch mỗi ngày</strong>
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
-            <div class="row benefit-grid">
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="benefit-card">
-                        <i class="fas fa-truck"></i>
+            <div class="home-benefit-grid">
+                <div class="home-benefit-card">
+                    <i class="fas fa-truck"></i>
+                    <div>
                         <h5>Giao hàng toàn quốc</h5>
                         <p>Nhanh chóng, đóng gói an toàn và hỗ trợ kiểm tra hàng.</p>
                     </div>
                 </div>
 
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="benefit-card">
-                        <i class="fas fa-sync-alt"></i>
+                <div class="home-benefit-card">
+                    <i class="fas fa-sync-alt"></i>
+                    <div>
                         <h5>Đổi trả linh hoạt</h5>
                         <p>Yên tâm mua sắm online với chính sách rõ ràng.</p>
                     </div>
                 </div>
 
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="benefit-card">
-                        <i class="far fa-comments"></i>
+                <div class="home-benefit-card">
+                    <i class="far fa-comments"></i>
+                    <div>
                         <h5>Tư vấn tận tâm</h5>
                         <p>Gợi ý mẫu kính phù hợp khuôn mặt và phong cách.</p>
                     </div>
                 </div>
 
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="benefit-card">
-                        <i class="fas fa-lock"></i>
+                <div class="home-benefit-card">
+                    <i class="fas fa-lock"></i>
+                    <div>
                         <h5>Thanh toán an toàn</h5>
                         <p>Bảo mật thông tin và giao dịch minh bạch.</p>
                     </div>
                 </div>
             </div>
-
         </div>
     </section>
 
-    <section class="product-section-modern section-space">
+    <section class="home-section">
         <div class="container">
-
-            <div class="section-heading text-center">
-                <span class="eyebrow">Lựa chọn nổi bật</span>
+            <div class="home-section-heading text-center">
+                <span class="home-eyebrow">Lựa chọn nổi bật</span>
                 <h2>Sản phẩm được yêu thích</h2>
                 <p>Những mẫu kính đang được khách hàng quan tâm nhiều nhất.</p>
             </div>
 
-            <div class="section-title-line">
-                <h3>Đang giảm giá</h3>
-                <a href="index.php?controller=sanpham">Xem tất cả</a>
+            <div class="home-section-title">
+                <div>
+                    <span>Sale collection</span>
+                    <h3>Đang giảm giá</h3>
+                </div>
+
+                <a href="index.php?controller=sanpham">
+                    Xem tất cả
+                    <i class="fas fa-angle-right"></i>
+                </a>
             </div>
 
-            <div class="row mb-5">
+            <div class="row home-product-row">
                 <?php if (!empty($listDiscountProduct)): ?>
                     <?php foreach ($listDiscountProduct as $item): ?>
                         <?php
@@ -202,13 +213,13 @@ $bannerSrc = !empty($storeInfo['Banner'])
                         $productImg = normalizeImg($item['HinhAnhChinh'] ?? '');
                         ?>
 
-                        <div class="col-lg-3 col-md-6 mb-4">
-                            <div class="product-card-modern">
-                                <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="product-thumb">
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            <article class="home-product-card">
+                                <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="home-product-card__thumb">
                                     <?php if ($discountPercent > 0): ?>
-                                        <span class="product-badge">-<?= $discountPercent ?>%</span>
+                                        <span class="home-product-badge">-<?= $discountPercent ?>%</span>
                                     <?php else: ?>
-                                        <span class="product-badge">Sale</span>
+                                        <span class="home-product-badge">Sale</span>
                                     <?php endif; ?>
 
                                     <img 
@@ -218,61 +229,59 @@ $bannerSrc = !empty($storeInfo['Banner'])
                                     >
                                 </a>
 
-                                <div class="product-body">
-                                    <div class="product-meta">
+                                <div class="home-product-card__body">
+                                    <div class="home-product-brand">
                                         <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?>
                                     </div>
 
-                                    <a 
-                                        href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" 
-                                        class="product-name"
-                                    >
+                                    <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="home-product-name">
                                         <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
                                     </a>
 
-                                    <div class="product-price">
-                                        <span class="sale"><?= formatMoney($giaBan) ?>đ</span>
+                                    <div class="home-product-price">
+                                        <span><?= formatMoney($giaBan) ?>đ</span>
 
                                         <?php if ($giaGoc > $giaBan): ?>
-                                            <span class="original"><?= formatMoney($giaGoc) ?>đ</span>
+                                            <del><?= formatMoney($giaGoc) ?>đ</del>
                                         <?php endif; ?>
                                     </div>
 
-                                    <div class="product-actions">
-                                        <a 
-                                            href="index.php?controller=giohang&action=add&sanPhamId=<?= $productId ?>" 
-                                            class="btn-cart"
-                                        >
+                                    <div class="home-product-actions">
+                                        <a href="index.php?controller=giohang&action=add&sanPhamId=<?= $productId ?>" class="home-product-cart">
                                             Thêm giỏ
                                         </a>
 
-                                        <a 
-                                            href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" 
-                                            class="btn-detail"
-                                        >
+                                        <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="home-product-detail">
                                             Chi tiết
                                         </a>
                                     </div>
                                 </div>
-                            </div>
+                            </article>
                         </div>
-
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="col-12">
-                        <div class="empty-block">
+                        <div class="home-empty-block">
+                            <i class="far fa-folder-open"></i>
                             Chưa có sản phẩm giảm giá.
                         </div>
                     </div>
                 <?php endif; ?>
             </div>
 
-            <div class="section-title-line">
-                <h3>Sản phẩm mới</h3>
-                <a href="index.php?controller=sanpham">Xem tất cả</a>
+            <div class="home-section-title home-section-title--second">
+                <div>
+                    <span>New arrivals</span>
+                    <h3>Sản phẩm mới</h3>
+                </div>
+
+                <a href="index.php?controller=sanpham">
+                    Xem tất cả
+                    <i class="fas fa-angle-right"></i>
+                </a>
             </div>
 
-            <div class="row">
+            <div class="row home-product-row">
                 <?php if (!empty($listNewProduct)): ?>
                     <?php foreach ($listNewProduct as $item): ?>
                         <?php
@@ -281,10 +290,10 @@ $bannerSrc = !empty($storeInfo['Banner'])
                         $productImg = normalizeImg($item['HinhAnhChinh'] ?? '');
                         ?>
 
-                        <div class="col-lg-3 col-md-6 mb-4">
-                            <div class="product-card-modern">
-                                <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="product-thumb">
-                                    <span class="product-badge new">New</span>
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            <article class="home-product-card">
+                                <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="home-product-card__thumb">
+                                    <span class="home-product-badge home-product-badge--new">New</span>
 
                                     <img 
                                         src="<?= htmlspecialchars($productImg, ENT_QUOTES, 'UTF-8') ?>" 
@@ -293,95 +302,88 @@ $bannerSrc = !empty($storeInfo['Banner'])
                                     >
                                 </a>
 
-                                <div class="product-body">
-                                    <div class="product-meta">
+                                <div class="home-product-card__body">
+                                    <div class="home-product-brand">
                                         <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?>
                                     </div>
 
-                                    <a 
-                                        href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" 
-                                        class="product-name"
-                                    >
+                                    <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="home-product-name">
                                         <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
                                     </a>
 
-                                    <div class="product-price">
-                                        <span class="sale"><?= formatMoney($giaBan) ?>đ</span>
+                                    <div class="home-product-price">
+                                        <span><?= formatMoney($giaBan) ?>đ</span>
                                     </div>
 
-                                    <div class="product-actions">
-                                        <a 
-                                            href="index.php?controller=giohang&action=add&sanPhamId=<?= $productId ?>" 
-                                            class="btn-cart"
-                                        >
+                                    <div class="home-product-actions">
+                                        <a href="index.php?controller=giohang&action=add&sanPhamId=<?= $productId ?>" class="home-product-cart">
                                             Thêm giỏ
                                         </a>
 
-                                        <a 
-                                            href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" 
-                                            class="btn-detail"
-                                        >
+                                        <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="home-product-detail">
                                             Chi tiết
                                         </a>
                                     </div>
                                 </div>
-                            </div>
+                            </article>
                         </div>
-
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div class="col-12">
-                        <div class="empty-block">
+                        <div class="home-empty-block">
+                            <i class="far fa-folder-open"></i>
                             Chưa có sản phẩm mới.
                         </div>
                     </div>
                 <?php endif; ?>
             </div>
-
         </div>
     </section>
 
     <?php if (!empty($listDealHot)): ?>
-        <section class="section-space pt-0">
+        <section class="home-section home-section--deal">
             <div class="container">
-                <div class="promo-panel">
+                <div class="home-deal-panel">
                     <div class="row align-items-center">
                         <div class="col-lg-5 mb-4 mb-lg-0">
-                            <div class="promo-left">
-                                <span class="eyebrow">Ưu đãi độc quyền</span>
+                            <div class="home-deal-content">
+                                <span class="home-eyebrow">Ưu đãi độc quyền</span>
+
                                 <h2>Deal hot trong tuần</h2>
+
                                 <p>
                                     Cơ hội sở hữu những mẫu kính thời trang với mức giá tốt trong thời gian giới hạn.
                                 </p>
 
                                 <div 
-                                    class="countdown-modern" 
+                                    class="home-countdown" 
                                     id="homeDealCountdown" 
                                     data-end="<?= htmlspecialchars($countdownEnd, ENT_QUOTES, 'UTF-8') ?>"
                                 >
-                                    <div class="count-box">
-                                        <h3 class="days">00</h3>
+                                    <div class="home-count-box">
+                                        <strong class="days">00</strong>
                                         <span>Ngày</span>
                                     </div>
 
-                                    <div class="count-box">
-                                        <h3 class="hours">00</h3>
+                                    <div class="home-count-box">
+                                        <strong class="hours">00</strong>
                                         <span>Giờ</span>
                                     </div>
 
-                                    <div class="count-box">
-                                        <h3 class="minutes">00</h3>
+                                    <div class="home-count-box">
+                                        <strong class="minutes">00</strong>
                                         <span>Phút</span>
                                     </div>
 
-                                    <div class="count-box">
-                                        <h3 class="seconds">00</h3>
+                                    <div class="home-count-box">
+                                        <strong class="seconds">00</strong>
                                         <span>Giây</span>
                                     </div>
                                 </div>
 
-                                <a href="index.php?controller=sanpham" class="btn-luxury primary mt-4">
+                                <a href="index.php?controller=sanpham" class="home-btn home-btn--dark mt-4">
                                     Mua ngay
+                                    <i class="fas fa-arrow-right"></i>
                                 </a>
                             </div>
                         </div>
@@ -396,29 +398,25 @@ $bannerSrc = !empty($storeInfo['Banner'])
                                     ?>
 
                                     <div class="col-md-6 mb-4">
-                                        <a 
-                                            href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" 
-                                            class="promo-product-card"
-                                        >
-                                            <img 
-                                                src="<?= htmlspecialchars($productImg, ENT_QUOTES, 'UTF-8') ?>" 
-                                                alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Deal hot', ENT_QUOTES, 'UTF-8') ?>"
-                                                onerror="this.src='/BanMatKinh/public/images/no-image.png'"
-                                            >
+                                        <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="home-deal-card">
+                                            <div class="home-deal-card__img">
+                                                <img 
+                                                    src="<?= htmlspecialchars($productImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                                    alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Deal hot', ENT_QUOTES, 'UTF-8') ?>"
+                                                    onerror="this.src='/BanMatKinh/public/images/no-image.png'"
+                                                >
+                                            </div>
 
-                                            <div class="promo-product-info">
+                                            <div class="home-deal-card__info">
+                                                <span>Deal hot</span>
                                                 <h4><?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?></h4>
-                                                <div class="price">
-                                                    <strong><?= formatMoney($giaBan) ?>đ</strong>
-                                                </div>
+                                                <strong><?= formatMoney($giaBan) ?>đ</strong>
                                             </div>
                                         </a>
                                     </div>
-
                                 <?php endforeach; ?>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -426,10 +424,10 @@ $bannerSrc = !empty($storeInfo['Banner'])
     <?php endif; ?>
 
     <?php if (!empty($listLatestBlog)): ?>
-        <section class="section-space pt-0">
+        <section class="home-section home-section--blog">
             <div class="container">
-                <div class="section-heading text-center">
-                    <span class="eyebrow">Bài viết mới</span>
+                <div class="home-section-heading text-center">
+                    <span class="home-eyebrow">Bài viết mới</span>
                     <h2>Cập nhật xu hướng</h2>
                     <p>Mẹo chọn kính, phối đồ và bảo quản kính đúng cách.</p>
                 </div>
@@ -443,8 +441,8 @@ $bannerSrc = !empty($storeInfo['Banner'])
                         ?>
 
                         <div class="col-lg-4 col-md-6 mb-4">
-                            <div class="blog-card-modern h-100">
-                                <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>">
+                            <article class="home-blog-card">
+                                <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>" class="home-blog-card__img">
                                     <img 
                                         src="<?= htmlspecialchars($blogImg, ENT_QUOTES, 'UTF-8') ?>" 
                                         alt="<?= htmlspecialchars($blog['TieuDe'] ?? 'Bài viết', ENT_QUOTES, 'UTF-8') ?>"
@@ -452,10 +450,11 @@ $bannerSrc = !empty($storeInfo['Banner'])
                                     >
                                 </a>
 
-                                <div class="blog-card-modern__content">
-                                    <small>
+                                <div class="home-blog-card__body">
+                                    <div class="home-blog-date">
+                                        <i class="far fa-calendar-alt"></i>
                                         <?= $blogDate ? date('d/m/Y', strtotime($blogDate)) : date('d/m/Y') ?>
-                                    </small>
+                                    </div>
 
                                     <h4>
                                         <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>">
@@ -463,17 +462,13 @@ $bannerSrc = !empty($storeInfo['Banner'])
                                         </a>
                                     </h4>
 
-                                    <a 
-                                        href="index.php?controller=blog&action=detail&id=<?= $blogId ?>" 
-                                        class="btn-readmore"
-                                    >
+                                    <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>" class="home-readmore">
                                         Đọc thêm
                                         <i class="fa fa-angle-right"></i>
                                     </a>
                                 </div>
-                            </div>
+                            </article>
                         </div>
-
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -483,37 +478,55 @@ $bannerSrc = !empty($storeInfo['Banner'])
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const countdown = document.getElementById("homeDealCountdown");
+    document.addEventListener("DOMContentLoaded", function () {
+  const countdown = document.getElementById("homeDealCountdown");
 
-    if (!countdown) return;
+  if (!countdown) {
+    return;
+  }
 
-    const endTime = new Date(countdown.getAttribute("data-end")).getTime();
+  const endTime = new Date(countdown.getAttribute("data-end")).getTime();
 
-    const timer = setInterval(function () {
-        const now = new Date().getTime();
-        const diff = endTime - now;
+  function setCountdownValue(selector, value) {
+    const element = countdown.querySelector(selector);
 
-        if (diff <= 0) {
-            clearInterval(timer);
+    if (element) {
+      element.textContent = String(value).padStart(2, "0");
+    }
+  }
 
-            countdown.querySelector(".days").textContent = "00";
-            countdown.querySelector(".hours").textContent = "00";
-            countdown.querySelector(".minutes").textContent = "00";
-            countdown.querySelector(".seconds").textContent = "00";
+  function resetCountdown() {
+    setCountdownValue(".days", 0);
+    setCountdownValue(".hours", 0);
+    setCountdownValue(".minutes", 0);
+    setCountdownValue(".seconds", 0);
+  }
 
-            return;
-        }
+  if (!endTime || Number.isNaN(endTime)) {
+    resetCountdown();
+    return;
+  }
 
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  const timer = setInterval(function () {
+    const now = new Date().getTime();
+    const diff = endTime - now;
 
-        countdown.querySelector(".days").textContent = String(days).padStart(2, "0");
-        countdown.querySelector(".hours").textContent = String(hours).padStart(2, "0");
-        countdown.querySelector(".minutes").textContent = String(minutes).padStart(2, "0");
-        countdown.querySelector(".seconds").textContent = String(seconds).padStart(2, "0");
-    }, 1000);
+    if (diff <= 0) {
+      clearInterval(timer);
+      resetCountdown();
+      return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    setCountdownValue(".days", days);
+    setCountdownValue(".hours", hours);
+    setCountdownValue(".minutes", minutes);
+    setCountdownValue(".seconds", seconds);
+  }, 1000);
 });
+
 </script>

@@ -6,15 +6,21 @@ class AdminSanPhamController
     private $model;
     private $pdo;
 
+    private const PAGE_SIZE = 10;
+
     public function __construct($pdo)
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $this->pdo = $pdo;
         $this->model = new AdminSanPhamModel($pdo);
 
         $sessionAccount = $_SESSION['LoginInformation'] ?? null;
         $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
 
-        if (!$sessionAccount || !in_array($roleCode, ['ADMIN', 'STAFF'])) {
+        if (!$sessionAccount || !in_array($roleCode, ['ADMIN', 'STAFF'], true)) {
             $_SESSION['error'] = "Bạn không có quyền truy cập module sản phẩm.";
             header("Location: index.php?controller=dashboard");
             exit;
@@ -30,15 +36,46 @@ class AdminSanPhamController
 
         $statusProduct = $_GET['statusProduct'] ?? 'stock';
         $keyword = trim($_GET['keyword'] ?? '');
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 
         $allowedStatus = ['stock', 'outofstock', 'inactive', 'all'];
+
         if (!in_array($statusProduct, $allowedStatus, true)) {
             $statusProduct = 'stock';
         }
 
         $userId = ($roleCode === 'ADMIN') ? null : (int)$sessionAccount['TaiKhoanId'];
 
-        $products = $this->model->getProducts($statusProduct, $keyword, $userId);
+        $result = $this->model->getProducts($statusProduct, $keyword, $userId, $page, self::PAGE_SIZE);
+
+        $products = $result['data'];
+        $totalCount = (int)$result['totalCount'];
+
+        $totalPages = max(1, (int)ceil($totalCount / self::PAGE_SIZE));
+
+        if ($page > $totalPages) {
+            $page = $totalPages;
+
+            $result = $this->model->getProducts($statusProduct, $keyword, $userId, $page, self::PAGE_SIZE);
+            $products = $result['data'];
+        }
+
+        $pagination = [
+            'CurrentPage' => $page,
+            'PageSize' => self::PAGE_SIZE,
+            'TotalCount' => $totalCount,
+            'TotalPages' => $totalPages,
+            'DisplayStart' => max(1, $page - 2),
+            'DisplayEnd' => min($totalPages, $page + 2)
+        ];
+
+        if (($pagination['DisplayEnd'] - $pagination['DisplayStart']) < 4) {
+            if ($pagination['DisplayStart'] === 1) {
+                $pagination['DisplayEnd'] = min($totalPages, $pagination['DisplayStart'] + 4);
+            } elseif ($pagination['DisplayEnd'] === $totalPages) {
+                $pagination['DisplayStart'] = max(1, $pagination['DisplayEnd'] - 4);
+            }
+        }
 
         $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Tài khoản';
         $isAdmin = $roleCode === 'ADMIN';
@@ -138,10 +175,17 @@ class AdminSanPhamController
         $data['SoLuongTon'] = max(0, (int)($data['SoLuongTon'] ?? 0));
         $data['ThuongHieuId'] = (int)($data['ThuongHieuId'] ?? 0);
         $data['LoaiSanPhamId'] = (int)($data['LoaiSanPhamId'] ?? 0);
-        $data['IsFeatured'] = !empty($data['IsFeatured']) ? 1 : 0;
+
+        // STAFF không được tự bật nổi bật. ADMIN mới được.
+        if ($roleCode === 'ADMIN') {
+            $data['IsFeatured'] = !empty($data['IsFeatured']) ? 1 : 0;
+        } else {
+            $data['IsFeatured'] = $id > 0 ? (int)($product['IsFeatured'] ?? 0) : 0;
+        }
+
         $data['TrangThai'] = (int)($data['TrangThai'] ?? 1);
 
-        if ($data['TrangThai'] !== 1 && $data['TrangThai'] !== 2) {
+        if (!in_array($data['TrangThai'], [1, 2], true)) {
             $data['TrangThai'] = 1;
         }
 
@@ -154,10 +198,17 @@ class AdminSanPhamController
             exit;
         }
 
-        $newImage = $this->uploadImage('imageAvatar');
+        $uploadResult = $this->uploadImage('imageAvatar');
 
-        if ($newImage) {
-            $data['HinhAnhChinh'] = $newImage;
+        if (!$uploadResult['success']) {
+            $_SESSION['error'] = $uploadResult['message'];
+            $redirectId = $id > 0 ? "&id=" . $id : "";
+            header("Location: index.php?controller=adminsanpham&action=edit" . $redirectId);
+            exit;
+        }
+
+        if (!empty($uploadResult['file'])) {
+            $data['HinhAnhChinh'] = $uploadResult['file'];
 
             if ($id > 0 && !empty($product['HinhAnhChinh']) && $this->isLocalImage($product['HinhAnhChinh'])) {
                 @unlink(BASE_PATH . '/public/images/' . $product['HinhAnhChinh']);
@@ -187,10 +238,15 @@ class AdminSanPhamController
             exit;
         }
 
-        $id = (int)($_POST['id'] ?? 0);
-
         $sessionAccount = $_SESSION['LoginInformation'];
         $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        if ($roleCode !== 'ADMIN') {
+            $_SESSION['error'] = "Chỉ Quản trị viên mới có quyền cập nhật sản phẩm nổi bật.";
+            $this->redirectBack();
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
 
         if ($id <= 0) {
             $_SESSION['error'] = "Sản phẩm không hợp lệ.";
@@ -201,11 +257,6 @@ class AdminSanPhamController
 
         if (!$product) {
             $_SESSION['error'] = "Không tìm thấy sản phẩm.";
-            $this->redirectBack();
-        }
-
-        if (!$this->canManageProduct($product, $sessionAccount, $roleCode)) {
-            $_SESSION['error'] = "Bạn không có quyền cập nhật sản phẩm này.";
             $this->redirectBack();
         }
 
@@ -250,6 +301,21 @@ class AdminSanPhamController
             exit;
         }
 
+        /*
+            STAFF chỉ được ngừng bán sản phẩm của mình.
+            Không được xóa cứng.
+        */
+        if ($roleCode !== 'ADMIN') {
+            if ($this->model->softDelete($id)) {
+                $_SESSION['success'] = "Nhân viên chỉ được chuyển sản phẩm sang trạng thái ngừng bán.";
+            } else {
+                $_SESSION['error'] = "Không thể chuyển sản phẩm sang trạng thái ngừng bán.";
+            }
+
+            header("Location: index.php?controller=adminsanpham");
+            exit;
+        }
+
         $hasOrders = $this->model->checkProductInOrders($id);
         $hasBehaviors = $this->model->checkProductInBehaviors($id);
 
@@ -281,12 +347,24 @@ class AdminSanPhamController
             return "Mã sản phẩm không được để trống.";
         }
 
+        if (mb_strlen($data['MaSanPham'], 'UTF-8') > 30) {
+            return "Mã sản phẩm không được vượt quá 30 ký tự.";
+        }
+
         if ($this->model->isProductCodeExists($data['MaSanPham'], $id)) {
             return "Mã sản phẩm đã tồn tại.";
         }
 
         if ($data['TenSanPham'] === '') {
             return "Tên sản phẩm không được để trống.";
+        }
+
+        if (mb_strlen($data['TenSanPham'], 'UTF-8') > 200) {
+            return "Tên sản phẩm không được vượt quá 200 ký tự.";
+        }
+
+        if (mb_strlen($data['MoTaNgan'], 'UTF-8') > 500) {
+            return "Mô tả ngắn không được vượt quá 500 ký tự.";
         }
 
         if ($data['ThuongHieuId'] <= 0 || !$this->model->brandExists($data['ThuongHieuId'])) {
@@ -319,12 +397,19 @@ class AdminSanPhamController
     private function uploadImage($fileField)
     {
         if (!isset($_FILES[$fileField]) || $_FILES[$fileField]['error'] === UPLOAD_ERR_NO_FILE) {
-            return null;
+            return [
+                'success' => true,
+                'file' => null,
+                'message' => null
+            ];
         }
 
         if ($_FILES[$fileField]['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['error'] = "Tải ảnh sản phẩm thất bại.";
-            return null;
+            return [
+                'success' => false,
+                'file' => null,
+                'message' => "Tải ảnh sản phẩm thất bại."
+            ];
         }
 
         $allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
@@ -337,20 +422,29 @@ class AdminSanPhamController
         $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
         if (!in_array($extension, $allowedExt, true)) {
-            $_SESSION['error'] = "Ảnh sản phẩm chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP.";
-            return null;
+            return [
+                'success' => false,
+                'file' => null,
+                'message' => "Ảnh sản phẩm chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP."
+            ];
         }
 
         if ($size <= 0 || $size > 3 * 1024 * 1024) {
-            $_SESSION['error'] = "Dung lượng ảnh sản phẩm tối đa là 3MB.";
-            return null;
+            return [
+                'success' => false,
+                'file' => null,
+                'message' => "Dung lượng ảnh sản phẩm tối đa là 3MB."
+            ];
         }
 
         $mimeType = function_exists('mime_content_type') ? mime_content_type($tmpName) : '';
 
         if ($mimeType !== '' && !in_array($mimeType, $allowedMime, true)) {
-            $_SESSION['error'] = "File tải lên không đúng định dạng ảnh.";
-            return null;
+            return [
+                'success' => false,
+                'file' => null,
+                'message' => "File tải lên không đúng định dạng ảnh."
+            ];
         }
 
         $uploadDir = BASE_PATH . '/public/images/';
@@ -362,19 +456,36 @@ class AdminSanPhamController
         $fileName = 'product_' . date('YmdHis') . '_' . mt_rand(1000, 9999) . '.' . $extension;
         $targetPath = $uploadDir . $fileName;
 
-        if (move_uploaded_file($tmpName, $targetPath)) {
-            return $fileName;
+        if (!move_uploaded_file($tmpName, $targetPath)) {
+            return [
+                'success' => false,
+                'file' => null,
+                'message' => "Không thể lưu ảnh sản phẩm."
+            ];
         }
 
-        $_SESSION['error'] = "Không thể lưu ảnh sản phẩm.";
-        return null;
+        return [
+            'success' => true,
+            'file' => $fileName,
+            'message' => null
+        ];
     }
 
     private function normalizeMoney($value)
     {
         $value = trim((string)$value);
+
+        if (preg_match('/^\d+\.00$/', $value)) {
+            $value = str_replace('.00', '', $value);
+        }
+
         $value = str_replace(['₫', ' ', ','], '', $value);
-        $value = str_replace('.', '', $value);
+
+        if (preg_match('/^\d+\.\d{2}$/', $value)) {
+            $value = substr($value, 0, -3);
+        } else {
+            $value = str_replace('.', '', $value);
+        }
 
         return max(0, (float)$value);
     }

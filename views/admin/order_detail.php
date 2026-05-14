@@ -3,7 +3,7 @@ $order = $order ?? [];
 $items = $items ?? [];
 $histories = $histories ?? [];
 $shippers = $shippers ?? [];
-$baseUrl = $baseUrl ?? '';
+$baseUrl = $baseUrl ?? '/BanMatKinh/public';
 
 $login = $_SESSION['LoginInformation'] ?? [];
 $roleCode = strtoupper(trim($login['MaVaiTro'] ?? ''));
@@ -21,9 +21,24 @@ $isFinalStatus = in_array($currentStatus, [
     OrderStatusConstants::CANCELLED
 ], true);
 
+/*
+    Chỉ Admin/Staff được gán shipper.
+    Không cho gán ở Chờ xác nhận.
+    Không cho gán khi đơn đã kết thúc.
+    Cho gán / gán lại ở:
+    - Đã xác nhận
+    - Đang chuẩn bị
+    - Đã giao shipper
+    - Giao thất bại
+*/
 $canAssignShipper = ($isAdmin || $isStaff)
     && !$isFinalStatus
-    && $currentStatus !== OrderStatusConstants::PENDING;
+    && in_array($currentStatus, [
+        OrderStatusConstants::CONFIRMED,
+        OrderStatusConstants::PREPARING,
+        OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+        OrderStatusConstants::DELIVERY_FAILED
+    ], true);
 
 $canUpdateStatus = ($isAdmin || $isStaff || $isShipper) && !$isFinalStatus;
 
@@ -54,6 +69,18 @@ function orderDetailImageSrc($image, $baseUrl)
         return $image;
     }
 
+    if (str_starts_with($image, '/BanMatKinh/')) {
+        return $image;
+    }
+
+    if (str_starts_with($image, '/')) {
+        return $image;
+    }
+
+    if (str_starts_with($image, 'public/')) {
+        return '/BanMatKinh/' . ltrim($image, '/');
+    }
+
     return $baseUrl . '/images/' . ltrim($image, '/');
 }
 
@@ -64,32 +91,37 @@ function orderNextStatusOptions($currentStatus, $roleCode)
 
     $options = [];
 
+    /*
+        Lưu ý:
+        ASSIGNED_TO_SHIPPER không xuất hiện trong dropdown này.
+        Muốn chuyển sang trạng thái "Đã giao shipper" thì phải dùng form Gán shipper.
+    */
     if ($roleCode === 'ADMIN' || $roleCode === 'STAFF') {
         $map = [
             OrderStatusConstants::PENDING => [
                 OrderStatusConstants::CONFIRMED,
                 OrderStatusConstants::CANCELLED
             ],
+
             OrderStatusConstants::CONFIRMED => [
                 OrderStatusConstants::PREPARING,
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
                 OrderStatusConstants::CANCELLED
             ],
+
             OrderStatusConstants::PREPARING => [
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
                 OrderStatusConstants::CANCELLED
             ],
+
             OrderStatusConstants::ASSIGNED_TO_SHIPPER => [
-                OrderStatusConstants::DELIVERING,
-                OrderStatusConstants::DELIVERY_FAILED,
                 OrderStatusConstants::CANCELLED
             ],
+
             OrderStatusConstants::DELIVERING => [
-                OrderStatusConstants::DELIVERED,
-                OrderStatusConstants::DELIVERY_FAILED
+                // Admin/Staff không cập nhật giao thành công/thất bại.
+                // Trạng thái giao hàng do Shipper xử lý.
             ],
+
             OrderStatusConstants::DELIVERY_FAILED => [
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
                 OrderStatusConstants::CANCELLED
             ],
         ];
@@ -103,13 +135,13 @@ function orderNextStatusOptions($currentStatus, $roleCode)
                 OrderStatusConstants::DELIVERING,
                 OrderStatusConstants::DELIVERY_FAILED
             ],
+
             OrderStatusConstants::DELIVERING => [
                 OrderStatusConstants::DELIVERED,
                 OrderStatusConstants::DELIVERY_FAILED
             ],
-            OrderStatusConstants::DELIVERY_FAILED => [
-                OrderStatusConstants::ASSIGNED_TO_SHIPPER
-            ],
+
+            OrderStatusConstants::DELIVERY_FAILED => [],
         ];
 
         $options = $map[$currentStatus] ?? [];
@@ -119,6 +151,11 @@ function orderNextStatusOptions($currentStatus, $roleCode)
 }
 
 $nextStatusOptions = orderNextStatusOptions($currentStatus, $roleCode);
+
+$currentShipperId = (int)($order['ShipperId'] ?? 0);
+$currentShipperName = $order['ShipperName'] ?? '';
+$paymentMethod = $order['PhuongThucThanhToan'] ?? PaymentConstants::COD;
+$paymentStatus = $order['TrangThaiThanhToan'] ?? PaymentConstants::PENDING;
 ?>
 
 <div class="admin-page-header mb-4">
@@ -221,16 +258,30 @@ $nextStatusOptions = orderNextStatusOptions($currentStatus, $roleCode);
                             <div class="col-md-6 mb-3 mb-md-0">
                                 <div class="order-detail-box">
                                     <span>Thanh toán</span>
-                                    <strong><?= htmlspecialchars($order['PhuongThucThanhToan'] ?? PaymentConstants::COD, ENT_QUOTES, 'UTF-8') ?></strong>
-                                    <small><?= htmlspecialchars($order['TrangThaiThanhToan'] ?? PaymentConstants::PENDING, ENT_QUOTES, 'UTF-8') ?></small>
+                                    <strong><?= htmlspecialchars($paymentMethod, ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <small><?= htmlspecialchars($paymentStatus, ENT_QUOTES, 'UTF-8') ?></small>
+
+                                    <?php if (!empty($order['MaGiaoDichThanhToan'])): ?>
+                                        <small>Mã GD: <?= htmlspecialchars($order['MaGiaoDichThanhToan'], ENT_QUOTES, 'UTF-8') ?></small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <div class="order-detail-box">
                                     <span>Shipper</span>
-                                    <strong><?= htmlspecialchars($order['ShipperName'] ?? 'Chưa gán', ENT_QUOTES, 'UTF-8') ?></strong>
-                                    <small>Nhân viên giao hàng phụ trách</small>
+
+                                    <?php if (!empty($currentShipperName)): ?>
+                                        <strong><?= htmlspecialchars($currentShipperName, ENT_QUOTES, 'UTF-8') ?></strong>
+                                        <?php if (!empty($order['ShipperUsername'])): ?>
+                                            <small>@<?= htmlspecialchars($order['ShipperUsername'], ENT_QUOTES, 'UTF-8') ?></small>
+                                        <?php else: ?>
+                                            <small>Nhân viên giao hàng phụ trách</small>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <strong>Chưa gán</strong>
+                                        <small>Cần chọn shipper trước khi giao hàng</small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -380,6 +431,7 @@ $nextStatusOptions = orderNextStatusOptions($currentStatus, $roleCode);
 
                                             <div class="order-timeline-meta">
                                                 <?= !empty($history['CreatedAt']) ? date('d/m/Y H:i', strtotime($history['CreatedAt'])) : '' ?>
+
                                                 <?php if (!empty($history['NguoiCapNhat'])): ?>
                                                     • <?= htmlspecialchars($history['NguoiCapNhat'], ENT_QUOTES, 'UTF-8') ?>
                                                 <?php endif; ?>
@@ -466,6 +518,13 @@ $nextStatusOptions = orderNextStatusOptions($currentStatus, $roleCode);
                                         Cập nhật trạng thái
                                     </button>
                                 </form>
+
+                                <?php if ($isAdmin || $isStaff): ?>
+                                    <div class="order-subtext mt-3">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Trạng thái “Đã giao shipper” chỉ được cập nhật thông qua form Gán shipper.
+                                    </div>
+                                <?php endif; ?>
                             <?php else: ?>
                                 <div class="order-empty-state">
                                     <div class="order-empty-icon">
@@ -490,36 +549,62 @@ $nextStatusOptions = orderNextStatusOptions($currentStatus, $roleCode);
 
                         <div class="premium-panel-body">
                             <form action="<?= $baseUrl ?>/index.php?controller=admindonhang&action=assignShipper"
-                                  method="POST">
+                                  method="POST"
+                                  id="assignShipperForm">
                                 <input type="hidden" name="DonHangId" value="<?= $orderId ?>">
 
                                 <div class="form-group">
                                     <label class="order-form-label">Nhân viên giao hàng</label>
-                                    <select name="ShipperId" class="form-control order-input" required>
+
+                                    <select name="ShipperId"
+                                            id="assignShipperSelect"
+                                            class="form-control order-input"
+                                            required>
                                         <option value="">-- Chọn shipper --</option>
 
                                         <?php foreach ($shippers as $shipper): ?>
                                             <?php
                                             $shipperId = (int)($shipper['TaiKhoanId'] ?? 0);
                                             $shipperName = $shipper['HoTen'] ?? $shipper['TenDangNhap'] ?? 'Shipper';
+                                            $shipperPhone = $shipper['SoDienThoai'] ?? '';
                                             ?>
 
                                             <?php if ($shipperId > 0): ?>
-                                                <option value="<?= $shipperId ?>" <?= $shipperId === (int)($order['ShipperId'] ?? 0) ? 'selected' : '' ?>>
+                                                <option value="<?= $shipperId ?>"
+                                                    <?= $shipperId === $currentShipperId ? 'selected' : '' ?>>
                                                     <?= htmlspecialchars($shipperName, ENT_QUOTES, 'UTF-8') ?>
+                                                    <?= $shipperPhone ? ' - ' . htmlspecialchars($shipperPhone, ENT_QUOTES, 'UTF-8') : '' ?>
                                                 </option>
                                             <?php endif; ?>
                                         <?php endforeach; ?>
                                     </select>
+
+                                    <div class="shipper-inline-alert" id="shipperInlineAlert" style="display:none;">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <span>Vui lòng chọn một shipper trước khi gán đơn hàng.</span>
+                                    </div>
+
+                                    <small class="order-subtext d-block mt-2">
+                                        Sau khi gán, đơn sẽ chuyển sang trạng thái “Đã giao shipper”.
+                                        Shipper được chọn sẽ tiếp tục xử lý giao hàng.
+                                    </small>
                                 </div>
+
+                                <?php if (empty($shippers)): ?>
+                                    <div class="alert alert-warning admin-alert">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        Hiện chưa có tài khoản shipper đang hoạt động.
+                                    </div>
+                                <?php endif; ?>
 
                                 <button type="submit"
                                         class="btn order-submit-btn btn-block"
                                         data-confirm
                                         data-confirm-title="Gán shipper cho đơn hàng"
-                                        data-confirm-ok="Gán shipper">
+                                        data-confirm-ok="Gán shipper"
+                                    <?= empty($shippers) ? 'disabled' : '' ?>>
                                     <i class="fas fa-truck mr-1"></i>
-                                    Gán shipper
+                                    <?= $currentShipperId > 0 ? 'Cập nhật shipper' : 'Gán shipper' ?>
                                 </button>
                             </form>
                         </div>
@@ -536,3 +621,43 @@ $nextStatusOptions = orderNextStatusOptions($currentStatus, $roleCode);
 
     </div>
 </section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const assignForm = document.getElementById("assignShipperForm");
+    const assignSelect = document.getElementById("assignShipperSelect");
+    const inlineAlert = document.getElementById("shipperInlineAlert");
+
+    if (assignForm && assignSelect) {
+        assignForm.addEventListener("submit", function (event) {
+            if (!assignSelect.value) {
+                event.preventDefault();
+
+                if (inlineAlert) {
+                    inlineAlert.style.display = "flex";
+                }
+
+                assignSelect.classList.add("is-invalid");
+                assignSelect.focus();
+                return false;
+            }
+
+            if (inlineAlert) {
+                inlineAlert.style.display = "none";
+            }
+
+            assignSelect.classList.remove("is-invalid");
+        });
+
+        assignSelect.addEventListener("change", function () {
+            if (assignSelect.value) {
+                assignSelect.classList.remove("is-invalid");
+
+                if (inlineAlert) {
+                    inlineAlert.style.display = "none";
+                }
+            }
+        });
+    }
+});
+</script>

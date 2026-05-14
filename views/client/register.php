@@ -78,7 +78,7 @@ $rvm = $rvm ?? [];
                                             value="<?= htmlspecialchars($rvm['Username'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                             minlength="4"
                                             maxlength="50"
-                                            autocomplete="username"
+                                            autocomplete="off"
                                             required
                                         >
                                     </div>
@@ -99,7 +99,7 @@ $rvm = $rvm ?? [];
                                                 class="form-control auth-input"
                                                 placeholder="Tối thiểu 6 ký tự"
                                                 minlength="6"
-                                                autocomplete="new-password"
+                                                autocomplete="off"
                                                 required
                                             >
                                             <button type="button" class="toggle-password" data-target="registerPassword">
@@ -122,7 +122,7 @@ $rvm = $rvm ?? [];
                                                 class="form-control auth-input"
                                                 placeholder="Nhập lại mật khẩu"
                                                 minlength="6"
-                                                autocomplete="new-password"
+                                                autocomplete="off"
                                                 required
                                             >
                                             <button type="button" class="toggle-password" data-target="registerConfirmPassword">
@@ -183,7 +183,7 @@ $rvm = $rvm ?? [];
                                                 placeholder="09xxxxxxxx"
                                                 value="<?= htmlspecialchars($rvm['Mobile'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                 maxlength="20"
-                                                autocomplete="tel"
+                                                autocomplete="off"
                                                 required
                                             >
                                         </div>
@@ -203,7 +203,7 @@ $rvm = $rvm ?? [];
                                                 placeholder="email@example.com"
                                                 value="<?= htmlspecialchars($rvm['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                 maxlength="100"
-                                                autocomplete="email"
+                                                autocomplete="off"
                                             >
                                         </div>
                                         <?php if (!empty($errors['Email'])): ?>
@@ -253,7 +253,7 @@ $rvm = $rvm ?? [];
                                             placeholder="Số nhà, tên đường, Phường/Xã..."
                                             value="<?= htmlspecialchars($rvm['Address'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                             maxlength="255"
-                                            autocomplete="street-address"
+                                            autocomplete="off"
                                         >
                                     </div>
                                     <?php if (!empty($errors['Address'])): ?>

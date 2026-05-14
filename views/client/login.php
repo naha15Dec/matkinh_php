@@ -96,7 +96,7 @@ $oldUsername = $_POST['Username'] ?? '';
                                             placeholder="Nhập tên đăng nhập, email hoặc số điện thoại"
                                             value="<?= htmlspecialchars($oldUsername, ENT_QUOTES, 'UTF-8') ?>"
                                             maxlength="100"
-                                            autocomplete="username"
+                                            autocomplete="off"
                                             required
                                         >
                                     </div>
@@ -114,7 +114,7 @@ $oldUsername = $_POST['Username'] ?? '';
                                             class="form-control auth-input"
                                             placeholder="Nhập mật khẩu"
                                             minlength="6"
-                                            autocomplete="current-password"
+                                            autocomplete="off"
                                             required
                                         >
 

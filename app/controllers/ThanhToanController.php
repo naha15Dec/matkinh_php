@@ -190,55 +190,56 @@ class ThanhToanController
         }
     }
 
-    private function execVnPay($orderCode, $amount)
-    {
-        $vnp_TmnCode = VNP_TMNCODE;
-        $vnp_HashSecret = VNP_HASHSECRET;
-        $vnp_Url = VNP_URL;
-        $vnp_Returnurl = VNP_RETURNURL;
+private function execVnPay($orderCode, $amount)
+{
+    date_default_timezone_set('Asia/Ho_Chi_Minh');
 
-        $inputData = [
-            "vnp_Version"    => "2.1.0",
-            "vnp_TmnCode"    => $vnp_TmnCode,
-            "vnp_Amount"     => (int)round($amount * 100),
-            "vnp_Command"    => "pay",
-            "vnp_CreateDate" => date('YmdHis'),
-            "vnp_CurrCode"   => "VND",
-            "vnp_IpAddr"     => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
-            "vnp_Locale"     => "vn",
-            "vnp_OrderInfo"  => "Thanh toán đơn hàng " . $orderCode,
-            "vnp_OrderType"  => "billpayment",
-            "vnp_ReturnUrl"  => $vnp_Returnurl,
-            "vnp_TxnRef"     => $orderCode
-        ];
+    $vnp_TmnCode = VNP_TMNCODE;
+    $vnp_HashSecret = VNP_HASHSECRET;
+    $vnp_Url = VNP_URL;
+    $vnp_Returnurl = VNP_RETURNURL;
 
-        ksort($inputData);
+    $ipAddr = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 
-        $query = "";
-        $hashdata = "";
-        $i = 0;
-
-        foreach ($inputData as $key => $value) {
-            if ($i === 1) {
-                $hashdata .= '&' . urlencode($key) . "=" . urlencode($value);
-            } else {
-                $hashdata .= urlencode($key) . "=" . urlencode($value);
-                $i = 1;
-            }
-
-            $query .= urlencode($key) . "=" . urlencode($value) . '&';
-        }
-
-        $vnp_Url = $vnp_Url . "?" . $query;
-
-        if (!empty($vnp_HashSecret)) {
-            $vnpSecureHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
-            $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
-        }
-
-        header('Location: ' . $vnp_Url);
-        exit;
+    if ($ipAddr === '::1' || $ipAddr === '0:0:0:0:0:0:0:1' || empty($ipAddr)) {
+        $ipAddr = '127.0.0.1';
     }
+
+    $createDate = date('YmdHis');
+    $expireDate = date('YmdHis', strtotime('+15 minutes'));
+
+    $inputData = [
+        "vnp_Version"    => "2.1.0",
+        "vnp_Command"    => "pay",
+        "vnp_TmnCode"    => $vnp_TmnCode,
+        "vnp_Amount"     => (int)round($amount * 100),
+        "vnp_CreateDate" => $createDate,
+        "vnp_ExpireDate" => $expireDate,
+        "vnp_CurrCode"   => "VND",
+        "vnp_IpAddr"     => $ipAddr,
+        "vnp_Locale"     => "vn",
+        "vnp_OrderInfo"  => "Thanh toan don hang " . $orderCode,
+        "vnp_OrderType"  => "other",
+        "vnp_ReturnUrl"  => $vnp_Returnurl,
+        "vnp_TxnRef"     => $orderCode
+    ];
+
+    ksort($inputData);
+
+    $query = "";
+    $hashdata = "";
+
+    foreach ($inputData as $key => $value) {
+        $hashdata .= ($hashdata ? '&' : '') . urlencode($key) . "=" . urlencode($value);
+        $query .= urlencode($key) . "=" . urlencode($value) . '&';
+    }
+
+    $vnpSecureHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
+    $paymentUrl = $vnp_Url . "?" . $query . "vnp_SecureHash=" . $vnpSecureHash;
+
+    header('Location: ' . $paymentUrl);
+    exit;
+}
 
     public function vnpay_return()
     {
@@ -273,9 +274,10 @@ class ThanhToanController
 
         $orderCode = $_GET['vnp_TxnRef'] ?? '';
         $responseCode = $_GET['vnp_ResponseCode'] ?? '';
+        $transactionStatus = $_GET['vnp_TransactionStatus'] ?? '';
         $transactionNo = $_GET['vnp_TransactionNo'] ?? null;
 
-        if ($secureHash === $vnp_SecureHash && $responseCode === '00') {
+        if ($secureHash === $vnp_SecureHash && $responseCode === '00' && $transactionStatus === '00') {
             $this->model->updatePaymentStatus($orderCode, PaymentConstants::PAID, $transactionNo);
 
             $_SESSION['LastCreatedOrderCode'] = $orderCode;
