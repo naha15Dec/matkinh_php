@@ -1,9 +1,28 @@
 <?php
 if (!function_exists('normalizeImg')) {
     function normalizeImg($path) {
-        if (empty($path)) return "/BanMatKinh/public/images/no-image.png";
-        if (strpos($path, 'http') === 0) return $path;
-        if (strpos($path, '/BanMatKinh/') === 0) return $path;
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return "/BanMatKinh/public/images/no-image.png";
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/BanMatKinh/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return '/BanMatKinh/' . ltrim($path, '/');
+        }
+
         return "/BanMatKinh/public/images/" . ltrim($path, '/');
     }
 }
@@ -15,6 +34,9 @@ $storeInfo = $storeInfo ?? [];
 $hotline = $storeInfo['Hotline'] ?? '0123.456.789';
 $postDate = $post['NgayDang'] ?? $post['CreatedAt'] ?? date('Y-m-d');
 $coverImage = $post['AnhDaiDien'] ?? $post['HinhAnh'] ?? '';
+$coverSrc = normalizeImg($coverImage);
+$postTitle = $post['TieuDe'] ?? 'Bài viết';
+$author = $post['NguoiTao'] ?? $post['TenDangNhapNguoiTao'] ?? 'Karma Eyewear';
 ?>
 
 <section class="blog-detail-page">
@@ -47,29 +69,32 @@ $coverImage = $post['AnhDaiDien'] ?? $post['HinhAnh'] ?? '';
 
                         <span>
                             <i class="far fa-newspaper"></i>
-                            Karma Eyewear
+                            <?= htmlspecialchars($author, ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
 
-                    <h1><?= htmlspecialchars($post['TieuDe'] ?? 'Bài viết') ?></h1>
+                    <h1><?= htmlspecialchars($postTitle, ENT_QUOTES, 'UTF-8') ?></h1>
 
                     <?php if (!empty($coverImage)): ?>
                         <div class="blog-detail-cover">
                             <img 
-                                src="<?= normalizeImg($coverImage) ?>" 
-                                alt="<?= htmlspecialchars($post['TieuDe'] ?? 'Bài viết') ?>"
+                                src="<?= htmlspecialchars($coverSrc, ENT_QUOTES, 'UTF-8') ?>" 
+                                alt="<?= htmlspecialchars($postTitle, ENT_QUOTES, 'UTF-8') ?>"
+                                onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                             >
                         </div>
                     <?php endif; ?>
 
                     <?php if (!empty($post['TomTat']) || !empty($post['MoTaNgan'])): ?>
                         <div class="blog-detail-summary">
-                            <?= htmlspecialchars($post['TomTat'] ?? $post['MoTaNgan']) ?>
+                            <?= htmlspecialchars($post['TomTat'] ?? $post['MoTaNgan'], ENT_QUOTES, 'UTF-8') ?>
                         </div>
                     <?php endif; ?>
 
                     <div class="blog-detail-body">
-                        <?= $post['NoiDung'] ?? '<p>Nội dung bài viết đang được cập nhật.</p>' ?>
+                        <?= !empty($post['NoiDung'])
+                            ? $post['NoiDung']
+                            : '<p>Nội dung bài viết đang được cập nhật.</p>' ?>
                     </div>
 
                     <div class="blog-detail-footer">
@@ -92,18 +117,21 @@ $coverImage = $post['AnhDaiDien'] ?? $post['HinhAnh'] ?? '';
                         <?php if (!empty($listPostPopular)): ?>
                             <?php foreach ($listPostPopular as $pop): ?>
                                 <?php
-                                    $popDate = $pop['NgayDang'] ?? $pop['CreatedAt'] ?? date('Y-m-d');
-                                    $popImg = $pop['AnhDaiDien'] ?? $pop['HinhAnh'] ?? '';
+                                $popId = (int)($pop['BaiVietId'] ?? 0);
+                                $popDate = $pop['NgayDang'] ?? $pop['CreatedAt'] ?? date('Y-m-d');
+                                $popImg = normalizeImg($pop['AnhDaiDien'] ?? $pop['HinhAnh'] ?? '');
+                                $popTitle = $pop['TieuDe'] ?? 'Bài viết';
                                 ?>
 
-                                <a href="index.php?controller=blog&action=detail&id=<?= $pop['BaiVietId'] ?>" class="mini-post">
+                                <a href="index.php?controller=blog&action=detail&id=<?= $popId ?>" class="mini-post">
                                     <img 
-                                        src="<?= normalizeImg($popImg) ?>" 
-                                        alt="<?= htmlspecialchars($pop['TieuDe'] ?? 'Bài viết') ?>"
+                                        src="<?= htmlspecialchars($popImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                        alt="<?= htmlspecialchars($popTitle, ENT_QUOTES, 'UTF-8') ?>"
+                                        onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                                     >
 
                                     <div>
-                                        <span><?= htmlspecialchars($pop['TieuDe'] ?? 'Bài viết') ?></span>
+                                        <span><?= htmlspecialchars($popTitle, ENT_QUOTES, 'UTF-8') ?></span>
                                         <small><?= date('d/m/Y', strtotime($popDate)) ?></small>
                                     </div>
                                 </a>
@@ -118,9 +146,9 @@ $coverImage = $post['AnhDaiDien'] ?? $post['HinhAnh'] ?? '';
                         <h4>Bạn cần tư vấn?</h4>
                         <p>Chuyên gia của chúng tôi luôn sẵn sàng hỗ trợ bạn chọn mẫu gọng phù hợp nhất.</p>
 
-                        <a href="tel:<?= htmlspecialchars($hotline) ?>">
+                        <a href="tel:<?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?>">
                             <i class="fas fa-phone-alt"></i>
-                            <?= htmlspecialchars($hotline) ?>
+                            <?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?>
                         </a>
                     </div>
                 </aside>

@@ -26,7 +26,9 @@ $rvm = $rvm ?? [];
 
                     <div class="col-lg-5 d-none d-lg-block">
                         <div class="auth-visual register-visual">
-                            <img src="/BanMatKinh/public/images/auth/register.jpg" alt="Đăng ký Karma Eyewear">
+                            <img src="/BanMatKinh/public/images/auth/register.jpg"
+                                 alt="Đăng ký Karma Eyewear"
+                                 onerror="this.src='/BanMatKinh/public/images/no-image.png'">
 
                             <div class="auth-visual-overlay"></div>
 
@@ -53,12 +55,16 @@ $rvm = $rvm ?? [];
                             <div id="ajaxMessage">
                                 <?php if (!empty($errors['Global'])): ?>
                                     <div class="alert alert-danger border-0 small">
-                                        <?= implode('<br>', array_map('htmlspecialchars', $errors['Global'])) ?>
+                                        <?= implode('<br>', array_map(function ($msg) {
+                                            return htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
+                                        }, $errors['Global'])) ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
 
-                            <form id="registerForm" action="index.php?controller=taikhoan&action=register" method="POST">
+                            <form id="registerForm"
+                                  action="index.php?controller=taikhoan&action=register"
+                                  method="POST">
 
                                 <div class="form-group">
                                     <label class="auth-label">Tên đăng nhập *</label>
@@ -69,12 +75,15 @@ $rvm = $rvm ?? [];
                                             name="Username" 
                                             class="form-control auth-input"
                                             placeholder="Ví dụ: nhatnguyen99"
-                                            value="<?= htmlspecialchars($rvm['Username'] ?? '') ?>"
+                                            value="<?= htmlspecialchars($rvm['Username'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                            minlength="4"
+                                            maxlength="50"
+                                            autocomplete="username"
                                             required
                                         >
                                     </div>
                                     <?php if (!empty($errors['Username'])): ?>
-                                        <small class="auth-error"><?= htmlspecialchars($errors['Username']) ?></small>
+                                        <small class="auth-error"><?= htmlspecialchars($errors['Username'], ENT_QUOTES, 'UTF-8') ?></small>
                                     <?php endif; ?>
                                 </div>
 
@@ -89,6 +98,8 @@ $rvm = $rvm ?? [];
                                                 id="registerPassword"
                                                 class="form-control auth-input"
                                                 placeholder="Tối thiểu 6 ký tự"
+                                                minlength="6"
+                                                autocomplete="new-password"
                                                 required
                                             >
                                             <button type="button" class="toggle-password" data-target="registerPassword">
@@ -96,7 +107,7 @@ $rvm = $rvm ?? [];
                                             </button>
                                         </div>
                                         <?php if (!empty($errors['Password'])): ?>
-                                            <small class="auth-error"><?= htmlspecialchars($errors['Password']) ?></small>
+                                            <small class="auth-error"><?= htmlspecialchars($errors['Password'], ENT_QUOTES, 'UTF-8') ?></small>
                                         <?php endif; ?>
                                     </div>
 
@@ -110,6 +121,8 @@ $rvm = $rvm ?? [];
                                                 id="registerConfirmPassword"
                                                 class="form-control auth-input"
                                                 placeholder="Nhập lại mật khẩu"
+                                                minlength="6"
+                                                autocomplete="new-password"
                                                 required
                                             >
                                             <button type="button" class="toggle-password" data-target="registerConfirmPassword">
@@ -117,7 +130,7 @@ $rvm = $rvm ?? [];
                                             </button>
                                         </div>
                                         <?php if (!empty($errors['ConfirmPassword'])): ?>
-                                            <small class="auth-error"><?= htmlspecialchars($errors['ConfirmPassword']) ?></small>
+                                            <small class="auth-error"><?= htmlspecialchars($errors['ConfirmPassword'], ENT_QUOTES, 'UTF-8') ?></small>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -132,7 +145,8 @@ $rvm = $rvm ?? [];
                                                 name="LastName" 
                                                 class="form-control auth-input"
                                                 placeholder="Nguyễn"
-                                                value="<?= htmlspecialchars($rvm['LastName'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($rvm['LastName'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                maxlength="100"
                                             >
                                         </div>
                                     </div>
@@ -146,14 +160,15 @@ $rvm = $rvm ?? [];
                                                 name="FirstName" 
                                                 class="form-control auth-input"
                                                 placeholder="Văn A"
-                                                value="<?= htmlspecialchars($rvm['FirstName'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($rvm['FirstName'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                maxlength="50"
                                             >
                                         </div>
                                     </div>
                                 </div>
 
                                 <?php if (!empty($errors['FullName'])): ?>
-                                    <small class="auth-error d-block mb-3"><?= htmlspecialchars($errors['FullName']) ?></small>
+                                    <small class="auth-error d-block mb-3"><?= htmlspecialchars($errors['FullName'], ENT_QUOTES, 'UTF-8') ?></small>
                                 <?php endif; ?>
 
                                 <div class="row">
@@ -166,12 +181,14 @@ $rvm = $rvm ?? [];
                                                 name="Mobile" 
                                                 class="form-control auth-input"
                                                 placeholder="09xxxxxxxx"
-                                                value="<?= htmlspecialchars($rvm['Mobile'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($rvm['Mobile'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                maxlength="20"
+                                                autocomplete="tel"
                                                 required
                                             >
                                         </div>
                                         <?php if (!empty($errors['Mobile'])): ?>
-                                            <small class="auth-error"><?= htmlspecialchars($errors['Mobile']) ?></small>
+                                            <small class="auth-error"><?= htmlspecialchars($errors['Mobile'], ENT_QUOTES, 'UTF-8') ?></small>
                                         <?php endif; ?>
                                     </div>
 
@@ -184,11 +201,13 @@ $rvm = $rvm ?? [];
                                                 name="Email" 
                                                 class="form-control auth-input"
                                                 placeholder="email@example.com"
-                                                value="<?= htmlspecialchars($rvm['Email'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($rvm['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                maxlength="100"
+                                                autocomplete="email"
                                             >
                                         </div>
                                         <?php if (!empty($errors['Email'])): ?>
-                                            <small class="auth-error"><?= htmlspecialchars($errors['Email']) ?></small>
+                                            <small class="auth-error"><?= htmlspecialchars($errors['Email'], ENT_QUOTES, 'UTF-8') ?></small>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -202,9 +221,12 @@ $rvm = $rvm ?? [];
                                                 type="date" 
                                                 name="DateOfBirth" 
                                                 class="form-control auth-input"
-                                                value="<?= htmlspecialchars($rvm['DateOfBirth'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($rvm['DateOfBirth'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                             >
                                         </div>
+                                        <?php if (!empty($errors['DateOfBirth'])): ?>
+                                            <small class="auth-error"><?= htmlspecialchars($errors['DateOfBirth'], ENT_QUOTES, 'UTF-8') ?></small>
+                                        <?php endif; ?>
                                     </div>
 
                                     <div class="col-md-6 form-group">
@@ -229,9 +251,14 @@ $rvm = $rvm ?? [];
                                             name="Address" 
                                             class="form-control auth-input"
                                             placeholder="Số nhà, tên đường, Phường/Xã..."
-                                            value="<?= htmlspecialchars($rvm['Address'] ?? '') ?>"
+                                            value="<?= htmlspecialchars($rvm['Address'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                            maxlength="255"
+                                            autocomplete="street-address"
                                         >
                                     </div>
+                                    <?php if (!empty($errors['Address'])): ?>
+                                        <small class="auth-error"><?= htmlspecialchars($errors['Address'], ENT_QUOTES, 'UTF-8') ?></small>
+                                    <?php endif; ?>
                                 </div>
 
                                 <button type="submit" id="btnRegister" class="btn-auth-submit">
@@ -277,5 +304,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    const form = document.getElementById("registerForm");
+    const btn = document.getElementById("btnRegister");
+
+    if (form && btn) {
+        form.addEventListener("submit", function () {
+            btn.disabled = true;
+            btn.innerHTML = 'Đang tạo tài khoản...';
+        });
+    }
 });
 </script>

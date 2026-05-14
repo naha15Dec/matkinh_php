@@ -57,26 +57,55 @@ class AdminBrandController
             exit;
         }
 
-        $data = $_POST;
+        $id = (int)($_POST['ThuongHieuId'] ?? 0);
 
-        $id = (int)($data['ThuongHieuId'] ?? 0);
-        $data['MaThuongHieu'] = trim($data['MaThuongHieu'] ?? '');
-        $data['TenThuongHieu'] = trim($data['TenThuongHieu'] ?? '');
-        $data['MoTa'] = trim($data['MoTa'] ?? '');
-        $data['IsActive'] = (int)($data['IsActive'] ?? 1);
-
-        if ($data['TenThuongHieu'] === '') {
-            $_SESSION['error'] = "Tên thương hiệu không được để trống.";
-            header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=adminbrand"));
+        if ($id > 0 && !$this->model->getBrandById($id)) {
+            $_SESSION['error'] = "Không tìm thấy thương hiệu cần cập nhật.";
+            header("Location: index.php?controller=adminbrand");
             exit;
         }
 
-        $finalCode = $this->model->generateCodeIfEmpty($data['MaThuongHieu'], $data['TenThuongHieu']);
+        $data = [];
+        $data['ThuongHieuId'] = $id;
+        $data['MaThuongHieu'] = strtoupper(trim($_POST['MaThuongHieu'] ?? ''));
+        $data['TenThuongHieu'] = trim($_POST['TenThuongHieu'] ?? '');
+        $data['MoTa'] = trim($_POST['MoTa'] ?? '');
+        $data['IsActive'] = !empty($_POST['IsActive']) ? 1 : 0;
+
+        if ($data['TenThuongHieu'] === '') {
+            $_SESSION['error'] = "Tên thương hiệu không được để trống.";
+            $this->redirectBack();
+        }
+
+        if (mb_strlen($data['TenThuongHieu'], 'UTF-8') > 150) {
+            $_SESSION['error'] = "Tên thương hiệu không được vượt quá 150 ký tự.";
+            $this->redirectBack();
+        }
+
+        if (mb_strlen($data['MoTa'], 'UTF-8') > 500) {
+            $_SESSION['error'] = "Mô tả thương hiệu không được vượt quá 500 ký tự.";
+            $this->redirectBack();
+        }
+
+        $finalCode = $this->model->generateUniqueCode(
+            $data['MaThuongHieu'],
+            $data['TenThuongHieu'],
+            $id
+        );
+
+        if (mb_strlen($finalCode, 'UTF-8') > 20) {
+            $_SESSION['error'] = "Mã thương hiệu không được vượt quá 20 ký tự.";
+            $this->redirectBack();
+        }
 
         if ($this->model->checkDuplicateCode($finalCode, $id)) {
             $_SESSION['error'] = "Mã thương hiệu đã tồn tại trong hệ thống.";
-            header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=adminbrand"));
-            exit;
+            $this->redirectBack();
+        }
+
+        if ($this->model->checkDuplicateName($data['TenThuongHieu'], $id)) {
+            $_SESSION['error'] = "Tên thương hiệu đã tồn tại trong hệ thống.";
+            $this->redirectBack();
         }
 
         $data['MaThuongHieu'] = $finalCode;
@@ -86,7 +115,7 @@ class AdminBrandController
                 ? "Cập nhật thương hiệu thành công."
                 : "Thêm thương hiệu thành công.";
         } else {
-            $_SESSION['error'] = "Lưu thương hiệu thất bại.";
+            $_SESSION['error'] = "Thông tin không thay đổi hoặc lưu thương hiệu thất bại.";
         }
 
         header("Location: index.php?controller=adminbrand");
@@ -117,14 +146,65 @@ class AdminBrandController
         }
 
         if ((int)($brand['SoSanPham'] ?? 0) > 0) {
-            $this->model->updateStatus($id, 0);
-            $_SESSION['success'] = "Đã ngừng kích hoạt thương hiệu vì đang có sản phẩm liên kết.";
+            if ((int)($brand['IsActive'] ?? 0) === 0) {
+                $_SESSION['error'] = "Thương hiệu này đã ngừng kích hoạt.";
+            } elseif ($this->model->updateStatus($id, 0)) {
+                $_SESSION['success'] = "Đã ngừng kích hoạt thương hiệu vì đang có sản phẩm liên kết.";
+            } else {
+                $_SESSION['error'] = "Không thể ngừng kích hoạt thương hiệu.";
+            }
         } else {
-            $this->model->delete($id);
-            $_SESSION['success'] = "Xóa thương hiệu thành công.";
+            if ($this->model->delete($id)) {
+                $_SESSION['success'] = "Xóa thương hiệu thành công.";
+            } else {
+                $_SESSION['error'] = "Xóa thương hiệu thất bại.";
+            }
         }
 
         header("Location: index.php?controller=adminbrand");
+        exit;
+    }
+
+    public function toggleStatus()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=adminbrand");
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+
+        if ($id <= 0) {
+            $_SESSION['error'] = "Thương hiệu không hợp lệ.";
+            header("Location: index.php?controller=adminbrand");
+            exit;
+        }
+
+        $brand = $this->model->getBrandById($id);
+
+        if (!$brand) {
+            $_SESSION['error'] = "Không tìm thấy thương hiệu.";
+            header("Location: index.php?controller=adminbrand");
+            exit;
+        }
+
+        $newStatus = !empty($brand['IsActive']) ? 0 : 1;
+
+        if ($this->model->updateStatus($id, $newStatus)) {
+            $_SESSION['success'] = $newStatus === 1
+                ? "Đã kích hoạt thương hiệu."
+                : "Đã ngừng kích hoạt thương hiệu.";
+        } else {
+            $_SESSION['error'] = "Cập nhật trạng thái thương hiệu thất bại.";
+        }
+
+        header("Location: index.php?controller=adminbrand");
+        exit;
+    }
+
+    private function redirectBack()
+    {
+        header("Location: " . ($_SERVER['HTTP_REFERER'] ?? "index.php?controller=adminbrand"));
         exit;
     }
 }

@@ -16,8 +16,16 @@ $orderId = (int)($order['DonHangId'] ?? 0);
 $orderCode = $order['MaDonHang'] ?? $orderId;
 $currentStatus = (int)($order['TrangThai'] ?? 0);
 
-$canAssignShipper = $isAdmin || $isStaff;
-$canUpdateStatus = $isAdmin || $isStaff || $isShipper;
+$isFinalStatus = in_array($currentStatus, [
+    OrderStatusConstants::DELIVERED,
+    OrderStatusConstants::CANCELLED
+], true);
+
+$canAssignShipper = ($isAdmin || $isStaff)
+    && !$isFinalStatus
+    && $currentStatus !== OrderStatusConstants::PENDING;
+
+$canUpdateStatus = ($isAdmin || $isStaff || $isShipper) && !$isFinalStatus;
 
 function orderStatusThemeClass($status)
 {
@@ -33,6 +41,84 @@ function orderStatusThemeClass($status)
         default => 'muted',
     };
 }
+
+function orderDetailImageSrc($image, $baseUrl)
+{
+    $image = trim((string)$image);
+
+    if ($image === '') {
+        return $baseUrl . '/images/no-image.png';
+    }
+
+    if (preg_match('/^https?:\/\//i', $image)) {
+        return $image;
+    }
+
+    return $baseUrl . '/images/' . ltrim($image, '/');
+}
+
+function orderNextStatusOptions($currentStatus, $roleCode)
+{
+    $currentStatus = (int)$currentStatus;
+    $roleCode = strtoupper(trim($roleCode));
+
+    $options = [];
+
+    if ($roleCode === 'ADMIN' || $roleCode === 'STAFF') {
+        $map = [
+            OrderStatusConstants::PENDING => [
+                OrderStatusConstants::CONFIRMED,
+                OrderStatusConstants::CANCELLED
+            ],
+            OrderStatusConstants::CONFIRMED => [
+                OrderStatusConstants::PREPARING,
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+                OrderStatusConstants::CANCELLED
+            ],
+            OrderStatusConstants::PREPARING => [
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+                OrderStatusConstants::CANCELLED
+            ],
+            OrderStatusConstants::ASSIGNED_TO_SHIPPER => [
+                OrderStatusConstants::DELIVERING,
+                OrderStatusConstants::DELIVERY_FAILED,
+                OrderStatusConstants::CANCELLED
+            ],
+            OrderStatusConstants::DELIVERING => [
+                OrderStatusConstants::DELIVERED,
+                OrderStatusConstants::DELIVERY_FAILED
+            ],
+            OrderStatusConstants::DELIVERY_FAILED => [
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+                OrderStatusConstants::CANCELLED
+            ],
+        ];
+
+        $options = $map[$currentStatus] ?? [];
+    }
+
+    if ($roleCode === 'SHIPPER') {
+        $map = [
+            OrderStatusConstants::ASSIGNED_TO_SHIPPER => [
+                OrderStatusConstants::DELIVERING,
+                OrderStatusConstants::DELIVERY_FAILED
+            ],
+            OrderStatusConstants::DELIVERING => [
+                OrderStatusConstants::DELIVERED,
+                OrderStatusConstants::DELIVERY_FAILED
+            ],
+            OrderStatusConstants::DELIVERY_FAILED => [
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER
+            ],
+        ];
+
+        $options = $map[$currentStatus] ?? [];
+    }
+
+    return $options;
+}
+
+$nextStatusOptions = orderNextStatusOptions($currentStatus, $roleCode);
 ?>
 
 <div class="admin-page-header mb-4">
@@ -97,7 +183,7 @@ function orderStatusThemeClass($status)
 
                         <span class="order-status <?= orderStatusThemeClass($currentStatus) ?>">
                             <i class="fas fa-circle"></i>
-                            <?= OrderStatusConstants::getName($currentStatus) ?>
+                            <?= htmlspecialchars(OrderStatusConstants::getName($currentStatus), ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
 
@@ -127,7 +213,7 @@ function orderStatusThemeClass($status)
                                 <div class="order-detail-box">
                                     <span>Địa chỉ nhận hàng</span>
                                     <strong>
-                                        <?= htmlspecialchars($order['DiaChiNguoiNhan'] ?? $order['DiaChiNhanHang'] ?? $order['DiaChi'] ?? 'Chưa có địa chỉ', ENT_QUOTES, 'UTF-8') ?>
+                                        <?= htmlspecialchars($order['DiaChiNhanHang'] ?? 'Chưa có địa chỉ', ENT_QUOTES, 'UTF-8') ?>
                                     </strong>
                                 </div>
                             </div>
@@ -143,7 +229,7 @@ function orderStatusThemeClass($status)
                             <div class="col-md-6">
                                 <div class="order-detail-box">
                                     <span>Shipper</span>
-                                    <strong><?= htmlspecialchars($order['ShipperName'] ?? $order['TenShipper'] ?? 'Chưa gán', ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <strong><?= htmlspecialchars($order['ShipperName'] ?? 'Chưa gán', ENT_QUOTES, 'UTF-8') ?></strong>
                                     <small>Nhân viên giao hàng phụ trách</small>
                                 </div>
                             </div>
@@ -175,11 +261,17 @@ function orderStatusThemeClass($status)
                                     <?php if (!empty($items)): ?>
                                         <?php foreach ($items as $item): ?>
                                             <?php
-                                            $image = $item['AnhDaiDien'] ?? $item['HinhAnh'] ?? '';
-                                            $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/no-image.png';
-                                            $price = (float)($item['DonGia'] ?? $item['GiaBan'] ?? 0);
+                                            $image = $item['HinhAnhChinh'] ?? '';
+                                            $imageSrc = orderDetailImageSrc($image, $baseUrl);
+
+                                            $productName = $item['TenSanPhamSnapshot']
+                                                ?? $item['TenSanPhamHienTai']
+                                                ?? 'Sản phẩm';
+
+                                            $price = (float)($item['DonGiaSnapshot'] ?? 0);
+                                            $discount = (float)($item['GiamGiaSnapshot'] ?? 0);
                                             $qty = (int)($item['SoLuong'] ?? 0);
-                                            $lineTotal = (float)($item['ThanhTien'] ?? ($price * $qty));
+                                            $lineTotal = (float)($item['ThanhTien'] ?? (($price - $discount) * $qty));
                                             ?>
 
                                             <tr>
@@ -187,13 +279,13 @@ function orderStatusThemeClass($status)
                                                     <div class="order-product-cell">
                                                         <div class="order-product-thumb">
                                                             <img src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
-                                                                 alt="product"
+                                                                 alt="<?= htmlspecialchars($productName, ENT_QUOTES, 'UTF-8') ?>"
                                                                  onerror="this.src='<?= $baseUrl ?>/images/no-image.png'">
                                                         </div>
 
                                                         <div>
                                                             <div class="order-product-name">
-                                                                <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
+                                                                <?= htmlspecialchars($productName, ENT_QUOTES, 'UTF-8') ?>
                                                             </div>
                                                             <div class="order-product-meta">
                                                                 <?= htmlspecialchars($item['MaSanPham'] ?? '', ENT_QUOTES, 'UTF-8') ?>
@@ -204,6 +296,12 @@ function orderStatusThemeClass($status)
 
                                                 <td class="text-right">
                                                     <?= number_format($price, 0, ',', '.') ?> đ
+
+                                                    <?php if ($discount > 0): ?>
+                                                        <div class="order-subtext">
+                                                            Giảm: <?= number_format($discount, 0, ',', '.') ?> đ
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </td>
 
                                                 <td class="text-center">
@@ -233,10 +331,27 @@ function orderStatusThemeClass($status)
                         </div>
 
                         <div class="order-total-panel">
-                            <span>Tổng thanh toán</span>
-                            <strong>
-                                <?= number_format((float)($order['TongTien'] ?? $order['ThanhTien'] ?? 0), 0, ',', '.') ?> đ
-                            </strong>
+                            <div>
+                                <span>Tạm tính</span>
+                                <strong><?= number_format((float)($order['TongTienHang'] ?? 0), 0, ',', '.') ?> đ</strong>
+                            </div>
+
+                            <div>
+                                <span>Phí vận chuyển</span>
+                                <strong><?= number_format((float)($order['PhiVanChuyen'] ?? 0), 0, ',', '.') ?> đ</strong>
+                            </div>
+
+                            <div>
+                                <span>Giảm giá</span>
+                                <strong>-<?= number_format((float)($order['GiamGia'] ?? 0), 0, ',', '.') ?> đ</strong>
+                            </div>
+
+                            <div class="order-total-final">
+                                <span>Tổng thanh toán</span>
+                                <strong>
+                                    <?= number_format((float)($order['TongThanhToan'] ?? 0), 0, ',', '.') ?> đ
+                                </strong>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -258,15 +373,19 @@ function orderStatusThemeClass($status)
 
                                         <div class="order-timeline-content">
                                             <div class="order-timeline-title">
-                                                <?= OrderStatusConstants::getName($history['TrangThaiCu'] ?? 0) ?>
+                                                <?= htmlspecialchars(OrderStatusConstants::getName($history['TrangThaiCu'] ?? 0), ENT_QUOTES, 'UTF-8') ?>
                                                 <i class="fas fa-arrow-right mx-1"></i>
-                                                <?= OrderStatusConstants::getName($history['TrangThaiMoi'] ?? 0) ?>
+                                                <?= htmlspecialchars(OrderStatusConstants::getName($history['TrangThaiMoi'] ?? 0), ENT_QUOTES, 'UTF-8') ?>
                                             </div>
 
                                             <div class="order-timeline-meta">
                                                 <?= !empty($history['CreatedAt']) ? date('d/m/Y H:i', strtotime($history['CreatedAt'])) : '' ?>
                                                 <?php if (!empty($history['NguoiCapNhat'])): ?>
                                                     • <?= htmlspecialchars($history['NguoiCapNhat'], ENT_QUOTES, 'UTF-8') ?>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($history['VaiTroNguoiCapNhat'])): ?>
+                                                    • <?= htmlspecialchars($history['VaiTroNguoiCapNhat'], ENT_QUOTES, 'UTF-8') ?>
                                                 <?php endif; ?>
                                             </div>
 
@@ -305,35 +424,57 @@ function orderStatusThemeClass($status)
                         </div>
 
                         <div class="premium-panel-body">
-                            <form action="<?= $baseUrl ?>/index.php?controller=admindonhang&action=updateStatus" method="POST">
-                                <input type="hidden" name="DonHangId" value="<?= $orderId ?>">
+                            <?php if (!empty($nextStatusOptions)): ?>
+                                <form action="<?= $baseUrl ?>/index.php?controller=admindonhang&action=updateStatus"
+                                      method="POST">
+                                    <input type="hidden" name="DonHangId" value="<?= $orderId ?>">
 
-                                <div class="form-group">
-                                    <label class="order-form-label">Trạng thái mới</label>
-                                    <select name="TrangThaiMoi" class="form-control order-input" required>
-                                        <option value="">-- Chọn trạng thái --</option>
-                                        <option value="<?= OrderStatusConstants::CONFIRMED ?>">Đã xác nhận</option>
-                                        <option value="<?= OrderStatusConstants::PREPARING ?>">Đang chuẩn bị</option>
-                                        <option value="<?= OrderStatusConstants::DELIVERING ?>">Đang giao</option>
-                                        <option value="<?= OrderStatusConstants::DELIVERED ?>">Giao thành công</option>
-                                        <option value="<?= OrderStatusConstants::DELIVERY_FAILED ?>">Giao thất bại</option>
-                                        <option value="<?= OrderStatusConstants::CANCELLED ?>">Đã hủy</option>
-                                    </select>
+                                    <div class="form-group">
+                                        <label class="order-form-label">Trạng thái hiện tại</label>
+                                        <div class="order-current-status">
+                                            <?= htmlspecialchars(OrderStatusConstants::getName($currentStatus), ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="order-form-label">Trạng thái mới</label>
+                                        <select name="TrangThaiMoi" class="form-control order-input" required>
+                                            <option value="">-- Chọn trạng thái --</option>
+
+                                            <?php foreach ($nextStatusOptions as $nextStatus): ?>
+                                                <option value="<?= (int)$nextStatus ?>">
+                                                    <?= htmlspecialchars(OrderStatusConstants::getName($nextStatus), ENT_QUOTES, 'UTF-8') ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="order-form-label">Ghi chú</label>
+                                        <textarea name="GhiChu"
+                                                  class="form-control order-input order-textarea"
+                                                  rows="4"
+                                                  placeholder="Nhập ghi chú xử lý đơn hàng..."></textarea>
+                                    </div>
+
+                                    <button type="submit"
+                                            class="btn order-submit-btn btn-block"
+                                            data-confirm
+                                            data-confirm-title="Cập nhật trạng thái đơn hàng"
+                                            data-confirm-ok="Cập nhật">
+                                        <i class="fas fa-save mr-1"></i>
+                                        Cập nhật trạng thái
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <div class="order-empty-state">
+                                    <div class="order-empty-icon">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <h6>Không có thao tác phù hợp</h6>
+                                    <p>Trạng thái hiện tại không còn bước xử lý tiếp theo cho vai trò của bạn.</p>
                                 </div>
-
-                                <div class="form-group">
-                                    <label class="order-form-label">Ghi chú</label>
-                                    <textarea name="GhiChu"
-                                              class="form-control order-input order-textarea"
-                                              rows="4"
-                                              placeholder="Nhập ghi chú xử lý đơn hàng..."></textarea>
-                                </div>
-
-                                <button type="submit" class="btn order-submit-btn btn-block">
-                                    <i class="fas fa-save mr-1"></i>
-                                    Cập nhật trạng thái
-                                </button>
-                            </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -348,7 +489,8 @@ function orderStatusThemeClass($status)
                         </div>
 
                         <div class="premium-panel-body">
-                            <form action="<?= $baseUrl ?>/index.php?controller=admindonhang&action=assignShipper" method="POST">
+                            <form action="<?= $baseUrl ?>/index.php?controller=admindonhang&action=assignShipper"
+                                  method="POST">
                                 <input type="hidden" name="DonHangId" value="<?= $orderId ?>">
 
                                 <div class="form-group">
@@ -357,14 +499,25 @@ function orderStatusThemeClass($status)
                                         <option value="">-- Chọn shipper --</option>
 
                                         <?php foreach ($shippers as $shipper): ?>
-                                            <option value="<?= (int)$shipper['TaiKhoanId'] ?>">
-                                                <?= htmlspecialchars($shipper['HoTen'] ?? $shipper['TenDangNhap'] ?? 'Shipper', ENT_QUOTES, 'UTF-8') ?>
-                                            </option>
+                                            <?php
+                                            $shipperId = (int)($shipper['TaiKhoanId'] ?? 0);
+                                            $shipperName = $shipper['HoTen'] ?? $shipper['TenDangNhap'] ?? 'Shipper';
+                                            ?>
+
+                                            <?php if ($shipperId > 0): ?>
+                                                <option value="<?= $shipperId ?>" <?= $shipperId === (int)($order['ShipperId'] ?? 0) ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($shipperName, ENT_QUOTES, 'UTF-8') ?>
+                                                </option>
+                                            <?php endif; ?>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
 
-                                <button type="submit" class="btn order-submit-btn btn-block">
+                                <button type="submit"
+                                        class="btn order-submit-btn btn-block"
+                                        data-confirm
+                                        data-confirm-title="Gán shipper cho đơn hàng"
+                                        data-confirm-ok="Gán shipper">
                                     <i class="fas fa-truck mr-1"></i>
                                     Gán shipper
                                 </button>

@@ -5,6 +5,11 @@ $baseUrl = $baseUrl ?? '';
 $keyword = $_GET['keyword'] ?? '';
 $status = $_GET['status'] ?? 'published';
 
+$allowedStatus = ['published', 'draft', 'hidden', 'all'];
+if (!in_array($status, $allowedStatus, true)) {
+    $status = 'published';
+}
+
 function blogStatusBadge($status)
 {
     $status = (int)$status;
@@ -14,6 +19,32 @@ function blogStatusBadge($status)
         0 => ['class' => 'processing', 'text' => 'Nháp'],
         default => ['class' => 'cancel', 'text' => 'Ẩn'],
     };
+}
+
+function blogImageSrc($image, $baseUrl)
+{
+    $image = trim((string)$image);
+
+    if ($image === '') {
+        return $baseUrl . '/images/no-image.png';
+    }
+
+    if (preg_match('/^https?:\/\//i', $image)) {
+        return $image;
+    }
+
+    return $baseUrl . '/images/' . ltrim($image, '/');
+}
+
+function blogTabUrl($baseUrl, $status, $keyword = '')
+{
+    $url = $baseUrl . '/index.php?controller=adminblog&status=' . urlencode($status);
+
+    if (trim($keyword) !== '') {
+        $url .= '&keyword=' . urlencode($keyword);
+    }
+
+    return $url;
 }
 ?>
 
@@ -84,17 +115,22 @@ function blogStatusBadge($status)
 
             <div class="blog-toolbar">
                 <div class="blog-status-tabs">
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminblog&status=published"
+                    <a href="<?= blogTabUrl($baseUrl, 'all', $keyword) ?>"
+                       class="blog-tab <?= $status === 'all' ? 'active' : '' ?>">
+                        Tất cả
+                    </a>
+
+                    <a href="<?= blogTabUrl($baseUrl, 'published', $keyword) ?>"
                        class="blog-tab <?= $status === 'published' ? 'active' : '' ?>">
                         Đã đăng
                     </a>
 
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminblog&status=draft"
+                    <a href="<?= blogTabUrl($baseUrl, 'draft', $keyword) ?>"
                        class="blog-tab <?= $status === 'draft' ? 'active warning' : '' ?>">
                         Nháp
                     </a>
 
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminblog&status=hidden"
+                    <a href="<?= blogTabUrl($baseUrl, 'hidden', $keyword) ?>"
                        class="blog-tab <?= $status === 'hidden' ? 'active danger' : '' ?>">
                         Đã ẩn
                     </a>
@@ -110,7 +146,7 @@ function blogStatusBadge($status)
                             type="search"
                             name="keyword"
                             value="<?= htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Tìm theo tiêu đề bài viết..."
+                            placeholder="Tìm theo mã, tiêu đề hoặc tóm tắt..."
                         >
                     </div>
 
@@ -147,12 +183,11 @@ function blogStatusBadge($status)
                                     <?php
                                     $postId = (int)($item['BaiVietId'] ?? 0);
                                     $postCode = $item['MaBaiViet'] ?? $postId;
-                                    $statusInfo = blogStatusBadge($item['TrangThai'] ?? 0);
+                                    $currentPostStatus = (int)($item['TrangThai'] ?? 0);
+                                    $statusInfo = blogStatusBadge($currentPostStatus);
 
                                     $imageName = $item['AnhDaiDien'] ?? '';
-                                    $imageSrc = $imageName
-                                        ? $baseUrl . '/images/' . $imageName
-                                        : $baseUrl . '/images/no-image.png';
+                                    $imageSrc = blogImageSrc($imageName, $baseUrl);
                                     ?>
 
                                     <tr>
@@ -189,6 +224,13 @@ function blogStatusBadge($status)
                                                         );
                                                         ?>
                                                     </div>
+
+                                                    <?php if (!empty($item['NguoiTao']) || !empty($item['TenDangNhapNguoiTao'])): ?>
+                                                        <div class="blog-summary">
+                                                            Người tạo:
+                                                            <?= htmlspecialchars($item['NguoiTao'] ?? $item['TenDangNhapNguoiTao'], ENT_QUOTES, 'UTF-8') ?>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </td>
@@ -208,7 +250,7 @@ function blogStatusBadge($status)
                                         <td>
                                             <span class="blog-status <?= $statusInfo['class'] ?>">
                                                 <i class="fas fa-circle"></i>
-                                                <?= $statusInfo['text'] ?>
+                                                <?= htmlspecialchars($statusInfo['text'], ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         </td>
 
@@ -220,15 +262,72 @@ function blogStatusBadge($status)
                                                     Sửa
                                                 </a>
 
+                                                <?php if ($currentPostStatus !== 1): ?>
+                                                    <form action="<?= $baseUrl ?>/index.php?controller=adminblog&action=updateStatus"
+                                                          method="POST"
+                                                          class="d-inline">
+                                                        <input type="hidden" name="id" value="<?= $postId ?>">
+                                                        <input type="hidden" name="TrangThai" value="1">
+
+                                                        <button type="submit"
+                                                                class="btn blog-btn blog-btn-edit"
+                                                                data-confirm
+                                                                data-confirm-title="Đăng bài viết"
+                                                                data-confirm-ok="Đăng bài">
+                                                            <i class="fas fa-paper-plane mr-1"></i>
+                                                            Đăng
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+
+                                                <?php if ($currentPostStatus !== 2): ?>
+                                                    <form action="<?= $baseUrl ?>/index.php?controller=adminblog&action=updateStatus"
+                                                          method="POST"
+                                                          class="d-inline">
+                                                        <input type="hidden" name="id" value="<?= $postId ?>">
+                                                        <input type="hidden" name="TrangThai" value="2">
+
+                                                        <button type="submit"
+                                                                class="btn blog-btn blog-btn-delete"
+                                                                data-confirm
+                                                                data-confirm-title="Ẩn bài viết"
+                                                                data-confirm-ok="Ẩn bài">
+                                                            <i class="fas fa-eye-slash mr-1"></i>
+                                                            Ẩn
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+
+                                                <?php if ($currentPostStatus !== 0): ?>
+                                                    <form action="<?= $baseUrl ?>/index.php?controller=adminblog&action=updateStatus"
+                                                          method="POST"
+                                                          class="d-inline">
+                                                        <input type="hidden" name="id" value="<?= $postId ?>">
+                                                        <input type="hidden" name="TrangThai" value="0">
+
+                                                        <button type="submit"
+                                                                class="btn blog-btn blog-btn-edit"
+                                                                data-confirm
+                                                                data-confirm-title="Chuyển về nháp"
+                                                                data-confirm-ok="Chuyển nháp">
+                                                            <i class="fas fa-file-alt mr-1"></i>
+                                                            Nháp
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+
                                                 <form
                                                     action="<?= $baseUrl ?>/index.php?controller=adminblog&action=delete"
                                                     method="POST"
                                                     class="d-inline"
-                                                    onsubmit="return confirm('Bạn có chắc muốn xóa bài viết này?')"
                                                 >
                                                     <input type="hidden" name="id" value="<?= $postId ?>">
 
-                                                    <button type="submit" class="btn blog-btn blog-btn-delete">
+                                                    <button type="submit"
+                                                            class="btn blog-btn blog-btn-delete"
+                                                            data-confirm
+                                                            data-confirm-title="Xóa bài viết"
+                                                            data-confirm-ok="Xóa">
                                                         <i class="fas fa-trash-alt mr-1"></i>
                                                         Xóa
                                                     </button>

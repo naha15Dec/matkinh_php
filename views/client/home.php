@@ -9,19 +9,29 @@ if (!function_exists('formatMoney')) {
 
 if (!function_exists('normalizeImg')) {
     function normalizeImg($path) {
-        if (empty($path)) {
-            return "public/images/no-image.png";
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return "/BanMatKinh/public/images/no-image.png";
         }
 
-        if (strpos($path, 'http') === 0) {
+        if (preg_match('/^https?:\/\//i', $path)) {
             return $path;
         }
 
-        if (strpos($path, 'public/') === 0) {
+        if (str_starts_with($path, '/BanMatKinh/')) {
             return $path;
         }
 
-        return "public/images/" . trim($path, '/');
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return '/BanMatKinh/' . ltrim($path, '/');
+        }
+
+        return "/BanMatKinh/public/images/" . ltrim($path, '/');
     }
 }
 
@@ -32,6 +42,10 @@ $listLatestBlog = $listLatestBlog ?? [];
 $storeInfo = $storeInfo ?? [];
 
 $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
+
+$bannerSrc = !empty($storeInfo['Banner'])
+    ? normalizeImg($storeInfo['Banner'])
+    : '/BanMatKinh/public/images/banner/default-hero.png';
 ?>
 
 <div class="home-modern">
@@ -54,7 +68,7 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
 
                         <p class="hero-desc">
                             <?= !empty($storeInfo['MoTaNgan'])
-                                ? htmlspecialchars($storeInfo['MoTaNgan'])
+                                ? htmlspecialchars($storeInfo['MoTaNgan'], ENT_QUOTES, 'UTF-8')
                                 : "Khám phá các thiết kế mắt kính thời trang, thanh lịch hằng ngày tại Karma Eyewear." ?>
                         </p>
 
@@ -87,7 +101,7 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
 
                         <div class="hero-metrics">
                             <div class="hero-metric-item">
-                                <h4><?= $totalFeatured ?></h4>
+                                <h4><?= (int)$totalFeatured ?></h4>
                                 <p>Sản phẩm nổi bật</p>
                             </div>
 
@@ -108,10 +122,9 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                         <div class="position-relative">
                             <div class="hero-visual-card">
                                 <img 
-                                    src="<?= !empty($storeInfo['Banner']) 
-                                        ? normalizeImg($storeInfo['Banner']) 
-                                        : '/BanMatKinh/public/images/banner/default-hero.png' ?>" 
+                                    src="<?= htmlspecialchars($bannerSrc, ENT_QUOTES, 'UTF-8') ?>" 
                                     alt="Karma Eyewear"
+                                    onerror="this.src='/BanMatKinh/public/images/banner/default-hero.png'"
                                 >
                             </div>
 
@@ -180,12 +193,13 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                 <?php if (!empty($listDiscountProduct)): ?>
                     <?php foreach ($listDiscountProduct as $item): ?>
                         <?php
-                            $productId = $item['SanPhamId'] ?? 0;
-                            $giaBan = $item['GiaBan'] ?? 0;
-                            $giaGoc = $item['GiaGoc'] ?? 0;
-                            $discountPercent = ($giaGoc > 0 && $giaGoc > $giaBan)
-                                ? round((($giaGoc - $giaBan) / $giaGoc) * 100)
-                                : 0;
+                        $productId = (int)($item['SanPhamId'] ?? 0);
+                        $giaBan = (float)($item['GiaBan'] ?? 0);
+                        $giaGoc = (float)($item['GiaGoc'] ?? 0);
+                        $discountPercent = ($giaGoc > 0 && $giaGoc > $giaBan)
+                            ? round((($giaGoc - $giaBan) / $giaGoc) * 100)
+                            : 0;
+                        $productImg = normalizeImg($item['HinhAnhChinh'] ?? '');
                         ?>
 
                         <div class="col-lg-3 col-md-6 mb-4">
@@ -198,21 +212,22 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                                     <?php endif; ?>
 
                                     <img 
-                                        src="<?= normalizeImg($item['HinhAnhChinh'] ?? '') ?>" 
-                                        alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>"
+                                        src="<?= htmlspecialchars($productImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                        alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>"
+                                        onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                                     >
                                 </a>
 
                                 <div class="product-body">
                                     <div class="product-meta">
-                                        <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear') ?>
+                                        <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?>
                                     </div>
 
                                     <a 
                                         href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" 
                                         class="product-name"
                                     >
-                                        <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>
+                                        <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
                                     </a>
 
                                     <div class="product-price">
@@ -261,8 +276,9 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                 <?php if (!empty($listNewProduct)): ?>
                     <?php foreach ($listNewProduct as $item): ?>
                         <?php
-                            $productId = $item['SanPhamId'] ?? 0;
-                            $giaBan = $item['GiaBan'] ?? 0;
+                        $productId = (int)($item['SanPhamId'] ?? 0);
+                        $giaBan = (float)($item['GiaBan'] ?? 0);
+                        $productImg = normalizeImg($item['HinhAnhChinh'] ?? '');
                         ?>
 
                         <div class="col-lg-3 col-md-6 mb-4">
@@ -271,21 +287,22 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                                     <span class="product-badge new">New</span>
 
                                     <img 
-                                        src="<?= normalizeImg($item['HinhAnhChinh'] ?? '') ?>" 
-                                        alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>"
+                                        src="<?= htmlspecialchars($productImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                        alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>"
+                                        onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                                     >
                                 </a>
 
                                 <div class="product-body">
                                     <div class="product-meta">
-                                        <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear') ?>
+                                        <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?>
                                     </div>
 
                                     <a 
                                         href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" 
                                         class="product-name"
                                     >
-                                        <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>
+                                        <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
                                     </a>
 
                                     <div class="product-price">
@@ -340,7 +357,7 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                                 <div 
                                     class="countdown-modern" 
                                     id="homeDealCountdown" 
-                                    data-end="<?= $countdownEnd ?>"
+                                    data-end="<?= htmlspecialchars($countdownEnd, ENT_QUOTES, 'UTF-8') ?>"
                                 >
                                     <div class="count-box">
                                         <h3 class="days">00</h3>
@@ -373,8 +390,9 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                             <div class="row">
                                 <?php foreach ($listDealHot as $item): ?>
                                     <?php
-                                        $productId = $item['SanPhamId'] ?? 0;
-                                        $giaBan = $item['GiaBan'] ?? 0;
+                                    $productId = (int)($item['SanPhamId'] ?? 0);
+                                    $giaBan = (float)($item['GiaBan'] ?? 0);
+                                    $productImg = normalizeImg($item['HinhAnhChinh'] ?? '');
                                     ?>
 
                                     <div class="col-md-6 mb-4">
@@ -383,12 +401,13 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                                             class="promo-product-card"
                                         >
                                             <img 
-                                                src="<?= normalizeImg($item['HinhAnhChinh'] ?? '') ?>" 
-                                                alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Deal hot') ?>"
+                                                src="<?= htmlspecialchars($productImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                                alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Deal hot', ENT_QUOTES, 'UTF-8') ?>"
+                                                onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                                             >
 
                                             <div class="promo-product-info">
-                                                <h4><?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?></h4>
+                                                <h4><?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?></h4>
                                                 <div class="price">
                                                     <strong><?= formatMoney($giaBan) ?>đ</strong>
                                                 </div>
@@ -418,16 +437,18 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
                 <div class="row">
                     <?php foreach ($listLatestBlog as $blog): ?>
                         <?php
-                            $blogId = $blog['BaiVietId'] ?? 0;
-                            $blogDate = $blog['NgayDang'] ?? $blog['CreatedAt'] ?? null;
+                        $blogId = (int)($blog['BaiVietId'] ?? 0);
+                        $blogDate = $blog['NgayDang'] ?? $blog['CreatedAt'] ?? null;
+                        $blogImg = normalizeImg($blog['AnhDaiDien'] ?? '');
                         ?>
 
                         <div class="col-lg-4 col-md-6 mb-4">
                             <div class="blog-card-modern h-100">
                                 <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>">
                                     <img 
-                                        src="<?= normalizeImg($blog['AnhDaiDien'] ?? '') ?>" 
-                                        alt="<?= htmlspecialchars($blog['TieuDe'] ?? 'Bài viết') ?>"
+                                        src="<?= htmlspecialchars($blogImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                        alt="<?= htmlspecialchars($blog['TieuDe'] ?? 'Bài viết', ENT_QUOTES, 'UTF-8') ?>"
+                                        onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                                     >
                                 </a>
 
@@ -438,7 +459,7 @@ $totalFeatured = count($listDiscountProduct) + count($listNewProduct);
 
                                     <h4>
                                         <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>">
-                                            <?= htmlspecialchars($blog['TieuDe'] ?? 'Bài viết mới') ?>
+                                            <?= htmlspecialchars($blog['TieuDe'] ?? 'Bài viết mới', ENT_QUOTES, 'UTF-8') ?>
                                         </a>
                                     </h4>
 

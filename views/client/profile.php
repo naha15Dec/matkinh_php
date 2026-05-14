@@ -44,29 +44,45 @@ if (!function_exists('formatMoney')) {
             <?php if (isset($_SESSION['ProfileSuccess'])): ?>
                 <div class="alert alert-success page-alert">
                     <i class="fas fa-check-circle mr-2"></i>
-                    <?= htmlspecialchars($_SESSION['ProfileSuccess']) ?>
+                    <?= htmlspecialchars($_SESSION['ProfileSuccess'], ENT_QUOTES, 'UTF-8') ?>
                     <?php unset($_SESSION['ProfileSuccess']); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['ProfileError'])): ?>
+                <div class="alert alert-danger page-alert">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <?= htmlspecialchars($_SESSION['ProfileError'], ENT_QUOTES, 'UTF-8') ?>
+                    <?php unset($_SESSION['ProfileError']); ?>
                 </div>
             <?php endif; ?>
 
             <?php if (isset($_SESSION['PasswordError'])): ?>
                 <div class="alert alert-danger page-alert">
                     <i class="fas fa-exclamation-circle mr-2"></i>
-                    <?= htmlspecialchars($_SESSION['PasswordError']) ?>
+                    <?= htmlspecialchars($_SESSION['PasswordError'], ENT_QUOTES, 'UTF-8') ?>
                     <?php unset($_SESSION['PasswordError']); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger page-alert">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+                    <?php unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
 
             <div class="profile-hero-card">
                 <div class="profile-avatar">
-                    <?= htmlspecialchars($avatarText) ?>
+                    <?= htmlspecialchars($avatarText, ENT_QUOTES, 'UTF-8') ?>
                 </div>
 
                 <div class="profile-hero-info">
                     <span>Member Account</span>
-                    <h2><?= htmlspecialchars($fullName) ?></h2>
+                    <h2><?= htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8') ?></h2>
                     <p>
-                        <?= htmlspecialchars($account['Email'] ?? 'Chưa cập nhật email') ?>
+                        <?= htmlspecialchars($account['Email'] ?? 'Chưa cập nhật email', ENT_QUOTES, 'UTF-8') ?>
                     </p>
                 </div>
 
@@ -77,7 +93,7 @@ if (!function_exists('formatMoney')) {
                     </div>
 
                     <div>
-                        <strong><?= htmlspecialchars($account['MaVaiTro'] ?? 'USER') ?></strong>
+                        <strong><?= htmlspecialchars($account['MaVaiTro'] ?? 'USER', ENT_QUOTES, 'UTF-8') ?></strong>
                         <span>Vai trò</span>
                     </div>
                 </div>
@@ -102,7 +118,7 @@ if (!function_exists('formatMoney')) {
                                         <input 
                                             type="text" 
                                             name="LastName" 
-                                            value="<?= htmlspecialchars($lastName) ?>"
+                                            value="<?= htmlspecialchars($lastName, ENT_QUOTES, 'UTF-8') ?>"
                                             placeholder="Nguyễn Văn"
                                         >
                                     </div>
@@ -115,7 +131,7 @@ if (!function_exists('formatMoney')) {
                                         <input 
                                             type="text" 
                                             name="FirstName" 
-                                            value="<?= htmlspecialchars($firstName) ?>"
+                                            value="<?= htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') ?>"
                                             placeholder="A"
                                         >
                                     </div>
@@ -128,7 +144,7 @@ if (!function_exists('formatMoney')) {
                                         <input 
                                             type="text" 
                                             name="Mobile" 
-                                            value="<?= htmlspecialchars($account['SoDienThoai'] ?? '') ?>"
+                                            value="<?= htmlspecialchars($account['SoDienThoai'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                             placeholder="09xxxxxxxx"
                                         >
                                     </div>
@@ -153,7 +169,7 @@ if (!function_exists('formatMoney')) {
                                         <input 
                                             type="text" 
                                             name="Address" 
-                                            value="<?= htmlspecialchars($account['DiaChi'] ?? '') ?>"
+                                            value="<?= htmlspecialchars($account['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                             placeholder="Số nhà, đường, phường/xã..."
                                         >
                                     </div>
@@ -195,6 +211,21 @@ if (!function_exists('formatMoney')) {
                                         type="password" 
                                         name="PassWord" 
                                         placeholder="Tối thiểu 6 ký tự"
+                                        minlength="6"
+                                        required
+                                    >
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Xác nhận mật khẩu mới</label>
+                                <div class="profile-input-wrap">
+                                    <i class="fas fa-check-circle"></i>
+                                    <input 
+                                        type="password" 
+                                        name="ConfirmPassWord" 
+                                        placeholder="Nhập lại mật khẩu mới"
+                                        minlength="6"
                                         required
                                     >
                                 </div>
@@ -231,14 +262,14 @@ if (!function_exists('formatMoney')) {
                             <div class="order-list-modern">
                                 <?php foreach ($listOrderUser as $order): ?>
                                     <?php
-                                        $status = (int)($order['TrangThai'] ?? 1);
-                                        $orderCode = $order['MaDonHang'] ?? '';
+                                    $status = (int)($order['TrangThai'] ?? 1);
+                                    $orderCode = $order['MaDonHang'] ?? '';
                                     ?>
 
                                     <div class="order-item-modern">
                                         <div class="order-main-info">
                                             <span>Mã đơn</span>
-                                            <strong>#<?= htmlspecialchars($orderCode) ?></strong>
+                                            <strong>#<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?></strong>
                                             <small>
                                                 <?= !empty($order['NgayDat']) ? date('d/m/Y H:i', strtotime($order['NgayDat'])) : '' ?>
                                             </small>
@@ -251,16 +282,33 @@ if (!function_exists('formatMoney')) {
 
                                         <div class="order-status-wrap">
                                             <span class="order-status <?= OrderStatusConstants::getBadgeClass($status) ?>">
-                                                <?= OrderStatusConstants::getName($status) ?>
+                                                <?= htmlspecialchars(OrderStatusConstants::getName($status), ENT_QUOTES, 'UTF-8') ?>
                                             </span>
                                         </div>
 
-                                        <a 
-                                            href="index.php?controller=profile&action=orderDetail&maDonHang=<?= urlencode($orderCode) ?>" 
-                                            class="btn-order-detail"
-                                        >
-                                            Chi tiết
-                                        </a>
+                                        <div class="order-actions-client">
+                                            <a 
+                                                href="index.php?controller=profile&action=orderDetail&maDonHang=<?= urlencode($orderCode) ?>" 
+                                                class="btn-order-detail"
+                                            >
+                                                Chi tiết
+                                            </a>
+
+                                            <?php if ($status === OrderStatusConstants::PENDING): ?>
+                                                <form action="index.php?controller=profile&action=cancelOrder"
+                                                      method="POST"
+                                                      class="client-cancel-order-form"
+                                                      onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng này không?');">
+                                                    <input type="hidden"
+                                                           name="MaDonHang"
+                                                           value="<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?>">
+
+                                                    <button type="submit" class="btn-order-cancel">
+                                                        Hủy đơn
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>

@@ -5,11 +5,16 @@ if (!function_exists('formatMoney')) {
     }
 }
 
+$order = $order ?? [];
+
 $orderCode = $order['MaDonHang'] ?? ('KM' . time());
+$status = (int)($order['TrangThai'] ?? OrderStatusConstants::PENDING);
 
-$status = (int)($order['TrangThai'] ?? 1);
+$paymentMethod = $order['PhuongThucThanhToan'] ?? PaymentConstants::COD;
+$paymentStatus = $order['TrangThaiThanhToan'] ?? PaymentConstants::PENDING;
 
-$paymentMethod = $order['PhuongThucThanhToan'] ?? 'COD';
+$isVnpay = strtoupper($paymentMethod) === strtoupper(PaymentConstants::VNPAY);
+$isPaid = strtoupper($paymentStatus) === strtoupper(PaymentConstants::PAID);
 
 $totalPay = (float)($order['TongThanhToan'] ?? 0);
 ?>
@@ -23,7 +28,7 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
                     Karma Eyewear Confirmation
                 </span>
 
-                <h1>Đặt hàng thành công</h1>
+                <h1><?= $isPaid ? 'Thanh toán thành công' : 'Đặt hàng thành công' ?></h1>
 
                 <nav>
                     <a href="index.php">Trang chủ</a>
@@ -37,6 +42,14 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
     <section class="order-success-section">
         <div class="container">
 
+            <?php if (!empty($_SESSION['success'])): ?>
+                <div class="alert alert-success page-alert">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+                </div>
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
+
             <div class="success-shell">
 
                 <div class="success-hero">
@@ -45,7 +58,7 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
                     </div>
 
                     <span class="success-eyebrow">
-                        ORDER SUCCESSFULLY PLACED
+                        <?= $isPaid ? 'PAYMENT SUCCESSFUL' : 'ORDER SUCCESSFULLY PLACED' ?>
                     </span>
 
                     <h2>
@@ -53,13 +66,18 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
                     </h2>
 
                     <p>
-                        Đơn hàng của bạn đã được ghi nhận thành công. 
-                        Chúng tôi sẽ nhanh chóng xác nhận và chuẩn bị giao hàng.
+                        <?php if ($isVnpay && $isPaid): ?>
+                            Đơn hàng của bạn đã được thanh toán qua VNPAY thành công. Chúng tôi sẽ nhanh chóng xác nhận và chuẩn bị giao hàng.
+                        <?php elseif ($isVnpay): ?>
+                            Đơn hàng của bạn đã được ghi nhận và đang chờ thanh toán. Nếu thanh toán thất bại, hệ thống sẽ tự hủy đơn và hoàn lại tồn kho.
+                        <?php else: ?>
+                            Đơn hàng của bạn đã được ghi nhận thành công. Chúng tôi sẽ nhanh chóng xác nhận và chuẩn bị giao hàng.
+                        <?php endif; ?>
                     </p>
 
                     <div class="success-order-code">
                         Mã đơn hàng:
-                        <strong>#<?= htmlspecialchars($orderCode) ?></strong>
+                        <strong>#<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?></strong>
                     </div>
                 </div>
 
@@ -75,7 +93,7 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
 
                             <div class="success-info-item">
                                 <span>Mã đơn hàng</span>
-                                <strong>#<?= htmlspecialchars($orderCode) ?></strong>
+                                <strong>#<?= htmlspecialchars($orderCode, ENT_QUOTES, 'UTF-8') ?></strong>
                             </div>
 
                             <div class="success-info-item">
@@ -86,22 +104,41 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
                             </div>
 
                             <div class="success-info-item">
-                                <span>Trạng thái</span>
+                                <span>Trạng thái đơn</span>
 
                                 <div class="success-status-badge <?= OrderStatusConstants::getBadgeClass($status) ?>">
-                                    <?= OrderStatusConstants::getName($status) ?>
+                                    <?= htmlspecialchars(OrderStatusConstants::getName($status), ENT_QUOTES, 'UTF-8') ?>
                                 </div>
                             </div>
 
                             <div class="success-info-item">
-                                <span>Thanh toán</span>
+                                <span>Phương thức thanh toán</span>
 
                                 <strong>
-                                    <?= $paymentMethod === 'VNPAY'
+                                    <?= $isVnpay
                                         ? 'Thanh toán VNPAY'
                                         : 'Thanh toán khi nhận hàng (COD)' ?>
                                 </strong>
                             </div>
+
+                            <div class="success-info-item">
+                                <span>Trạng thái thanh toán</span>
+
+                                <?php if ($isPaid): ?>
+                                    <strong class="text-success">Đã thanh toán</strong>
+                                <?php elseif (strtoupper($paymentStatus) === strtoupper(PaymentConstants::FAILED)): ?>
+                                    <strong class="text-danger">Thanh toán thất bại</strong>
+                                <?php else: ?>
+                                    <strong>Chờ thanh toán</strong>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if (!empty($order['MaGiaoDichThanhToan'])): ?>
+                                <div class="success-info-item">
+                                    <span>Mã giao dịch</span>
+                                    <strong><?= htmlspecialchars($order['MaGiaoDichThanhToan'], ENT_QUOTES, 'UTF-8') ?></strong>
+                                </div>
+                            <?php endif; ?>
 
                             <div class="success-info-item total">
                                 <span>Tổng thanh toán</span>
@@ -125,17 +162,17 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
 
                             <div class="customer-info">
                                 <h4>
-                                    <?= htmlspecialchars($order['HoTenNguoiNhan'] ?? '') ?>
+                                    <?= htmlspecialchars($order['HoTenNguoiNhan'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                                 </h4>
 
                                 <p>
                                     <i class="fas fa-phone-alt"></i>
-                                    <?= htmlspecialchars($order['SoDienThoaiNguoiNhan'] ?? '') ?>
+                                    <?= htmlspecialchars($order['SoDienThoaiNguoiNhan'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                                 </p>
 
                                 <p>
                                     <i class="fas fa-map-marker-alt"></i>
-                                    <?= htmlspecialchars($order['DiaChiNhanHang'] ?? '') ?>
+                                    <?= htmlspecialchars($order['DiaChiNhanHang'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                                 </p>
                             </div>
 
@@ -155,8 +192,8 @@ $totalPay = (float)($order['TongThanhToan'] ?? 0);
                         Tiếp tục mua sắm
                     </a>
 
-                    <a href="index.php?controller=profile" class="btn-success-secondary">
-                        Kiểm tra đơn hàng
+                    <a href="index.php?controller=profile&action=orderDetail&maDonHang=<?= urlencode($orderCode) ?>" class="btn-success-secondary">
+                        Xem chi tiết đơn hàng
                     </a>
                 </div>
 

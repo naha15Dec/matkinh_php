@@ -1,16 +1,22 @@
 <?php
 $user = $user ?? [];
+$baseUrl = $baseUrl ?? '';
 
 $fullName = trim($user['HoTen'] ?? '');
+
 if ($fullName === '') {
     $fullName = $user['TenDangNhap'] ?? 'Tài khoản';
 }
 
-$nameParts = explode(' ', $fullName);
+$nameParts = preg_split('/\s+/', $fullName);
 $firstName = count($nameParts) > 0 ? end($nameParts) : '';
 $lastName = count($nameParts) > 1 ? implode(' ', array_slice($nameParts, 0, -1)) : '';
 
 $avatarText = strtoupper(mb_substr($fullName, 0, 1, 'UTF-8'));
+
+$emailDisplay = !empty($user['Email']) ? $user['Email'] : 'Chưa cập nhật';
+$phoneDisplay = !empty($user['SoDienThoai']) ? $user['SoDienThoai'] : 'Chưa cập nhật';
+$addressDisplay = !empty($user['DiaChi']) ? $user['DiaChi'] : 'Chưa cập nhật';
 ?>
 
 <link rel="stylesheet" href="/BanMatKinh/public/css/admin-profile.css">
@@ -68,17 +74,17 @@ $avatarText = strtoupper(mb_substr($fullName, 0, 1, 'UTF-8'));
             <div class="profile-mini-info">
                 <div>
                     <span>Email</span>
-                    <strong><?= htmlspecialchars($user['Email'] ?? 'Chưa cập nhật', ENT_QUOTES, 'UTF-8') ?></strong>
+                    <strong><?= htmlspecialchars($emailDisplay, ENT_QUOTES, 'UTF-8') ?></strong>
                 </div>
 
                 <div>
                     <span>Số điện thoại</span>
-                    <strong><?= htmlspecialchars($user['SoDienThoai'] ?? 'Chưa cập nhật', ENT_QUOTES, 'UTF-8') ?></strong>
+                    <strong><?= htmlspecialchars($phoneDisplay, ENT_QUOTES, 'UTF-8') ?></strong>
                 </div>
 
                 <div>
                     <span>Địa chỉ</span>
-                    <strong><?= htmlspecialchars($user['DiaChi'] ?? 'Chưa cập nhật', ENT_QUOTES, 'UTF-8') ?></strong>
+                    <strong><?= htmlspecialchars($addressDisplay, ENT_QUOTES, 'UTF-8') ?></strong>
                 </div>
             </div>
         </aside>
@@ -94,33 +100,48 @@ $avatarText = strtoupper(mb_substr($fullName, 0, 1, 'UTF-8'));
                     <i class="fas fa-id-card"></i>
                 </div>
 
-                <form method="post" action="index.php?controller=adminprofile&action=update" class="profile-form">
+                <form method="post"
+                      action="<?= $baseUrl ?>/index.php?controller=adminprofile&action=update"
+                      class="profile-form">
 
                     <div class="form-row-2">
                         <div class="form-group">
                             <label>Họ</label>
-                            <input type="text" name="LastName"
-                                   value="<?= htmlspecialchars($lastName, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="text"
+                                   name="LastName"
+                                   value="<?= htmlspecialchars($lastName, ENT_QUOTES, 'UTF-8') ?>"
+                                   maxlength="100"
+                                   placeholder="Nguyễn Văn">
                         </div>
 
                         <div class="form-group">
                             <label>Tên</label>
-                            <input type="text" name="FirstName"
-                                   value="<?= htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="text"
+                                   name="FirstName"
+                                   value="<?= htmlspecialchars($firstName, ENT_QUOTES, 'UTF-8') ?>"
+                                   maxlength="50"
+                                   placeholder="A"
+                                   required>
                         </div>
                     </div>
 
                     <div class="form-row-2">
                         <div class="form-group">
                             <label>Email</label>
-                            <input type="email" name="Email"
-                                   value="<?= htmlspecialchars($user['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="email"
+                                   name="Email"
+                                   value="<?= htmlspecialchars($user['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                   maxlength="100"
+                                   placeholder="email@example.com">
                         </div>
 
                         <div class="form-group">
                             <label>Số điện thoại</label>
-                            <input type="text" name="Mobile"
-                                   value="<?= htmlspecialchars($user['SoDienThoai'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="text"
+                                   name="Mobile"
+                                   value="<?= htmlspecialchars($user['SoDienThoai'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                   maxlength="20"
+                                   placeholder="09xxxxxxxx">
                         </div>
                     </div>
 
@@ -129,25 +150,37 @@ $avatarText = strtoupper(mb_substr($fullName, 0, 1, 'UTF-8'));
                             <label>Giới tính</label>
                             <select name="Sex">
                                 <option value="">-- Chọn giới tính --</option>
-                                <option value="1" <?= (($user['GioiTinh'] ?? '') == 1) ? 'selected' : '' ?>>Nam</option>
-                                <option value="0" <?= (($user['GioiTinh'] ?? '') === 0 || ($user['GioiTinh'] ?? '') === '0') ? 'selected' : '' ?>>Nữ</option>
+                                <option value="1" <?= (($user['GioiTinh'] ?? null) == 1) ? 'selected' : '' ?>>
+                                    Nam
+                                </option>
+                                <option value="0" <?= (($user['GioiTinh'] ?? null) === 0 || ($user['GioiTinh'] ?? null) === '0') ? 'selected' : '' ?>>
+                                    Nữ
+                                </option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label>Ngày sinh</label>
-                            <input type="date" name="NgaySinh"
+                            <input type="date"
+                                   name="NgaySinh"
                                    value="<?= htmlspecialchars($user['NgaySinh'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label>Địa chỉ</label>
-                        <textarea name="Address" rows="3"><?= htmlspecialchars($user['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                        <textarea name="Address"
+                                  rows="3"
+                                  maxlength="255"
+                                  placeholder="Nhập địa chỉ liên hệ..."><?= htmlspecialchars($user['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-premium">
+                        <button type="submit"
+                                class="btn-premium"
+                                data-confirm
+                                data-confirm-title="Cập nhật thông tin cá nhân"
+                                data-confirm-ok="Lưu thay đổi">
                             <i class="fas fa-save"></i>
                             Lưu thay đổi
                         </button>
@@ -165,27 +198,44 @@ $avatarText = strtoupper(mb_substr($fullName, 0, 1, 'UTF-8'));
                     <i class="fas fa-lock"></i>
                 </div>
 
-                <form method="post" action="index.php?controller=adminprofile&action=changePassword" class="profile-form">
+                <form method="post"
+                      action="<?= $baseUrl ?>/index.php?controller=adminprofile&action=changePassword"
+                      class="profile-form">
 
                     <div class="form-group">
                         <label>Mật khẩu hiện tại</label>
-                        <input type="password" name="CurrentPassword" required>
+                        <input type="password"
+                               name="CurrentPassword"
+                               autocomplete="current-password"
+                               required>
                     </div>
 
                     <div class="form-row-2">
                         <div class="form-group">
                             <label>Mật khẩu mới</label>
-                            <input type="password" name="NewPassword" required>
+                            <input type="password"
+                                   name="NewPassword"
+                                   minlength="6"
+                                   autocomplete="new-password"
+                                   required>
                         </div>
 
                         <div class="form-group">
                             <label>Nhập lại mật khẩu mới</label>
-                            <input type="password" name="ConfirmPassword" required>
+                            <input type="password"
+                                   name="ConfirmPassword"
+                                   minlength="6"
+                                   autocomplete="new-password"
+                                   required>
                         </div>
                     </div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-outline-premium">
+                        <button type="submit"
+                                class="btn-outline-premium"
+                                data-confirm
+                                data-confirm-title="Đổi mật khẩu"
+                                data-confirm-ok="Cập nhật mật khẩu">
                             <i class="fas fa-key"></i>
                             Cập nhật mật khẩu
                         </button>

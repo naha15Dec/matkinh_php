@@ -12,8 +12,12 @@ class AdminDonHangController
         $this->pdo = $pdo;
         $this->model = new AdminDonHangModel($pdo);
 
-        if (!isset($_SESSION['LoginInformation'])) {
-            header("Location: index.php?controller=taikhoan&action=login");
+        $sessionAccount = $_SESSION['LoginInformation'] ?? null;
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
+        if (!$sessionAccount || !in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER'], true)) {
+            $_SESSION['error'] = "Bạn không có quyền truy cập module đơn hàng.";
+            header("Location: index.php?controller=dashboard");
             exit;
         }
     }
@@ -24,8 +28,12 @@ class AdminDonHangController
 
         $keyword = trim($_GET['keyword'] ?? '');
         $status = $_GET['status'] ?? null;
-        $currentUser = $_SESSION['LoginInformation'];
 
+        if ($status !== null && $status !== '' && !is_numeric($status)) {
+            $status = null;
+        }
+
+        $currentUser = $_SESSION['LoginInformation'];
         $orders = $this->model->getOrders($currentUser, $keyword, $status);
 
         $sessionAccount = $_SESSION['LoginInformation'];
@@ -54,6 +62,9 @@ class AdminDonHangController
             exit;
         }
 
+        $sessionAccount = $_SESSION['LoginInformation'];
+        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
+
         $order = $this->model->getOrderById($id);
 
         if (!$order) {
@@ -62,12 +73,15 @@ class AdminDonHangController
             exit;
         }
 
+        if (!$this->canViewOrder($order, $sessionAccount, $roleCode)) {
+            $_SESSION['error'] = "Bạn không có quyền xem đơn hàng này.";
+            header("Location: index.php?controller=admindonhang");
+            exit;
+        }
+
         $items = $this->model->getOrderItems($id);
         $histories = $this->model->getOrderHistory($id);
         $shippers = $this->model->getActiveShippers();
-
-        $sessionAccount = $_SESSION['LoginInformation'];
-        $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
 
         $displayName = $sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Tài khoản';
         $isAdmin = $roleCode === 'ADMIN';
@@ -97,8 +111,15 @@ class AdminDonHangController
             exit;
         }
 
+        if (!$this->isKnownOrderStatus($newStatus)) {
+            $_SESSION['error'] = "Trạng thái đơn hàng không hợp lệ.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
         $currentUser = $_SESSION['LoginInformation'];
         $currentUserId = (int)($currentUser['TaiKhoanId'] ?? 0);
+        $roleCode = strtoupper(trim($currentUser['MaVaiTro'] ?? ''));
 
         $order = $this->model->getOrderById($id);
 
@@ -108,14 +129,48 @@ class AdminDonHangController
             exit;
         }
 
-        $oldStatus = (int)($order['TrangThai'] ?? 0);
-        $paymentMethod = strtoupper(trim($order['PhuongThucThanhToan'] ?? ''));
+        if (!$this->canViewOrder($order, $currentUser, $roleCode)) {
+            $_SESSION['error'] = "Bạn không có quyền thao tác đơn hàng này.";
+            header("Location: index.php?controller=admindonhang");
+            exit;
+        }
 
+        $oldStatus = (int)($order['TrangThai'] ?? 0);
+
+        if ($oldStatus === $newStatus) {
+            $_SESSION['error'] = "Đơn hàng đã ở trạng thái này, không có thay đổi mới.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
+        if ($this->isFinalStatus($oldStatus)) {
+            $_SESSION['error'] = "Đơn hàng đã kết thúc, không thể tiếp tục cập nhật trạng thái.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
+        if (!$this->canUpdateStatusByRole($roleCode, $order, $newStatus, $currentUserId)) {
+            $_SESSION['error'] = "Bạn không có quyền cập nhật trạng thái này.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
+        if (!$this->isValidStatusTransition($oldStatus, $newStatus)) {
+            $_SESSION['error'] = "Luồng trạng thái đơn hàng không hợp lệ.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
+        $paymentMethod = strtoupper(trim($order['PhuongThucThanhToan'] ?? ''));
         $updateData = [];
 
-        if ($newStatus === OrderStatusConstants::CONFIRMED) {
+        if ($newStatus === OrderStatusConstants::CONFIRMED && empty($order['ConfirmedById'])) {
             $updateData['ConfirmedById'] = $currentUserId;
             $updateData['NgayXacNhan'] = true;
+        }
+
+        if ($newStatus === OrderStatusConstants::DELIVERING) {
+            $updateData['NgayGiao'] = true;
         }
 
         if ($newStatus === OrderStatusConstants::DELIVERED) {
@@ -123,7 +178,12 @@ class AdminDonHangController
 
             if ($paymentMethod === PaymentConstants::COD) {
                 $updateData['TrangThaiThanhToan'] = PaymentConstants::PAID;
+                $updateData['NgayThanhToan'] = true;
             }
+        }
+
+        if ($newStatus === OrderStatusConstants::CANCELLED) {
+            $updateData['NgayHuy'] = true;
         }
 
         if ($this->model->updateStatus($id, $newStatus, $updateData)) {
@@ -131,13 +191,13 @@ class AdminDonHangController
                 $id,
                 $oldStatus,
                 $newStatus,
-                $note,
+                $note !== '' ? $note : 'Cập nhật trạng thái đơn hàng.',
                 $currentUserId
             );
 
             $_SESSION['success'] = "Cập nhật trạng thái đơn hàng thành công.";
         } else {
-            $_SESSION['error'] = "Cập nhật trạng thái đơn hàng thất bại.";
+            $_SESSION['error'] = "Cập nhật trạng thái đơn hàng thất bại hoặc dữ liệu không thay đổi.";
         }
 
         header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
@@ -168,6 +228,13 @@ class AdminDonHangController
 
         $currentUser = $_SESSION['LoginInformation'];
         $currentUserId = (int)($currentUser['TaiKhoanId'] ?? 0);
+        $roleCode = strtoupper(trim($currentUser['MaVaiTro'] ?? ''));
+
+        if (!in_array($roleCode, ['ADMIN', 'STAFF'], true)) {
+            $_SESSION['error'] = "Chỉ quản trị viên hoặc nhân viên mới được gán shipper.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
 
         $order = $this->model->getOrderById($id);
 
@@ -178,7 +245,32 @@ class AdminDonHangController
         }
 
         $oldStatus = (int)($order['TrangThai'] ?? 0);
+
+        if ($this->isFinalStatus($oldStatus)) {
+            $_SESSION['error'] = "Đơn hàng đã kết thúc, không thể gán shipper.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
+        if ($oldStatus === OrderStatusConstants::PENDING) {
+            $_SESSION['error'] = "Vui lòng xác nhận đơn hàng trước khi gán shipper.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
+        if (!$this->model->isActiveShipper($shipperId)) {
+            $_SESSION['error'] = "Nhân viên giao hàng không tồn tại hoặc đã bị khóa.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
+
         $newStatus = OrderStatusConstants::ASSIGNED_TO_SHIPPER;
+
+        if (!$this->isValidStatusTransition($oldStatus, $newStatus) && $oldStatus !== $newStatus) {
+            $_SESSION['error'] = "Không thể gán shipper ở trạng thái hiện tại.";
+            header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
+            exit;
+        }
 
         $updateData = [
             'ShipperId' => $shipperId
@@ -195,10 +287,117 @@ class AdminDonHangController
 
             $_SESSION['success'] = "Gán nhân viên giao hàng thành công.";
         } else {
-            $_SESSION['error'] = "Có lỗi xảy ra khi gán shipper.";
+            $_SESSION['error'] = "Có lỗi xảy ra khi gán shipper hoặc dữ liệu không thay đổi.";
         }
 
         header("Location: index.php?controller=admindonhang&action=detail&id=" . $id);
         exit;
+    }
+
+    private function canViewOrder($order, $currentUser, $roleCode)
+    {
+        if (in_array($roleCode, ['ADMIN', 'STAFF'], true)) {
+            return true;
+        }
+
+        if ($roleCode === 'SHIPPER') {
+            return (int)($order['ShipperId'] ?? 0) === (int)($currentUser['TaiKhoanId'] ?? 0);
+        }
+
+        return false;
+    }
+
+    private function canUpdateStatusByRole($roleCode, $order, $newStatus, $currentUserId)
+    {
+        if (in_array($roleCode, ['ADMIN', 'STAFF'], true)) {
+            return true;
+        }
+
+        if ($roleCode === 'SHIPPER') {
+            if ((int)($order['ShipperId'] ?? 0) !== $currentUserId) {
+                return false;
+            }
+
+            return in_array($newStatus, [
+                OrderStatusConstants::DELIVERING,
+                OrderStatusConstants::DELIVERED,
+                OrderStatusConstants::DELIVERY_FAILED
+            ], true);
+        }
+
+        return false;
+    }
+
+    private function isKnownOrderStatus($status)
+    {
+        return in_array((int)$status, [
+            OrderStatusConstants::PENDING,
+            OrderStatusConstants::CONFIRMED,
+            OrderStatusConstants::PREPARING,
+            OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+            OrderStatusConstants::DELIVERING,
+            OrderStatusConstants::DELIVERED,
+            OrderStatusConstants::DELIVERY_FAILED,
+            OrderStatusConstants::CANCELLED
+        ], true);
+    }
+
+    private function isValidStatusTransition($oldStatus, $newStatus)
+    {
+        $oldStatus = (int)$oldStatus;
+        $newStatus = (int)$newStatus;
+
+        if ($oldStatus === $newStatus) {
+            return false;
+        }
+
+        if ($newStatus === OrderStatusConstants::CANCELLED) {
+            return in_array($oldStatus, [
+                OrderStatusConstants::PENDING,
+                OrderStatusConstants::CONFIRMED,
+                OrderStatusConstants::PREPARING,
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER
+            ], true);
+        }
+
+        $allowed = [
+            OrderStatusConstants::PENDING => [
+                OrderStatusConstants::CONFIRMED
+            ],
+
+            OrderStatusConstants::CONFIRMED => [
+                OrderStatusConstants::PREPARING,
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER
+            ],
+
+            OrderStatusConstants::PREPARING => [
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER
+            ],
+
+            OrderStatusConstants::ASSIGNED_TO_SHIPPER => [
+                OrderStatusConstants::DELIVERING,
+                OrderStatusConstants::DELIVERY_FAILED
+            ],
+
+            OrderStatusConstants::DELIVERING => [
+                OrderStatusConstants::DELIVERED,
+                OrderStatusConstants::DELIVERY_FAILED
+            ],
+
+            OrderStatusConstants::DELIVERY_FAILED => [
+                OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+                OrderStatusConstants::CANCELLED
+            ]
+        ];
+
+        return isset($allowed[$oldStatus]) && in_array($newStatus, $allowed[$oldStatus], true);
+    }
+
+    private function isFinalStatus($status)
+    {
+        return in_array((int)$status, [
+            OrderStatusConstants::DELIVERED,
+            OrderStatusConstants::CANCELLED
+        ], true);
     }
 }

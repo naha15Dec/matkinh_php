@@ -1,21 +1,48 @@
 <?php
+require_once BASE_PATH . '/app/models/TaiKhoanModel.php';
+require_once BASE_PATH . '/app/models/HomeModel.php';
+require_once BASE_PATH . '/app/helpers/HashPassword.php';
 
-class TaiKhoanController {
+class TaiKhoanController
+{
     private $pdo;
     private $accountModel;
     private $homeModel;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $this->pdo = $pdo;
         $this->accountModel = new TaiKhoanModel($pdo);
         $this->homeModel = new HomeModel($pdo);
     }
 
-    public function loginView() {
+    // Alias để route cũ action=login vẫn chạy
+    public function login()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->loginPost();
+            return;
+        }
+
+        $this->loginView();
+    }
+
+    public function loginView()
+    {
         $this->renderLogin();
     }
 
-    public function loginPost() {
+    public function loginPost()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=taikhoan&action=login");
+            exit;
+        }
+
         $username = trim($_POST['Username'] ?? '');
         $password = $_POST['Password'] ?? '';
         $errors = [];
@@ -26,22 +53,36 @@ class TaiKhoanController {
             return;
         }
 
+        if (mb_strlen($username, 'UTF-8') > 100) {
+            $errors['Global'][] = "Thông tin đăng nhập không hợp lệ.";
+            $this->renderLogin($errors);
+            return;
+        }
+
         $account = $this->accountModel->getAccountByUsername($username);
 
-        if (!$account || !HashPassword::verify($password, $account['MatKhauHash'])) {
+        if (!$account || empty($account['MatKhauHash']) || !HashPassword::verify($password, $account['MatKhauHash'])) {
             $errors['Global'][] = "Sai tài khoản hoặc mật khẩu.";
             $this->renderLogin($errors);
             return;
         }
 
-        $this->accountModel->updateLastLogin($account['TaiKhoanId']);
+        if (empty($account['IsActive'])) {
+            $errors['Global'][] = "Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.";
+            $this->renderLogin($errors);
+            return;
+        }
 
-        $_SESSION['LoginInformation'] = $account;
-        $_SESSION['success'] = "Chào mừng " . htmlspecialchars($account['HoTen'] ?? $account['TenDangNhap']) . " đã quay trở lại!";
+        $this->accountModel->updateLastLogin((int)$account['TaiKhoanId']);
+
+        $freshAccount = $this->accountModel->getAccountById((int)$account['TaiKhoanId']);
+        $_SESSION['LoginInformation'] = $freshAccount ?: $account;
+
+        $_SESSION['success'] = "Chào mừng " . htmlspecialchars($account['HoTen'] ?? $account['TenDangNhap'], ENT_QUOTES, 'UTF-8') . " đã quay trở lại!";
 
         $maVaiTro = strtoupper(trim($account['MaVaiTro'] ?? ''));
 
-        if (in_array($maVaiTro, ['ADMIN', 'STAFF', 'SHIPPER'])) {
+        if (in_array($maVaiTro, ['ADMIN', 'STAFF', 'SHIPPER'], true)) {
             header("Location: index.php?controller=dashboard");
             exit;
         }
@@ -50,11 +91,29 @@ class TaiKhoanController {
         exit;
     }
 
-    public function registerView() {
+    // Alias để route cũ action=register vẫn chạy
+    public function register()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->registerPost();
+            return;
+        }
+
+        $this->registerView();
+    }
+
+    public function registerView()
+    {
         $this->renderRegister();
     }
 
-    public function registerPost() {
+    public function registerPost()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: index.php?controller=taikhoan&action=register");
+            exit;
+        }
+
         $rvm = [
             'Username'    => trim($_POST['Username'] ?? ''),
             'Password'    => $_POST['Password'] ?? '',
@@ -64,14 +123,18 @@ class TaiKhoanController {
             'Mobile'      => trim($_POST['Mobile'] ?? ''),
             'Email'       => strtolower(trim($_POST['Email'] ?? '')),
             'Sex'         => trim($_POST['Sex'] ?? ''),
-            'DateOfBirth' => $_POST['DateOfBirth'] ?? null,
+            'DateOfBirth' => trim($_POST['DateOfBirth'] ?? ''),
             'Address'     => trim($_POST['Address'] ?? '')
         ];
 
         $errors = [];
 
-        if (strlen($rvm['Username']) < 4) {
+        if (mb_strlen($rvm['Username'], 'UTF-8') < 4) {
             $errors['Username'] = "Tên đăng nhập từ 4 ký tự.";
+        } elseif (mb_strlen($rvm['Username'], 'UTF-8') > 50) {
+            $errors['Username'] = "Tên đăng nhập không được vượt quá 50 ký tự.";
+        } elseif (!preg_match('/^[A-Za-z0-9_.-]+$/', $rvm['Username'])) {
+            $errors['Username'] = "Tên đăng nhập chỉ nên gồm chữ, số, dấu gạch dưới, gạch ngang hoặc dấu chấm.";
         }
 
         if (strlen($rvm['Password']) < 6) {
@@ -84,10 +147,38 @@ class TaiKhoanController {
 
         if ($rvm['Mobile'] === '') {
             $errors['Mobile'] = "Vui lòng nhập số điện thoại.";
+        } elseif (mb_strlen($rvm['Mobile'], 'UTF-8') > 20) {
+            $errors['Mobile'] = "Số điện thoại không được vượt quá 20 ký tự.";
+        }
+
+        if ($rvm['Email'] !== '') {
+            if (!filter_var($rvm['Email'], FILTER_VALIDATE_EMAIL)) {
+                $errors['Email'] = "Email không đúng định dạng.";
+            } elseif (mb_strlen($rvm['Email'], 'UTF-8') > 100) {
+                $errors['Email'] = "Email không được vượt quá 100 ký tự.";
+            }
         }
 
         if ($rvm['FirstName'] === '' && $rvm['LastName'] === '') {
             $errors['FullName'] = "Vui lòng nhập họ tên.";
+        }
+
+        $fullName = trim($rvm['LastName'] . ' ' . $rvm['FirstName']);
+
+        if ($fullName === '') {
+            $fullName = "Khách hàng";
+        }
+
+        if (mb_strlen($fullName, 'UTF-8') > 150) {
+            $errors['FullName'] = "Họ tên không được vượt quá 150 ký tự.";
+        }
+
+        if (mb_strlen($rvm['Address'], 'UTF-8') > 255) {
+            $errors['Address'] = "Địa chỉ không được vượt quá 255 ký tự.";
+        }
+
+        if ($rvm['DateOfBirth'] !== '' && !$this->isValidDate($rvm['DateOfBirth'])) {
+            $errors['DateOfBirth'] = "Ngày sinh không hợp lệ.";
         }
 
         if (empty($errors)) {
@@ -99,7 +190,7 @@ class TaiKhoanController {
                 $errors['Mobile'] = "Số điện thoại đã được sử dụng.";
             }
 
-            if (!empty($rvm['Email']) && $this->accountModel->checkEmailExists($rvm['Email'])) {
+            if ($rvm['Email'] !== '' && $this->accountModel->checkEmailExists($rvm['Email'])) {
                 $errors['Email'] = "Email đã được sử dụng.";
             }
         }
@@ -114,32 +205,21 @@ class TaiKhoanController {
 
             $roleId = $this->accountModel->getCustomerRoleId();
 
-            $fullName = trim($rvm['LastName'] . ' ' . $rvm['FirstName']);
-            if ($fullName === '') {
-                $fullName = "Khách hàng";
-            }
+            $maKH = $this->generateCustomerCode();
 
-            do {
-                $maKH = "KH" . date("YmdHis") . rand(100, 999);
-            } while ($this->accountModel->checkCustomerCodeExists($maKH));
-
-            $gioiTinh = null;
-            $sex = mb_strtolower($rvm['Sex'], 'UTF-8');
-
-            if ($sex === 'nam') {
-                $gioiTinh = 1;
-            } elseif (in_array($sex, ['nữ', 'nu'])) {
-                $gioiTinh = 0;
-            }
+            $gioiTinh = $this->parseGender($rvm['Sex']);
+            $email = $rvm['Email'] !== '' ? $rvm['Email'] : null;
+            $birthday = $rvm['DateOfBirth'] !== '' ? $rvm['DateOfBirth'] : null;
+            $address = $rvm['Address'] !== '' ? $rvm['Address'] : null;
 
             $this->accountModel->createCustomer([
                 'MaKhachHang' => $maKH,
                 'HoTen'       => $fullName,
-                'Email'       => $rvm['Email'],
+                'Email'       => $email,
                 'SoDienThoai' => $rvm['Mobile'],
                 'GioiTinh'    => $gioiTinh,
-                'NgaySinh'    => $rvm['DateOfBirth'],
-                'DiaChi'      => $rvm['Address'],
+                'NgaySinh'    => $birthday,
+                'DiaChi'      => $address,
                 'GhiChu'      => "Đăng ký từ Web"
             ]);
 
@@ -148,17 +228,21 @@ class TaiKhoanController {
                 'TenDangNhap' => $rvm['Username'],
                 'MatKhauHash' => HashPassword::hash($rvm['Password']),
                 'HoTen'       => $fullName,
-                'Email'       => $rvm['Email'],
+                'Email'       => $email,
                 'SoDienThoai' => $rvm['Mobile'],
                 'GioiTinh'    => $gioiTinh,
-                'NgaySinh'    => $rvm['DateOfBirth'],
-                'DiaChi'      => $rvm['Address']
+                'NgaySinh'    => $birthday,
+                'DiaChi'      => $address
             ]);
+
+            if (!$newAccount) {
+                throw new Exception("Không thể tạo tài khoản.");
+            }
 
             $this->pdo->commit();
 
             $_SESSION['LoginInformation'] = $newAccount;
-            $_SESSION['success'] = "Đăng ký thành viên thành công! Chào mừng " . htmlspecialchars($fullName) . ".";
+            $_SESSION['success'] = "Đăng ký thành viên thành công! Chào mừng " . htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8') . ".";
 
             header("Location: index.php?controller=home");
             exit;
@@ -173,7 +257,13 @@ class TaiKhoanController {
         }
     }
 
-    public function logoutAccount() {
+    public function logout()
+    {
+        $this->logoutAccount();
+    }
+
+    public function logoutAccount()
+    {
         unset($_SESSION['LoginInformation']);
         unset($_SESSION['ShoppingCart']);
 
@@ -183,7 +273,8 @@ class TaiKhoanController {
         exit;
     }
 
-    private function renderLogin($errors = []) {
+    private function renderLogin($errors = [])
+    {
         $storeInfo = $this->homeModel->getStoreInfo();
 
         $title = "Đăng nhập";
@@ -192,12 +283,44 @@ class TaiKhoanController {
         require BASE_PATH . '/views/client/layout.php';
     }
 
-    private function renderRegister($errors = [], $rvm = []) {
+    private function renderRegister($errors = [], $rvm = [])
+    {
         $storeInfo = $this->homeModel->getStoreInfo();
 
         $title = "Đăng ký";
         $viewContent = BASE_PATH . '/views/client/register.php';
 
         require BASE_PATH . '/views/client/layout.php';
+    }
+
+    private function parseGender($sex)
+    {
+        $sex = mb_strtolower(trim((string)$sex), 'UTF-8');
+
+        if ($sex === 'nam' || $sex === '1' || $sex === 'male') {
+            return 1;
+        }
+
+        if ($sex === 'nữ' || $sex === 'nu' || $sex === '0' || $sex === 'female') {
+            return 0;
+        }
+
+        return null;
+    }
+
+    private function isValidDate($date)
+    {
+        $dt = DateTime::createFromFormat('Y-m-d', $date);
+
+        return $dt && $dt->format('Y-m-d') === $date;
+    }
+
+    private function generateCustomerCode()
+    {
+        do {
+            $maKH = "KH" . date("YmdHis") . rand(100, 999);
+        } while ($this->accountModel->checkCustomerCodeExists($maKH));
+
+        return $maKH;
     }
 }

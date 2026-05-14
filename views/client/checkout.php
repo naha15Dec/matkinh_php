@@ -1,10 +1,23 @@
 <?php
+$baseUrl = $baseUrl ?? '';
+
 if (!function_exists('normalizeImg')) {
-    function normalizeImg($path) {
-        if (empty($path)) return "/BanMatKinh/public/images/no-image.png";
-        if (strpos($path, 'http') === 0) return $path;
-        if (strpos($path, '/BanMatKinh/') === 0) return $path;
-        return "/BanMatKinh/public/images/" . ltrim($path, '/');
+    function normalizeImg($path, $baseUrl = '') {
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return $baseUrl . "/images/no-image.png";
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        return $baseUrl . "/images/" . ltrim($path, '/');
     }
 }
 
@@ -59,6 +72,14 @@ $totalPay = $totalHang + $shippingFee;
     <section class="checkout-section-modern">
         <div class="container">
 
+            <?php if (!empty($_SESSION['error'])): ?>
+                <div class="alert alert-danger page-alert">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+                </div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
+
             <?php if (empty($cartItems)): ?>
                 <div class="checkout-empty">
                     <i class="fas fa-shopping-bag"></i>
@@ -68,7 +89,7 @@ $totalPay = $totalHang + $shippingFee;
                 </div>
             <?php else: ?>
 
-                <form action="index.php?controller=thanhtoan&action=process" method="POST" class="checkout-form">
+                <form action="index.php?controller=thanhtoan&action=process" method="POST" class="checkout-form" id="checkoutForm">
                     <div class="checkout-layout-modern">
 
                         <div class="checkout-left">
@@ -88,7 +109,8 @@ $totalPay = $totalHang + $shippingFee;
                                                 type="text" 
                                                 name="HoTenNguoiNhan"
                                                 placeholder="Nhập đầy đủ họ tên"
-                                                value="<?= htmlspecialchars($user['HoTen'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($user['HoTen'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                maxlength="150"
                                                 required
                                             >
                                         </div>
@@ -102,7 +124,8 @@ $totalPay = $totalHang + $shippingFee;
                                                 type="tel" 
                                                 name="SoDienThoaiNguoiNhan"
                                                 placeholder="VD: 0912345xxx"
-                                                value="<?= htmlspecialchars($user['SoDienThoai'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($user['SoDienThoai'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                maxlength="20"
                                                 required
                                             >
                                         </div>
@@ -116,7 +139,8 @@ $totalPay = $totalHang + $shippingFee;
                                                 type="email" 
                                                 name="Email"
                                                 placeholder="email@vi-du.com"
-                                                value="<?= htmlspecialchars($user['Email'] ?? '') ?>"
+                                                value="<?= htmlspecialchars($user['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                maxlength="100"
                                             >
                                         </div>
                                     </div>
@@ -129,8 +153,9 @@ $totalPay = $totalHang + $shippingFee;
                                                 name="DiaChiNhanHang"
                                                 rows="4"
                                                 placeholder="Số nhà, tên đường, Phường/Xã, Quận/Huyện, Tỉnh/TP"
+                                                maxlength="255"
                                                 required
-                                            ><?= htmlspecialchars($user['DiaChi'] ?? '') ?></textarea>
+                                            ><?= htmlspecialchars($user['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                                         </div>
                                     </div>
 
@@ -141,6 +166,7 @@ $totalPay = $totalHang + $shippingFee;
                                             <textarea 
                                                 name="GhiChu"
                                                 rows="3"
+                                                maxlength="500"
                                                 placeholder="Ví dụ: giao giờ hành chính, gọi trước khi giao..."
                                             ></textarea>
                                         </div>
@@ -156,7 +182,7 @@ $totalPay = $totalHang + $shippingFee;
 
                                 <div class="payment-method-list">
                                     <label class="payment-method-card active">
-                                        <input type="radio" name="PhuongThucThanhToan" value="COD" checked>
+                                        <input type="radio" name="PhuongThucThanhToan" value="<?= PaymentConstants::COD ?>" checked>
                                         <div class="payment-icon">
                                             <i class="fas fa-money-bill-wave"></i>
                                         </div>
@@ -167,15 +193,20 @@ $totalPay = $totalHang + $shippingFee;
                                     </label>
 
                                     <label class="payment-method-card">
-                                        <input type="radio" name="PhuongThucThanhToan" value="VNPAY">
+                                        <input type="radio" name="PhuongThucThanhToan" value="<?= PaymentConstants::VNPAY ?>">
                                         <div class="payment-icon">
                                             <i class="fas fa-qrcode"></i>
                                         </div>
                                         <div>
                                             <strong>Thanh toán qua VNPAY</strong>
-                                            <small>Thanh toán nhanh qua QR Code, ATM hoặc ngân hàng.</small>
+                                            <small>Tạo đơn trước, sau đó chuyển sang cổng VNPAY để thanh toán.</small>
                                         </div>
                                     </label>
+                                </div>
+
+                                <div class="checkout-secure-note mt-3">
+                                    <i class="fas fa-info-circle"></i>
+                                    Với VNPAY, nếu thanh toán thất bại hoặc hủy giữa chừng, hệ thống sẽ tự hủy đơn và hoàn lại tồn kho.
                                 </div>
                             </div>
                         </div>
@@ -188,23 +219,25 @@ $totalPay = $totalHang + $shippingFee;
                                 <div class="checkout-items">
                                     <?php foreach ($cartItems as $item): ?>
                                         <?php
-                                            $productId = (int)($item['SanPhamId'] ?? 0);
-                                            $qty = (int)($item['SoLuong'] ?? 1);
-                                            $price = (float)($item['DonGia'] ?? 0);
-                                            $lineTotal = $price * $qty;
+                                        $productId = (int)($item['SanPhamId'] ?? 0);
+                                        $qty = max(1, (int)($item['SoLuong'] ?? 1));
+                                        $price = (float)($item['DonGia'] ?? 0);
+                                        $lineTotal = $price * $qty;
                                         ?>
 
                                         <div class="checkout-item">
                                             <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="checkout-item-img">
-                                                <img src="<?= normalizeImg($item['HinhAnh'] ?? '') ?>" alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>">
+                                                <img src="<?= htmlspecialchars(normalizeImg($item['HinhAnh'] ?? '', $baseUrl), ENT_QUOTES, 'UTF-8') ?>"
+                                                     alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>"
+                                                     onerror="this.src='<?= $baseUrl ?>/images/no-image.png'">
                                                 <span><?= $qty ?></span>
                                             </a>
 
                                             <div class="checkout-item-info">
                                                 <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>">
-                                                    <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>
+                                                    <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
                                                 </a>
-                                                <small><?= htmlspecialchars($item['ThuongHieu'] ?? 'Karma Eyewear') ?></small>
+                                                <small><?= htmlspecialchars($item['ThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?></small>
                                             </div>
 
                                             <strong><?= formatMoney($lineTotal) ?></strong>
@@ -240,7 +273,7 @@ $totalPay = $totalHang + $shippingFee;
 
                                 <div class="checkout-secure-note">
                                     <i class="fas fa-shield-alt"></i>
-                                    Thông tin thanh toán và đơn hàng được bảo mật.
+                                    Hệ thống sẽ kiểm tra lại giá và tồn kho trước khi tạo đơn.
                                 </div>
 
                                 <div class="summary-total">
@@ -248,7 +281,7 @@ $totalPay = $totalHang + $shippingFee;
                                     <strong><?= formatMoney($totalPay) ?></strong>
                                 </div>
 
-                                <button type="submit" class="btn-place-order">
+                                <button type="submit" class="btn-place-order" id="btnPlaceOrder">
                                     Hoàn tất đặt hàng
                                     <i class="fas fa-arrow-right"></i>
                                 </button>
@@ -278,5 +311,15 @@ document.addEventListener("DOMContentLoaded", function () {
             if (input) input.checked = true;
         });
     });
+
+    const checkoutForm = document.getElementById("checkoutForm");
+    const btnPlaceOrder = document.getElementById("btnPlaceOrder");
+
+    if (checkoutForm && btnPlaceOrder) {
+        checkoutForm.addEventListener("submit", function () {
+            btnPlaceOrder.disabled = true;
+            btnPlaceOrder.innerHTML = 'Đang xử lý <i class="fas fa-spinner fa-spin"></i>';
+        });
+    }
 });
 </script>

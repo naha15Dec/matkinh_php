@@ -10,8 +10,23 @@ $pageTitle = $title ?? ($isEdit ? 'Chỉnh sửa sản phẩm' : 'Thêm sản ph
 $autoSKU = "SP" . date("ymdHis");
 $currentSKU = !empty($product['MaSanPham']) ? $product['MaSanPham'] : $autoSKU;
 
+function adminProductFormImageSrc($image, $baseUrl)
+{
+    $image = trim((string)$image);
+
+    if ($image === '') {
+        return $baseUrl . '/images/default.jpg';
+    }
+
+    if (preg_match('/^https?:\/\//i', $image)) {
+        return $image;
+    }
+
+    return $baseUrl . '/images/' . ltrim($image, '/');
+}
+
 $image = $product['HinhAnhChinh'] ?? '';
-$imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/default.jpg';
+$imageSrc = adminProductFormImageSrc($image, $baseUrl);
 ?>
 
 <div class="admin-page-header mb-4">
@@ -46,6 +61,22 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
 <section class="content">
     <div class="container-fluid p-0">
 
+        <?php if (!empty($_SESSION['success'])): ?>
+            <div class="alert alert-success admin-alert">
+                <i class="fas fa-check-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['success']); ?>
+        <?php endif; ?>
+
+        <?php if (!empty($_SESSION['error'])): ?>
+            <div class="alert alert-danger admin-alert">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+            </div>
+            <?php unset($_SESSION['error']); ?>
+        <?php endif; ?>
+
         <form action="<?= $baseUrl ?>/index.php?controller=adminsanpham&action=save"
               method="POST"
               enctype="multipart/form-data"
@@ -72,6 +103,7 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                                        class="form-control product-input"
                                        placeholder="VD: Ray-Ban Aviator Classic..."
                                        value="<?= htmlspecialchars($product['TenSanPham'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                       maxlength="200"
                                        required>
                             </div>
 
@@ -83,8 +115,11 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                                                name="MaSanPham"
                                                class="form-control product-input readonly"
                                                value="<?= htmlspecialchars($currentSKU, ENT_QUOTES, 'UTF-8') ?>"
+                                               maxlength="30"
                                                readonly>
-                                        <small class="product-help">Mã tự động tạo để quản lý kho chính xác.</small>
+                                        <small class="product-help">
+                                            Mã tự động tạo để quản lý kho chính xác.
+                                        </small>
                                     </div>
                                 </div>
 
@@ -106,6 +141,7 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                                 <textarea name="MoTaNgan"
                                           class="form-control product-input product-textarea"
                                           rows="3"
+                                          maxlength="500"
                                           placeholder="Mô tả ngắn hiển thị ở danh mục..."><?= htmlspecialchars($product['MoTaNgan'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                             </div>
                         </div>
@@ -143,7 +179,8 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                                             <input type="text"
                                                    name="GiaGoc"
                                                    class="form-control product-input currency-input text-right"
-                                                   value="<?= htmlspecialchars($product['GiaGoc'] ?? 0, ENT_QUOTES, 'UTF-8') ?>">
+                                                   value="<?= htmlspecialchars($product['GiaGoc'] ?? 0, ENT_QUOTES, 'UTF-8') ?>"
+                                                   inputmode="numeric">
                                             <div class="input-group-append">
                                                 <span class="input-group-text">₫</span>
                                             </div>
@@ -158,7 +195,9 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                                             <input type="text"
                                                    name="GiaBan"
                                                    class="form-control product-input currency-input text-right"
-                                                   value="<?= htmlspecialchars($product['GiaBan'] ?? 0, ENT_QUOTES, 'UTF-8') ?>">
+                                                   value="<?= htmlspecialchars($product['GiaBan'] ?? 0, ENT_QUOTES, 'UTF-8') ?>"
+                                                   inputmode="numeric"
+                                                   required>
                                             <div class="input-group-append">
                                                 <span class="input-group-text">₫</span>
                                             </div>
@@ -166,6 +205,10 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                                     </div>
                                 </div>
                             </div>
+
+                            <small class="product-help d-block mt-3">
+                                Giá bán phải lớn hơn 0 và không nên cao hơn giá gốc.
+                            </small>
                         </div>
                     </div>
 
@@ -199,7 +242,7 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
 
                             <div class="product-note mt-3">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                Nên dùng ảnh rõ sản phẩm, nền sạch, tỉ lệ vuông hoặc ngang.
+                                Hỗ trợ JPG, JPEG, PNG, WEBP. Nên dùng ảnh rõ sản phẩm, nền sạch.
                             </div>
                         </div>
                     </div>
@@ -244,7 +287,7 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                             <div class="form-group">
                                 <label class="product-form-label">Trạng thái kinh doanh</label>
                                 <select name="TrangThai" class="form-control product-input">
-                                    <option value="1" <?= (isset($product['TrangThai']) && (int)$product['TrangThai'] === 1) ? 'selected' : '' ?>>
+                                    <option value="1" <?= (!isset($product['TrangThai']) || (int)$product['TrangThai'] === 1) ? 'selected' : '' ?>>
                                         Đang bán
                                     </option>
                                     <option value="2" <?= (isset($product['TrangThai']) && (int)$product['TrangThai'] === 2) ? 'selected' : '' ?>>
@@ -268,12 +311,17 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
                         </div>
                     </div>
 
-                    <button type="submit" class="btn product-submit-btn btn-block">
+                    <button type="submit"
+                            class="btn product-submit-btn btn-block"
+                            data-confirm
+                            data-confirm-title="<?= $isEdit ? 'Cập nhật sản phẩm' : 'Tạo sản phẩm mới' ?>"
+                            data-confirm-ok="<?= $isEdit ? 'Cập nhật' : 'Tạo sản phẩm' ?>">
                         <i class="fas fa-save mr-1"></i>
                         <?= $isEdit ? 'Cập nhật thay đổi' : 'Tạo sản phẩm ngay' ?>
                     </button>
 
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham" class="btn product-cancel-btn btn-block mt-2">
+                    <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham"
+                       class="btn product-cancel-btn btn-block mt-2">
                         Hủy bỏ và quay lại
                     </a>
 
@@ -288,19 +336,21 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
 <script src="https://cdn.tiny.cloud/1/mjx5bcjxjzsekqcvy1ai2z4fspdr4j94doloncihjvicobhw/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
 <script>
-    tinymce.init({
-        selector: '.admin-textarea',
-        height: 420,
-        plugins: 'anchor autolink charmap codesample image link lists media searchreplace table visualblocks wordcount',
-        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline | link image table | align lineheight | numlist bullist indent outdent | removeformat',
-        branding: false,
-        menubar: false,
-        setup: function (editor) {
-            editor.on('change', function () {
-                editor.save();
-            });
-        }
-    });
+    if (typeof tinymce !== 'undefined') {
+        tinymce.init({
+            selector: '.admin-textarea',
+            height: 420,
+            plugins: 'anchor autolink charmap codesample image link lists media searchreplace table visualblocks wordcount',
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline | link image table | align lineheight | numlist bullist indent outdent | removeformat',
+            branding: false,
+            menubar: false,
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();
+                });
+            }
+        });
+    }
 
     const fileInput = document.getElementById('inputSingleFile');
 
@@ -309,6 +359,20 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
             const file = this.files[0];
 
             if (file) {
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Ảnh sản phẩm chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP.');
+                    this.value = '';
+                    return;
+                }
+
+                if (file.size > 3 * 1024 * 1024) {
+                    alert('Dung lượng ảnh sản phẩm tối đa là 3MB.');
+                    this.value = '';
+                    return;
+                }
+
                 const reader = new FileReader();
 
                 reader.onload = function (e) {
@@ -342,13 +406,17 @@ $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/defaul
         });
     });
 
-    document.getElementById('productForm').addEventListener('submit', function () {
-        if (typeof tinymce !== 'undefined') {
-            tinymce.triggerSave();
-        }
+    const productForm = document.getElementById('productForm');
 
-        document.querySelectorAll('.currency-input').forEach(function (input) {
-            input.value = input.value.replace(/\./g, '');
+    if (productForm) {
+        productForm.addEventListener('submit', function () {
+            if (typeof tinymce !== 'undefined') {
+                tinymce.triggerSave();
+            }
+
+            document.querySelectorAll('.currency-input').forEach(function (input) {
+                input.value = input.value.replace(/\./g, '');
+            });
         });
-    });
+    }
 </script>

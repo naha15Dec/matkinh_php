@@ -1,141 +1,273 @@
 <?php
-class AdminSanPhamModel {
+class AdminSanPhamModel
+{
     private $db;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->db = $pdo;
     }
 
-    // 1. Lấy danh sách sản phẩm (Theo lọc trạng thái và từ khóa)
-    // Thêm tham số $userId vào đầu hàm
-    public function getProducts($statusProduct = "stock", $keyword = "", $userId = null) {
+    public function getProducts($statusProduct = "stock", $keyword = "", $userId = null)
+    {
         $sql = "SELECT sp.*, th.TenThuongHieu, lsp.TenLoaiSanPham 
                 FROM sanpham sp 
                 LEFT JOIN thuonghieu th ON sp.ThuongHieuId = th.ThuongHieuId 
                 LEFT JOIN loaisanpham lsp ON sp.LoaiSanPhamId = lsp.LoaiSanPhamId 
                 WHERE 1=1";
+
         $params = [];
 
-        // --- PHÂN QUYỀN: Cực kỳ quan trọng ---
         if ($userId !== null) {
             $sql .= " AND sp.CreatedById = ?";
-            $params[] = $userId;
+            $params[] = (int)$userId;
         }
 
         if (!empty($keyword)) {
-            $sql .= " AND (sp.MaSanPham LIKE ? OR sp.TenSanPham LIKE ?)";
+            $sql .= " AND (
+                        sp.MaSanPham LIKE ? 
+                        OR sp.TenSanPham LIKE ? 
+                        OR th.TenThuongHieu LIKE ? 
+                        OR lsp.TenLoaiSanPham LIKE ?
+                    )";
+
             $search = "%$keyword%";
-            array_push($params, $search, $search);
+            array_push($params, $search, $search, $search, $search);
         }
 
         switch ($statusProduct) {
             case "outofstock":
                 $sql .= " AND sp.TrangThai = 1 AND sp.SoLuongTon <= 0";
                 break;
+
             case "inactive":
                 $sql .= " AND sp.TrangThai = 2";
                 break;
-            default: // stock
+
+            case "all":
+                break;
+
+            case "stock":
+            default:
                 $sql .= " AND sp.TrangThai = 1 AND sp.SoLuongTon > 0";
                 break;
         }
 
-        $sql .= " ORDER BY COALESCE(sp.UpdatedAt, sp.CreatedAt) DESC";
+        $sql .= " ORDER BY COALESCE(sp.UpdatedAt, sp.CreatedAt) DESC, sp.SanPhamId DESC";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
+
         return $stmt->fetchAll();
     }
 
-    // 2. Lấy 1 sản phẩm theo ID
-    public function getProductById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM sanpham WHERE SanPhamId = ?");
-        $stmt->execute([$id]);
+    public function getProductById($id)
+    {
+        $sql = "SELECT sp.*, th.TenThuongHieu, lsp.TenLoaiSanPham
+                FROM sanpham sp
+                LEFT JOIN thuonghieu th ON sp.ThuongHieuId = th.ThuongHieuId
+                LEFT JOIN loaisanpham lsp ON sp.LoaiSanPhamId = lsp.LoaiSanPhamId
+                WHERE sp.SanPhamId = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([(int)$id]);
+
         return $stmt->fetch();
     }
 
-    // 3. THÊM MỚI sản phẩm
-    public function createProduct($data) {
-    $sql = "INSERT INTO sanpham (MaSanPham, TenSanPham, MoTaNgan, MoTaChiTiet, GiaGoc, GiaBan, SoLuongTon, 
-                                ThuongHieuId, LoaiSanPhamId, TrangThai, IsFeatured, HinhAnhChinh, CreatedById, CreatedAt) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-    
-    $params = [
-        $data['MaSanPham'], 
-        $data['TenSanPham'], 
-        $data['MoTaNgan'], 
-        $data['MoTaChiTiet'],
-        $data['GiaGoc'], 
-        $data['GiaBan'], 
-        $data['SoLuongTon'], 
-        $data['ThuongHieuId'], 
-        $data['LoaiSanPhamId'], 
-        $data['TrangThai'] ?? 1, 
-        $data['IsFeatured'] ?? 0, 
-        $data['HinhAnhChinh'] ?? 'default.jpg',
-        $data['CreatedById'] // <--- Bổ sung dòng này
-    ];
-    
-    return $this->db->prepare($sql)->execute($params);
-}
+    public function createProduct($data)
+    {
+        $sql = "INSERT INTO sanpham (
+                    MaSanPham, 
+                    TenSanPham, 
+                    MoTaNgan, 
+                    MoTaChiTiet, 
+                    GiaGoc, 
+                    GiaBan, 
+                    SoLuongTon, 
+                    ThuongHieuId, 
+                    LoaiSanPhamId, 
+                    TrangThai, 
+                    IsFeatured, 
+                    HinhAnhChinh, 
+                    CreatedById, 
+                    CreatedAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
-    // 4. CẬP NHẬT sản phẩm
-    public function updateProduct($id, $data) {
-        $sql = "UPDATE sanpham SET MaSanPham = ?, TenSanPham = ?, MoTaNgan = ?, MoTaChiTiet = ?, 
-                GiaGoc = ?, GiaBan = ?, SoLuongTon = ?, ThuongHieuId = ?, LoaiSanPhamId = ?, 
-                TrangThai = ?, IsFeatured = ?, UpdatedAt = NOW()";
-        
         $params = [
-            $data['MaSanPham'], $data['TenSanPham'], $data['MoTaNgan'], $data['MoTaChiTiet'],
-            $data['GiaGoc'], $data['GiaBan'], $data['SoLuongTon'], $data['ThuongHieuId'], 
-            $data['LoaiSanPhamId'], $data['TrangThai'], $data['IsFeatured']
+            $data['MaSanPham'],
+            $data['TenSanPham'],
+            $data['MoTaNgan'] ?? null,
+            $data['MoTaChiTiet'] ?? null,
+            $data['GiaGoc'],
+            $data['GiaBan'],
+            $data['SoLuongTon'],
+            $data['ThuongHieuId'],
+            $data['LoaiSanPhamId'],
+            $data['TrangThai'] ?? 1,
+            $data['IsFeatured'] ?? 0,
+            $data['HinhAnhChinh'] ?? null,
+            $data['CreatedById']
         ];
 
-        if (isset($data['HinhAnhChinh'])) {
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateProduct($id, $data)
+    {
+        $sql = "UPDATE sanpham 
+                SET MaSanPham = ?, 
+                    TenSanPham = ?, 
+                    MoTaNgan = ?, 
+                    MoTaChiTiet = ?, 
+                    GiaGoc = ?, 
+                    GiaBan = ?, 
+                    SoLuongTon = ?, 
+                    ThuongHieuId = ?, 
+                    LoaiSanPhamId = ?, 
+                    TrangThai = ?, 
+                    IsFeatured = ?, 
+                    UpdatedAt = NOW()";
+
+        $params = [
+            $data['MaSanPham'],
+            $data['TenSanPham'],
+            $data['MoTaNgan'] ?? null,
+            $data['MoTaChiTiet'] ?? null,
+            $data['GiaGoc'],
+            $data['GiaBan'],
+            $data['SoLuongTon'],
+            $data['ThuongHieuId'],
+            $data['LoaiSanPhamId'],
+            $data['TrangThai'],
+            $data['IsFeatured']
+        ];
+
+        if (array_key_exists('HinhAnhChinh', $data)) {
             $sql .= ", HinhAnhChinh = ?";
             $params[] = $data['HinhAnhChinh'];
         }
 
         $sql .= " WHERE SanPhamId = ?";
-        $params[] = $id;
-        
-        return $this->db->prepare($sql)->execute($params);
+        $params[] = (int)$id;
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->rowCount() > 0;
     }
 
-    // 5. Bật/Tắt nổi bật
-    public function toggleFeatured($id) {
-        return $this->db->prepare("UPDATE sanpham SET IsFeatured = NOT IsFeatured, UpdatedAt = NOW() WHERE SanPhamId = ?")->execute([$id]);
+    public function toggleFeatured($id)
+    {
+        $sql = "UPDATE sanpham 
+                SET IsFeatured = IF(IsFeatured = 1, 0, 1), 
+                    UpdatedAt = NOW() 
+                WHERE SanPhamId = ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([(int)$id]);
+
+        return $stmt->rowCount() > 0;
     }
 
-    // 6. Ngừng bán (Soft Delete)
-    public function softDelete($id) {
-    // Chuyển trạng thái sang 2 (Ngừng bán) và set số lượng tồn về 0
-    $sql = "UPDATE sanpham 
-            SET TrangThai = 2, 
-                SoLuongTon = 0, 
-                UpdatedAt = NOW() 
-            WHERE SanPhamId = ?";
-    return $this->db->prepare($sql)->execute([$id]);
-}
+    public function softDelete($id)
+    {
+        $sql = "UPDATE sanpham 
+                SET TrangThai = 2, 
+                    SoLuongTon = 0, 
+                    IsFeatured = 0,
+                    UpdatedAt = NOW() 
+                WHERE SanPhamId = ?";
 
-    // --- BỔ SUNG CÁC HÀM LẤY DATA PHỤ ---
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([(int)$id]);
 
-    public function getAllBrands() {
-        return $this->db->query("SELECT ThuongHieuId, TenThuongHieu FROM thuonghieu WHERE IsActive = 1 ORDER BY TenThuongHieu ASC")->fetchAll();
+        return $stmt->rowCount() > 0;
     }
 
-    public function getAllCategories() {
-        return $this->db->query("SELECT LoaiSanPhamId, TenLoaiSanPham FROM loaisanpham WHERE IsActive = 1 ORDER BY TenLoaiSanPham ASC")->fetchAll();
+    public function delete($id)
+    {
+        $stmt = $this->db->prepare("DELETE FROM sanpham WHERE SanPhamId = ?");
+        $stmt->execute([(int)$id]);
+
+        return $stmt->rowCount() > 0;
     }
 
-    public function checkProductInOrders($id) {
-    // Kiểm tra trong bảng chi tiết đơn hàng
-    $stmt = $this->db->prepare("SELECT COUNT(*) FROM chitietdonhang WHERE SanPhamId = ?");
-    $stmt->execute([$id]);
-    return $stmt->fetchColumn() > 0;
-}
+    public function getAllBrands()
+    {
+        $sql = "SELECT ThuongHieuId, TenThuongHieu 
+                FROM thuonghieu 
+                WHERE IsActive = 1 
+                ORDER BY TenThuongHieu ASC";
 
-    // Thêm hàm xóa cứng (Chỉ dùng khi chưa có đơn hàng)
-    public function delete($id) {
-        return $this->db->prepare("DELETE FROM sanpham WHERE SanPhamId = ?")->execute([$id]);
+        return $this->db->query($sql)->fetchAll();
+    }
+
+    public function getAllCategories()
+    {
+        $sql = "SELECT LoaiSanPhamId, TenLoaiSanPham 
+                FROM loaisanpham 
+                WHERE IsActive = 1 
+                ORDER BY TenLoaiSanPham ASC";
+
+        return $this->db->query($sql)->fetchAll();
+    }
+
+    public function brandExists($brandId)
+    {
+        $sql = "SELECT COUNT(*) 
+                FROM thuonghieu 
+                WHERE ThuongHieuId = ? 
+                  AND IsActive = 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([(int)$brandId]);
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function categoryExists($categoryId)
+    {
+        $sql = "SELECT COUNT(*) 
+                FROM loaisanpham 
+                WHERE LoaiSanPhamId = ? 
+                  AND IsActive = 1";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([(int)$categoryId]);
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function isProductCodeExists($code, $excludeId = 0)
+    {
+        $sql = "SELECT COUNT(*) 
+                FROM sanpham 
+                WHERE MaSanPham = ? 
+                  AND SanPhamId <> ?";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([trim($code), (int)$excludeId]);
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function checkProductInOrders($id)
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM chitietdonhang WHERE SanPhamId = ?");
+        $stmt->execute([(int)$id]);
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function checkProductInBehaviors($id)
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM hanhvinguoidung WHERE SanPhamId = ?");
+        $stmt->execute([(int)$id]);
+
+        return (int)$stmt->fetchColumn() > 0;
     }
 }

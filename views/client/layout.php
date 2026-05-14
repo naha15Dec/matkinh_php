@@ -1,14 +1,25 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$storeInfo = $storeInfo ?? [];
+
 $sessionAccount = $_SESSION['LoginInformation'] ?? null;
 $isLoggedIn = $sessionAccount !== null;
 
 $brandName = !empty($storeInfo['TenCuaHang']) ? $storeInfo['TenCuaHang'] : "Karma Eyewear";
-$hotline   = $storeInfo['Hotline'] ?? "0123.456.789";
-$diaChi    = $storeInfo['DiaChi'] ?? "Hệ thống cửa hàng chính hãng";
-$moTaNgan  = $storeInfo['MoTaNgan'] ?? "Mắt kính thời trang, tinh tế và chuẩn phong cách hiện đại.";
+$hotline   = !empty($storeInfo['Hotline']) ? $storeInfo['Hotline'] : "0123.456.789";
+$email     = !empty($storeInfo['Email']) ? $storeInfo['Email'] : "support@karmaeyewear.vn";
+$diaChi    = !empty($storeInfo['DiaChi']) ? $storeInfo['DiaChi'] : "Hệ thống cửa hàng chính hãng";
+$moTaNgan  = !empty($storeInfo['MoTaNgan']) ? $storeInfo['MoTaNgan'] : "Mắt kính thời trang, tinh tế và chuẩn phong cách hiện đại.";
+
+$facebookUrl = $storeInfo['FacebookUrl'] ?? '';
+$instagramUrl = $storeInfo['InstagramUrl'] ?? '';
+$zaloUrl = $storeInfo['ZaloUrl'] ?? '';
 
 $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
-$isAdminLike = in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER']);
+$isAdminLike = in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER'], true);
 
 $accountDisplay = $isLoggedIn
     ? ($sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Tài khoản')
@@ -16,8 +27,19 @@ $accountDisplay = $isLoggedIn
 
 $currentController = strtolower($_GET['controller'] ?? 'home');
 
-function activeMenu($controller, $currentController) {
-    return $controller === $currentController ? 'active' : '';
+$cartItems = $_SESSION['ShoppingCart'] ?? [];
+$cartCount = 0;
+
+if (is_array($cartItems)) {
+    foreach ($cartItems as $cartItem) {
+        $cartCount += (int)($cartItem['SoLuong'] ?? 0);
+    }
+}
+
+if (!function_exists('activeMenu')) {
+    function activeMenu($controller, $currentController) {
+        return strtolower($controller) === strtolower($currentController) ? 'active' : '';
+    }
 }
 ?>
 
@@ -26,7 +48,7 @@ function activeMenu($controller, $currentController) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars($title ?? 'Trang chủ') ?> - <?= htmlspecialchars($brandName) ?></title>
+    <title><?= htmlspecialchars($title ?? 'Trang chủ', ENT_QUOTES, 'UTF-8') ?> - <?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></title>
 
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -83,7 +105,7 @@ function activeMenu($controller, $currentController) {
         }
 
         .site-header {
-            background: rgba(255,255,255,.96);
+            background: rgba(255, 255, 255, .96);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             z-index: 1000;
@@ -142,12 +164,30 @@ function activeMenu($controller, $currentController) {
             justify-content: center;
             margin-left: 8px;
             transition: .25s;
+            position: relative;
         }
 
         .header-action:hover {
             background: var(--black);
             color: #fff;
             border-color: var(--black);
+        }
+
+        .header-cart-count {
+            position: absolute;
+            top: -5px;
+            right: -6px;
+            min-width: 17px;
+            height: 17px;
+            padding: 0 5px;
+            border-radius: 999px;
+            background: var(--gold);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 17px;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, .18);
         }
 
         .account-chip {
@@ -157,6 +197,12 @@ function activeMenu($controller, $currentController) {
             font-size: 14px;
             font-weight: 600;
             background: #fff;
+            max-width: 180px;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .dropdown-menu {
@@ -201,7 +247,7 @@ function activeMenu($controller, $currentController) {
         .page-alert {
             border-radius: 16px;
             border: 0;
-            box-shadow: 0 10px 30px rgba(0,0,0,.06);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .06);
         }
 
         main {
@@ -242,8 +288,32 @@ function activeMenu($controller, $currentController) {
             color: var(--gold);
         }
 
+        .footer-socials {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .footer-socials a {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.14);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+        .footer-socials a:hover {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: #fff;
+        }
+
         .footer-bottom {
-            border-top: 1px solid rgba(255,255,255,.1);
+            border-top: 1px solid rgba(255, 255, 255, .1);
             margin-top: 35px;
             padding-top: 20px;
             color: #999;
@@ -272,7 +342,7 @@ function activeMenu($controller, $currentController) {
 <div class="topbar d-none d-md-block">
     <div class="container d-flex justify-content-between">
         <span><i class="fas fa-shipping-fast mr-2"></i> Miễn phí giao hàng cho đơn từ 1.000.000đ</span>
-        <span><i class="fas fa-phone-alt mr-2"></i> Hotline: <?= htmlspecialchars($hotline) ?></span>
+        <span><i class="fas fa-phone-alt mr-2"></i> Hotline: <?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?></span>
     </div>
 </div>
 
@@ -280,7 +350,7 @@ function activeMenu($controller, $currentController) {
     <div class="container">
         <nav class="navbar navbar-expand-lg navbar-light p-0">
             <a class="brand-logo" href="index.php?controller=home">
-                <span class="name"><?= htmlspecialchars($brandName) ?></span>
+                <span class="name"><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></span>
                 <span class="sub">Premium Eyewear</span>
             </a>
 
@@ -305,18 +375,21 @@ function activeMenu($controller, $currentController) {
                 </ul>
 
                 <div class="header-actions d-flex align-items-center">
-                    <button type="button" class="header-action" id="btnOpenSearch">
+                    <button type="button" class="header-action" id="btnOpenSearch" title="Tìm kiếm">
                         <i class="fas fa-search"></i>
                     </button>
 
                     <a class="header-action" href="index.php?controller=giohang" title="Giỏ hàng">
                         <i class="fas fa-shopping-bag"></i>
+                        <?php if ($cartCount > 0): ?>
+                            <span class="header-cart-count"><?= $cartCount > 99 ? '99+' : (int)$cartCount ?></span>
+                        <?php endif; ?>
                     </a>
 
                     <div class="dropdown ml-2">
                         <a href="#" class="account-chip dropdown-toggle" data-toggle="dropdown">
                             <i class="far fa-user mr-1"></i>
-                            <?= htmlspecialchars($accountDisplay) ?>
+                            <?= htmlspecialchars($accountDisplay, ENT_QUOTES, 'UTF-8') ?>
                         </a>
 
                         <div class="dropdown-menu dropdown-menu-right shadow border-0">
@@ -355,7 +428,11 @@ function activeMenu($controller, $currentController) {
         <div class="container">
             <form action="index.php" method="GET" class="d-flex">
                 <input type="hidden" name="controller" value="sanpham">
-                <input class="form-control search-input" type="text" name="Keyword" placeholder="Tìm kính râm, gọng kính, thương hiệu...">
+                <input class="form-control search-input"
+                       type="text"
+                       name="Keyword"
+                       placeholder="Tìm kính râm, gọng kính, thương hiệu..."
+                       autocomplete="off">
                 <button class="btn btn-luxury ml-2" type="submit">Tìm kiếm</button>
                 <button class="btn btn-light ml-2 rounded-circle" type="button" id="btnCloseSearch">
                     <i class="fas fa-times"></i>
@@ -369,7 +446,7 @@ function activeMenu($controller, $currentController) {
     <?php if (isset($_SESSION['success'])): ?>
         <div class="alert alert-success alert-dismissible fade show page-alert" role="alert">
             <i class="fas fa-check-circle mr-2"></i>
-            <?= htmlspecialchars($_SESSION['success']) ?>
+            <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
             <?php unset($_SESSION['success']); ?>
             <button type="button" class="close" data-dismiss="alert">
                 <span>&times;</span>
@@ -380,7 +457,7 @@ function activeMenu($controller, $currentController) {
     <?php if (isset($_SESSION['error'])): ?>
         <div class="alert alert-danger alert-dismissible fade show page-alert" role="alert">
             <i class="fas fa-exclamation-circle mr-2"></i>
-            <?= htmlspecialchars($_SESSION['error']) ?>
+            <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
             <?php unset($_SESSION['error']); ?>
             <button type="button" class="close" data-dismiss="alert">
                 <span>&times;</span>
@@ -408,8 +485,30 @@ function activeMenu($controller, $currentController) {
     <div class="container">
         <div class="row">
             <div class="col-lg-4 mb-4">
-                <div class="footer-brand mb-3"><?= htmlspecialchars($brandName) ?></div>
-                <p><?= htmlspecialchars($moTaNgan) ?></p>
+                <div class="footer-brand mb-3"><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></div>
+                <p><?= htmlspecialchars($moTaNgan, ENT_QUOTES, 'UTF-8') ?></p>
+
+                <?php if (!empty($facebookUrl) || !empty($instagramUrl) || !empty($zaloUrl)): ?>
+                    <div class="footer-socials">
+                        <?php if (!empty($facebookUrl)): ?>
+                            <a href="<?= htmlspecialchars($facebookUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" title="Facebook">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (!empty($instagramUrl)): ?>
+                            <a href="<?= htmlspecialchars($instagramUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                        <?php endif; ?>
+
+                        <?php if (!empty($zaloUrl)): ?>
+                            <a href="<?= htmlspecialchars($zaloUrl, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener" title="Zalo">
+                                <i class="fas fa-comment"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="col-lg-2 col-md-4 mb-4">
@@ -435,15 +534,15 @@ function activeMenu($controller, $currentController) {
             <div class="col-lg-3 col-md-4 mb-4">
                 <h6 class="footer-title">Liên hệ</h6>
                 <p>
-                    <i class="fas fa-map-marker-alt mr-2"></i> <?= htmlspecialchars($diaChi) ?><br>
-                    <i class="fas fa-phone-alt mr-2"></i> <?= htmlspecialchars($hotline) ?><br>
-                    <i class="fas fa-envelope mr-2"></i> support@karmaeyewear.vn
+                    <i class="fas fa-map-marker-alt mr-2"></i> <?= htmlspecialchars($diaChi, ENT_QUOTES, 'UTF-8') ?><br>
+                    <i class="fas fa-phone-alt mr-2"></i> <?= htmlspecialchars($hotline, ENT_QUOTES, 'UTF-8') ?><br>
+                    <i class="fas fa-envelope mr-2"></i> <?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>
                 </p>
             </div>
         </div>
 
         <div class="footer-bottom d-flex flex-column flex-md-row justify-content-between">
-            <span>© <?= date('Y') ?> <?= htmlspecialchars($brandName) ?>. All rights reserved.</span>
+            <span>© <?= date('Y') ?> <?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?>. All rights reserved.</span>
             <span>Designed for modern eyewear shopping experience.</span>
         </div>
     </div>
@@ -470,7 +569,13 @@ function activeMenu($controller, $currentController) {
     });
 </script>
 
-<?php include BASE_PATH . '/views/components/confirm_modal.php'; ?>
+<?php
+$confirmModal = BASE_PATH . '/views/components/confirm_modal.php';
+
+if (file_exists($confirmModal)) {
+    include $confirmModal;
+}
+?>
 
 <script src="/BanMatKinh/public/js/lux_confirm.js?v=<?= time() ?>"></script>
 

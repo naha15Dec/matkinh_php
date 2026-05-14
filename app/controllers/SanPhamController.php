@@ -1,26 +1,31 @@
 <?php
 require_once BASE_PATH . '/app/models/SanPhamModel.php';
-// Import thêm HomeModel để lấy thông tin cửa hàng cho Layout
 require_once BASE_PATH . '/app/models/HomeModel.php';
 
-class SanPhamController {
+class SanPhamController
+{
     private $pdo;
     private $sanPhamModel;
-    private $homeModel; // Thêm property này
+    private $homeModel;
+
     private const DEFAULT_PAGE_SIZE = 9;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $this->pdo = $pdo;
         $this->sanPhamModel = new SanPhamModel($pdo);
-        $this->homeModel = new HomeModel($pdo); // Khởi tạo HomeModel
+        $this->homeModel = new HomeModel($pdo);
     }
 
-    // ========================= 1. TRANG DANH SÁCH =========================
-    public function index() {
-        // Nhận filter từ URL
+    public function index()
+    {
         $filter = [
-            'CategoryId' => isset($_GET['CategoryId']) ? (int)$_GET['CategoryId'] : 0,
-            'BrandId'    => isset($_GET['BrandId']) ? (int)$_GET['BrandId'] : 0,
+            'CategoryId' => isset($_GET['CategoryId']) ? max(0, (int)$_GET['CategoryId']) : 0,
+            'BrandId'    => isset($_GET['BrandId']) ? max(0, (int)$_GET['BrandId']) : 0,
             'Keyword'    => trim($_GET['Keyword'] ?? ''),
             'PriceRange' => trim($_GET['PriceRange'] ?? ''),
             'Page'       => isset($_GET['Page']) ? max(1, (int)$_GET['Page']) : 1,
@@ -29,77 +34,112 @@ class SanPhamController {
 
         $this->resolvePriceRange($filter['PriceRange'], $filter);
 
-        // Lấy dữ liệu sản phẩm
-        $result = $this->sanPhamModel->getFilteredProducts($filter, $filter['Page'], $filter['PageSize']);
-        $products = $result['data'];
-        $totalCount = $result['totalCount'];
+        $result = $this->sanPhamModel->getFilteredProducts(
+            $filter,
+            $filter['Page'],
+            $filter['PageSize']
+        );
 
-        // Phân trang & Load danh mục
-        $pagination = $this->calculatePagination($filter['Page'], $filter['PageSize'], $totalCount);
+        $products = $result['data'];
+        $totalCount = (int)$result['totalCount'];
+
+        $pagination = $this->calculatePagination(
+            $filter['Page'],
+            $filter['PageSize'],
+            $totalCount
+        );
+
+        $filter['Page'] = $pagination['CurrentPage'];
+
         $brandList = $this->sanPhamModel->getActiveBrands();
         $typeProductList = $this->sanPhamModel->getActiveCategories();
-
-        // --- QUAN TRỌNG: Lấy dữ liệu Store cho Layout ---
         $storeInfo = $this->homeModel->getStoreInfo();
 
-        // --- GẮN LAYOUT ---
         $title = "Danh sách mắt kính";
-        if (!empty($filter['Keyword'])) $title = "Tìm kiếm: " . $filter['Keyword'];
-        
+
+        if (!empty($filter['Keyword'])) {
+            $title = "Tìm kiếm: " . $filter['Keyword'];
+        }
+
         $viewContent = BASE_PATH . '/views/client/product_index.php';
-        // Sử dụng đường dẫn có /client/ để đồng bộ
+
         include BASE_PATH . '/views/client/layout.php';
     }
 
-    // ========================= 2. TRANG CHI TIẾT =========================
-    public function detail() {
+    public function detail()
+    {
         $sanPhamId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($sanPhamId <= 0) {
-            header("Location: index.php?controller=home");
+            $_SESSION['error'] = "Sản phẩm không hợp lệ.";
+            header("Location: index.php?controller=sanpham");
             exit;
         }
 
         $product = $this->sanPhamModel->getChiTietSanPham($sanPhamId);
-        
+
         if (!$product) {
-            header("Location: index.php?controller=home");
+            $_SESSION['error'] = "Sản phẩm không tồn tại, đã ngừng bán hoặc thuộc thương hiệu/danh mục đã bị khóa.";
+            header("Location: index.php?controller=sanpham");
             exit;
         }
 
-        // Ghi Log Hành Vi Người Dùng
         try {
-            $khachHangId = $_SESSION['LoginInformation']['TaiKhoanId'] ?? null; 
-            $sessionId = session_id(); 
-            $this->sanPhamModel->logUserBehavior($khachHangId, $sanPhamId, 'VIEW', $sessionId, 1.0);
-        } catch (Exception $e) {}
+            $sessionId = session_id();
+            $sessionAccount = $_SESSION['LoginInformation'] ?? null;
 
-        // Lấy sản phẩm liên quan và gợi ý
-        $relatedProducts = $this->sanPhamModel->getRelatedProducts($sanPhamId, $product['LoaiSanPhamId'], $product['ThuongHieuId']);
-        $recommendedProducts = $this->sanPhamModel->getRecommendedProductsLocal($sanPhamId, $product['GiaBan']);
+            $khachHangId = null;
 
-        // --- QUAN TRỌNG: Lấy dữ liệu Store cho Layout ---
+            if ($sessionAccount) {
+                $khachHangId = $this->sanPhamModel->resolveCustomerIdFromAccount($sessionAccount);
+            }
+
+            $this->sanPhamModel->logUserBehavior(
+                $khachHangId,
+                $sanPhamId,
+                'VIEW',
+                $sessionId,
+                1.0,
+                'PRODUCT_DETAIL'
+            );
+        } catch (Exception $e) {
+            // Không để lỗi log hành vi làm hỏng trang chi tiết sản phẩm.
+        }
+
+        $relatedProducts = $this->sanPhamModel->getRelatedProducts(
+            $sanPhamId,
+            (int)($product['LoaiSanPhamId'] ?? 0),
+            (int)($product['ThuongHieuId'] ?? 0)
+        );
+
+        $recommendedProducts = $this->sanPhamModel->getRecommendedProductsLocal(
+            $sanPhamId,
+            (float)($product['GiaBan'] ?? 0)
+        );
+
         $storeInfo = $this->homeModel->getStoreInfo();
 
-        // --- GẮN LAYOUT ---
-        $title = $product['TenSanPham'];
+        $title = $product['TenSanPham'] ?? 'Chi tiết sản phẩm';
         $viewContent = BASE_PATH . '/views/client/product_detail.php';
-        // Sử dụng đường dẫn có /client/ để đồng bộ
+
         include BASE_PATH . '/views/client/layout.php';
     }
 
-    // ========================= 3. PRIVATE METHODS =========================
-    private function resolvePriceRange($selectedPrice, &$filter) {
-        if (empty($selectedPrice) || !is_numeric($selectedPrice)) return;
+    private function resolvePriceRange($selectedPrice, &$filter)
+    {
+        if ($selectedPrice === '' || !is_numeric($selectedPrice)) {
+            return;
+        }
 
         $price = (int)$selectedPrice;
-        if ($price == 500000) {
+
+        if ($price === 500000) {
             $filter['MinPrice'] = 0;
             $filter['MaxPrice'] = 500000;
-        } elseif ($price == 3000000) {
+        } elseif ($price === 3000000) {
             $filter['MinPrice'] = 500000;
             $filter['MaxPrice'] = 3000000;
-        } elseif ($price == 5000000) {
+        } elseif ($price === 5000000) {
             $filter['MinPrice'] = 3000000;
             $filter['MaxPrice'] = 5000000;
         } elseif ($price >= 10000000) {
@@ -107,13 +147,30 @@ class SanPhamController {
         }
     }
 
-    private function calculatePagination($page, $pageSize, $totalCount) {
-        $totalPages = (int)ceil($totalCount / $pageSize);
-        if ($totalPages <= 0) $totalPages = 1;
+    private function calculatePagination($page, $pageSize, $totalCount)
+    {
+        $page = max(1, (int)$page);
+        $pageSize = max(1, (int)$pageSize);
+        $totalCount = max(0, (int)$totalCount);
 
-        $currentPage = $page > $totalPages ? $totalPages : $page;
-        $displayStart = $currentPage < 5 ? 1 : (($currentPage - 1) >= ($totalPages - 5) ? max($totalPages - 5, 1) : ($currentPage - 1));
-        $displayEnd = $currentPage + 4 > $totalPages ? $totalPages : $currentPage + 4;
+        $totalPages = (int)ceil($totalCount / $pageSize);
+
+        if ($totalPages <= 0) {
+            $totalPages = 1;
+        }
+
+        $currentPage = min($page, $totalPages);
+
+        $displayStart = max(1, $currentPage - 2);
+        $displayEnd = min($totalPages, $currentPage + 2);
+
+        if (($displayEnd - $displayStart) < 4) {
+            if ($displayStart === 1) {
+                $displayEnd = min($totalPages, $displayStart + 4);
+            } elseif ($displayEnd === $totalPages) {
+                $displayStart = max(1, $displayEnd - 4);
+            }
+        }
 
         return [
             'CurrentPage' => $currentPage,

@@ -3,11 +3,26 @@ $currentInfo = $currentInfo ?? [];
 $history = $history ?? [];
 $baseUrl = $baseUrl ?? '';
 
+function settingImageSrc($image, $baseUrl, $fallback)
+{
+    $image = trim((string)$image);
+
+    if ($image === '') {
+        return $baseUrl . '/images/' . $fallback;
+    }
+
+    if (preg_match('/^https?:\/\//i', $image)) {
+        return $image;
+    }
+
+    return $baseUrl . '/images/' . ltrim($image, '/');
+}
+
 $logo = $currentInfo['Logo'] ?? '';
 $banner = $currentInfo['Banner'] ?? '';
 
-$logoSrc = $logo ? $baseUrl . '/images/' . $logo : $baseUrl . '/images/default-logo.png';
-$bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/default-banner.jpg';
+$logoSrc = settingImageSrc($logo, $baseUrl, 'default-logo.png');
+$bannerSrc = settingImageSrc($banner, $baseUrl, 'default-banner.jpg');
 ?>
 
 <div class="admin-page-header mb-4">
@@ -55,7 +70,8 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
 
         <form action="<?= $baseUrl ?>/index.php?controller=adminsetting&action=save"
               method="POST"
-              enctype="multipart/form-data">
+              enctype="multipart/form-data"
+              id="settingForm">
 
             <div class="row">
                 <div class="col-lg-8 mb-4">
@@ -75,6 +91,7 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                        name="TenCuaHang"
                                        class="form-control setting-input"
                                        value="<?= htmlspecialchars($currentInfo['TenCuaHang'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?>"
+                                       maxlength="200"
                                        required>
                             </div>
 
@@ -85,7 +102,9 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                         <input type="text"
                                                name="Hotline"
                                                class="form-control setting-input"
-                                               value="<?= htmlspecialchars($currentInfo['Hotline'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                               value="<?= htmlspecialchars($currentInfo['Hotline'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                               maxlength="20"
+                                               placeholder="VD: 0900 000 000">
                                     </div>
                                 </div>
 
@@ -95,7 +114,9 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                         <input type="email"
                                                name="Email"
                                                class="form-control setting-input"
-                                               value="<?= htmlspecialchars($currentInfo['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                               value="<?= htmlspecialchars($currentInfo['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                               maxlength="100"
+                                               placeholder="contact@example.com">
                                     </div>
                                 </div>
                             </div>
@@ -105,21 +126,27 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                 <input type="text"
                                        name="DiaChi"
                                        class="form-control setting-input"
-                                       value="<?= htmlspecialchars($currentInfo['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                       value="<?= htmlspecialchars($currentInfo['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                       maxlength="255"
+                                       placeholder="Địa chỉ cửa hàng">
                             </div>
 
                             <div class="form-group">
                                 <label class="setting-label">Mô tả ngắn</label>
                                 <textarea name="MoTaNgan"
                                           class="form-control setting-input setting-textarea"
-                                          rows="3"><?= htmlspecialchars($currentInfo['MoTaNgan'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                          rows="3"
+                                          maxlength="500"
+                                          placeholder="Mô tả ngắn về cửa hàng..."><?= htmlspecialchars($currentInfo['MoTaNgan'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                <small class="text-muted">Tối đa 500 ký tự.</small>
                             </div>
 
                             <div class="form-group mb-0">
                                 <label class="setting-label">Giới thiệu</label>
                                 <textarea name="GioiThieu"
                                           class="form-control setting-input setting-textarea"
-                                          rows="6"><?= htmlspecialchars($currentInfo['GioiThieu'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                          rows="6"
+                                          placeholder="Nội dung giới thiệu chi tiết về cửa hàng..."><?= htmlspecialchars($currentInfo['GioiThieu'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                             </div>
                         </div>
                     </div>
@@ -150,7 +177,12 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                     <tbody>
                                         <?php if (!empty($history)): ?>
                                             <?php foreach ($history as $item): ?>
-                                                <?php $itemId = (int)($item['ThongTinCuaHangId'] ?? 0); ?>
+                                                <?php
+                                                $itemId = (int)($item['ThongTinCuaHangId'] ?? 0);
+                                                $isActiveRecord = !empty($item['IsActive']);
+                                                $itemLogoSrc = settingImageSrc($item['Logo'] ?? '', $baseUrl, 'default-logo.png');
+                                                $itemBannerSrc = settingImageSrc($item['Banner'] ?? '', $baseUrl, 'default-banner.jpg');
+                                                ?>
 
                                                 <tr>
                                                     <td>
@@ -162,7 +194,7 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                                             <?= htmlspecialchars($item['TenCuaHang'] ?? 'Cửa hàng', ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
                                                         <div class="setting-history-meta">
-                                                            <?= !empty($item['IsActive']) ? 'Đang kích hoạt' : 'Không kích hoạt' ?>
+                                                            <?= $isActiveRecord ? 'Đang kích hoạt' : 'Không kích hoạt' ?>
                                                         </div>
                                                     </td>
 
@@ -189,17 +221,26 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                                                 Xem
                                                             </button>
 
-                                                            <form action="<?= $baseUrl ?>/index.php?controller=adminsetting&action=deleteHistory"
-                                                                  method="POST"
-                                                                  class="d-inline"
-                                                                  onsubmit="return confirm('Xóa bản ghi lịch sử này?')">
-                                                                <input type="hidden" name="id" value="<?= $itemId ?>">
+                                                            <?php if (!$isActiveRecord): ?>
+                                                                <form action="<?= $baseUrl ?>/index.php?controller=adminsetting&action=deleteHistory"
+                                                                      method="POST"
+                                                                      class="d-inline">
+                                                                    <input type="hidden" name="id" value="<?= $itemId ?>">
 
-                                                                <button type="submit" class="btn setting-btn setting-btn-delete">
-                                                                    <i class="fas fa-trash-alt mr-1"></i>
-                                                                    Xóa
-                                                                </button>
-                                                            </form>
+                                                                    <button type="submit"
+                                                                            class="btn setting-btn setting-btn-delete"
+                                                                            data-confirm
+                                                                            data-confirm-title="Xóa bản ghi lịch sử"
+                                                                            data-confirm-ok="Xóa">
+                                                                        <i class="fas fa-trash-alt mr-1"></i>
+                                                                        Xóa
+                                                                    </button>
+                                                                </form>
+                                                            <?php else: ?>
+                                                                <span class="setting-user-badge">
+                                                                    Đang dùng
+                                                                </span>
+                                                            <?php endif; ?>
                                                         </div>
 
                                                         <div class="modal fade setting-modal" id="settingModal<?= $itemId ?>" tabindex="-1" role="dialog" aria-hidden="true">
@@ -216,6 +257,24 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                                                     </div>
 
                                                                     <div class="modal-body setting-modal-body">
+                                                                        <div class="row mb-3">
+                                                                            <div class="col-md-4 mb-3 mb-md-0">
+                                                                                <div class="setting-logo-preview">
+                                                                                    <img src="<?= htmlspecialchars($itemLogoSrc, ENT_QUOTES, 'UTF-8') ?>"
+                                                                                         alt="Logo"
+                                                                                         onerror="this.src='<?= $baseUrl ?>/images/default-logo.png'">
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div class="col-md-8">
+                                                                                <div class="setting-banner-preview">
+                                                                                    <img src="<?= htmlspecialchars($itemBannerSrc, ENT_QUOTES, 'UTF-8') ?>"
+                                                                                         alt="Banner"
+                                                                                         onerror="this.src='<?= $baseUrl ?>/images/default-banner.jpg'">
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+
                                                                         <div class="setting-modal-grid">
                                                                             <div>
                                                                                 <span>Cửa hàng</span>
@@ -232,6 +291,22 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                                                             <div>
                                                                                 <span>Địa chỉ</span>
                                                                                 <strong><?= htmlspecialchars($item['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?></strong>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span>Facebook</span>
+                                                                                <strong><?= htmlspecialchars($item['FacebookUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?></strong>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span>Instagram</span>
+                                                                                <strong><?= htmlspecialchars($item['InstagramUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?></strong>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span>Zalo</span>
+                                                                                <strong><?= htmlspecialchars($item['ZaloUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?></strong>
+                                                                            </div>
+                                                                            <div>
+                                                                                <span>Trạng thái</span>
+                                                                                <strong><?= $isActiveRecord ? 'Đang kích hoạt' : 'Không kích hoạt' ?></strong>
                                                                             </div>
                                                                         </div>
 
@@ -317,6 +392,10 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                        data-preview="bannerPreview">
                                 <label class="custom-file-label" for="BannerFile">Chọn banner...</label>
                             </div>
+
+                            <div class="setting-modal-note mt-3">
+                                <p>Hỗ trợ JPG, JPEG, PNG, WEBP. Dung lượng tối đa 3MB.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -331,26 +410,32 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                         <div class="premium-panel-body">
                             <div class="form-group">
                                 <label class="setting-label">Facebook</label>
-                                <input type="text"
+                                <input type="url"
                                        name="FacebookUrl"
                                        class="form-control setting-input"
-                                       value="<?= htmlspecialchars($currentInfo['FacebookUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                       value="<?= htmlspecialchars($currentInfo['FacebookUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                       maxlength="255"
+                                       placeholder="https://facebook.com/...">
                             </div>
 
                             <div class="form-group">
                                 <label class="setting-label">Instagram</label>
-                                <input type="text"
+                                <input type="url"
                                        name="InstagramUrl"
                                        class="form-control setting-input"
-                                       value="<?= htmlspecialchars($currentInfo['InstagramUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                       value="<?= htmlspecialchars($currentInfo['InstagramUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                       maxlength="255"
+                                       placeholder="https://instagram.com/...">
                             </div>
 
                             <div class="form-group mb-0">
                                 <label class="setting-label">Zalo</label>
-                                <input type="text"
+                                <input type="url"
                                        name="ZaloUrl"
                                        class="form-control setting-input"
-                                       value="<?= htmlspecialchars($currentInfo['ZaloUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                                       value="<?= htmlspecialchars($currentInfo['ZaloUrl'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                       maxlength="255"
+                                       placeholder="https://zalo.me/...">
                             </div>
                         </div>
                     </div>
@@ -375,7 +460,11 @@ $bannerSrc = $banner ? $baseUrl . '/images/' . $banner : $baseUrl . '/images/def
                                 </label>
                             </div>
 
-                            <button type="submit" class="btn setting-submit-btn btn-block">
+                            <button type="submit"
+                                    class="btn setting-submit-btn btn-block"
+                                    data-confirm
+                                    data-confirm-title="Lưu cấu hình website"
+                                    data-confirm-ok="Lưu cấu hình">
                                 <i class="fas fa-save mr-1"></i>
                                 Lưu cấu hình website
                             </button>
@@ -397,6 +486,26 @@ document.querySelectorAll('.setting-file-input').forEach(function (input) {
         const label = this.nextElementSibling;
 
         if (!file || !previewId) {
+            return;
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+        if (!allowedTypes.includes(file.type)) {
+            alert('File ảnh chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP.');
+            this.value = '';
+            if (label) {
+                label.innerText = this.id === 'LogoFile' ? 'Chọn logo...' : 'Chọn banner...';
+            }
+            return;
+        }
+
+        if (file.size > 3 * 1024 * 1024) {
+            alert('Dung lượng ảnh tối đa là 3MB.');
+            this.value = '';
+            if (label) {
+                label.innerText = this.id === 'LogoFile' ? 'Chọn logo...' : 'Chọn banner...';
+            }
             return;
         }
 

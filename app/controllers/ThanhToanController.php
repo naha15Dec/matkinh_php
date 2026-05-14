@@ -4,18 +4,21 @@ require_once BASE_PATH . '/app/models/ThanhToanModel.php';
 require_once BASE_PATH . '/app/models/HomeModel.php';
 require_once BASE_PATH . '/app/helpers/OrderConstants.php';
 
-class ThanhToanController {
+class ThanhToanController
+{
     private $pdo;
     private $model;
     private $homeModel;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->pdo = $pdo;
         $this->model = new ThanhToanModel($pdo);
         $this->homeModel = new HomeModel($pdo);
     }
 
-    private function checkLogin() {
+    private function checkLogin()
+    {
         if (!isset($_SESSION['LoginInformation'])) {
             $_SESSION['NotificationLogin'] = "Bạn cần đăng nhập để thực hiện thanh toán.";
             header("Location: index.php?controller=taikhoan&action=login");
@@ -25,7 +28,8 @@ class ThanhToanController {
         return $_SESSION['LoginInformation'];
     }
 
-    public function index() {
+    public function index()
+    {
         $user = $this->checkLogin();
         $cart = $_SESSION['ShoppingCart'] ?? [];
 
@@ -43,7 +47,8 @@ class ThanhToanController {
         require BASE_PATH . '/views/client/layout.php';
     }
 
-    public function process() {
+    public function process()
+    {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: index.php?controller=thanhtoan");
             exit;
@@ -62,11 +67,18 @@ class ThanhToanController {
         $receiverPhone = trim($_POST['SoDienThoaiNguoiNhan'] ?? '');
         $receiverEmail = trim($_POST['Email'] ?? '');
         $receiverAddress = trim($_POST['DiaChiNhanHang'] ?? '');
-        $method = $_POST['PhuongThucThanhToan'] ?? 'COD';
-        $method = ($method === 'VNPAY') ? 'VNPAY' : 'COD';
+
+        $method = strtoupper(trim($_POST['PhuongThucThanhToan'] ?? PaymentConstants::COD));
+        $method = ($method === PaymentConstants::VNPAY) ? PaymentConstants::VNPAY : PaymentConstants::COD;
 
         if ($receiverName === '' || $receiverPhone === '' || $receiverAddress === '') {
             $_SESSION['error'] = "Vui lòng nhập đầy đủ họ tên, số điện thoại và địa chỉ nhận hàng.";
+            header("Location: index.php?controller=thanhtoan");
+            exit;
+        }
+
+        if ($receiverEmail !== '' && !filter_var($receiverEmail, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = "Email không đúng định dạng.";
             header("Location: index.php?controller=thanhtoan");
             exit;
         }
@@ -81,24 +93,51 @@ class ThanhToanController {
                 'DiaChi'      => $receiverAddress
             ]);
 
+            $validatedItems = [];
             $tongTienHang = 0;
 
             foreach ($cart as $item) {
-                $donGia = (float)($item['DonGia'] ?? 0);
+                $sanPhamId = (int)($item['SanPhamId'] ?? 0);
                 $soLuong = (int)($item['SoLuong'] ?? 0);
 
-                if ($donGia <= 0 || $soLuong <= 0) {
+                if ($sanPhamId <= 0 || $soLuong <= 0) {
                     throw new Exception("Dữ liệu giỏ hàng không hợp lệ.");
                 }
 
-                $tongTienHang += $donGia * $soLuong;
+                $product = $this->model->getProductForCheckout($sanPhamId);
+
+                if (!$product) {
+                    throw new Exception("Một sản phẩm trong giỏ hàng không tồn tại hoặc đã ngừng bán.");
+                }
+
+                if ((int)$product['SoLuongTon'] < $soLuong) {
+                    throw new Exception("Sản phẩm {$product['TenSanPham']} không đủ tồn kho.");
+                }
+
+                $donGia = (float)$product['GiaBan'];
+                $thanhTien = $donGia * $soLuong;
+
+                $validatedItems[] = [
+                    'SanPhamId' => $sanPhamId,
+                    'TenSanPham' => $product['TenSanPham'],
+                    'DonGia' => $donGia,
+                    'SoLuong' => $soLuong,
+                    'GiamGia' => 0,
+                    'ThanhTien' => $thanhTien
+                ];
+
+                $tongTienHang += $thanhTien;
+            }
+
+            if ($tongTienHang <= 0) {
+                throw new Exception("Tổng tiền đơn hàng không hợp lệ.");
             }
 
             $tongGiamGia = 0;
             $phiVanChuyen = $tongTienHang >= 1000000 ? 0 : 30000;
-            $totalFinal = $tongTienHang + $phiVanChuyen;
+            $totalFinal = $tongTienHang + $phiVanChuyen - $tongGiamGia;
 
-            $orderCode = "DH" . date("YmdHis") . rand(10, 99);
+            $orderCode = $this->generateOrderCode();
 
             $orderId = $this->model->createOrder([
                 'code'      => $orderCode,
@@ -110,23 +149,19 @@ class ThanhToanController {
                 'ship'      => $phiVanChuyen,
                 'discount'  => $tongGiamGia,
                 'totalPay'  => $totalFinal,
-                'userId'    => $user['TaiKhoanId'] ?? null,
+                'userId'    => (int)($user['TaiKhoanId'] ?? 0),
                 'method'    => $method
             ]);
 
-            foreach ($cart as $item) {
-                $donGia = (float)($item['DonGia'] ?? 0);
-                $soLuong = (int)($item['SoLuong'] ?? 0);
-                $thanhTien = $donGia * $soLuong;
-
+            foreach ($validatedItems as $item) {
                 $this->model->createOrderDetailAndReduceStock([
                     'dhId'     => $orderId,
-                    'spId'     => (int)$item['SanPhamId'],
+                    'spId'     => $item['SanPhamId'],
                     'name'     => $item['TenSanPham'],
-                    'price'    => $donGia,
-                    'qty'      => $soLuong,
-                    'discount' => 0,
-                    'subtotal' => $thanhTien
+                    'price'    => $item['DonGia'],
+                    'qty'      => $item['SoLuong'],
+                    'discount' => $item['GiamGia'],
+                    'subtotal' => $item['ThanhTien']
                 ]);
             }
 
@@ -134,7 +169,7 @@ class ThanhToanController {
 
             $_SESSION['LastCreatedOrderCode'] = $orderCode;
 
-            if ($method === 'VNPAY') {
+            if ($method === PaymentConstants::VNPAY) {
                 $this->execVnPay($orderCode, $totalFinal);
             }
 
@@ -155,7 +190,8 @@ class ThanhToanController {
         }
     }
 
-    private function execVnPay($orderCode, $amount) {
+    private function execVnPay($orderCode, $amount)
+    {
         $vnp_TmnCode = VNP_TMNCODE;
         $vnp_HashSecret = VNP_HASHSECRET;
         $vnp_Url = VNP_URL;
@@ -164,7 +200,7 @@ class ThanhToanController {
         $inputData = [
             "vnp_Version"    => "2.1.0",
             "vnp_TmnCode"    => $vnp_TmnCode,
-            "vnp_Amount"     => $amount * 100,
+            "vnp_Amount"     => (int)round($amount * 100),
             "vnp_Command"    => "pay",
             "vnp_CreateDate" => date('YmdHis'),
             "vnp_CurrCode"   => "VND",
@@ -183,7 +219,7 @@ class ThanhToanController {
         $i = 0;
 
         foreach ($inputData as $key => $value) {
-            if ($i == 1) {
+            if ($i === 1) {
                 $hashdata .= '&' . urlencode($key) . "=" . urlencode($value);
             } else {
                 $hashdata .= urlencode($key) . "=" . urlencode($value);
@@ -204,7 +240,8 @@ class ThanhToanController {
         exit;
     }
 
-    public function vnpay_return() {
+    public function vnpay_return()
+    {
         $vnp_SecureHash = $_GET['vnp_SecureHash'] ?? '';
 
         $inputData = [];
@@ -216,13 +253,15 @@ class ThanhToanController {
         }
 
         unset($inputData['vnp_SecureHash']);
+        unset($inputData['vnp_SecureHashType']);
+
         ksort($inputData);
 
         $hashData = "";
         $i = 0;
 
         foreach ($inputData as $key => $value) {
-            if ($i == 1) {
+            if ($i === 1) {
                 $hashData .= '&' . urlencode($key) . "=" . urlencode($value);
             } else {
                 $hashData .= urlencode($key) . "=" . urlencode($value);
@@ -232,11 +271,12 @@ class ThanhToanController {
 
         $secureHash = hash_hmac('sha512', $hashData, VNP_HASHSECRET);
 
-        if ($secureHash === $vnp_SecureHash && ($_GET['vnp_ResponseCode'] ?? '') === '00') {
-            $orderCode = $_GET['vnp_TxnRef'] ?? '';
-            $transactionNo = $_GET['vnp_TransactionNo'] ?? null;
+        $orderCode = $_GET['vnp_TxnRef'] ?? '';
+        $responseCode = $_GET['vnp_ResponseCode'] ?? '';
+        $transactionNo = $_GET['vnp_TransactionNo'] ?? null;
 
-            $this->model->updatePaymentStatus($orderCode, 'PAID', $transactionNo);
+        if ($secureHash === $vnp_SecureHash && $responseCode === '00') {
+            $this->model->updatePaymentStatus($orderCode, PaymentConstants::PAID, $transactionNo);
 
             $_SESSION['LastCreatedOrderCode'] = $orderCode;
             $_SESSION['ShoppingCart'] = [];
@@ -246,12 +286,17 @@ class ThanhToanController {
             exit;
         }
 
+        if ($secureHash === $vnp_SecureHash && $orderCode !== '') {
+            $this->model->cancelFailedVnpayOrder($orderCode, $transactionNo);
+        }
+
         $_SESSION['error'] = "Thanh toán thất bại hoặc đã bị hủy.";
         header("Location: index.php?controller=giohang");
         exit;
     }
 
-    public function success() {
+    public function success()
+    {
         $storeInfo = $this->homeModel->getStoreInfo();
 
         $orderCode = $_SESSION['LastCreatedOrderCode'] ?? null;
@@ -270,5 +315,14 @@ class ThanhToanController {
         $viewContent = BASE_PATH . '/views/client/checkout_success.php';
 
         require BASE_PATH . '/views/client/layout.php';
+    }
+
+    private function generateOrderCode()
+    {
+        do {
+            $code = "DH" . date("YmdHis") . rand(100, 999);
+        } while ($this->model->orderCodeExists($code));
+
+        return $code;
     }
 }

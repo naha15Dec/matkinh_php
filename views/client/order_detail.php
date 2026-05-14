@@ -5,11 +5,29 @@ if (!function_exists('formatMoney')) {
     }
 }
 
+if (!function_exists('clientOrderImageSrc')) {
+    function clientOrderImageSrc($image, $baseUrl) {
+        $image = trim((string)$image);
+
+        if ($image === '') {
+            return $baseUrl . '/images/no-image.png';
+        }
+
+        if (preg_match('/^https?:\/\//i', $image)) {
+            return $image;
+        }
+
+        return $baseUrl . '/images/' . ltrim($image, '/');
+    }
+}
+
 $order = $order ?? [];
 $items = $order['items'] ?? [];
+$baseUrl = $baseUrl ?? '';
 
 $status = (int)($order['TrangThai'] ?? 1);
-$paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
+$paymentStatus = $order['TrangThaiThanhToan'] ?? PaymentConstants::PENDING;
+$isPaid = strtoupper($paymentStatus) === strtoupper(PaymentConstants::PAID);
 ?>
 
 <section class="order-detail-page-modern">
@@ -32,19 +50,53 @@ $paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
 
     <section class="order-detail-section">
         <div class="container">
+
+            <?php if (isset($_SESSION['ProfileSuccess'])): ?>
+                <div class="alert alert-success page-alert">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <?= htmlspecialchars($_SESSION['ProfileSuccess'], ENT_QUOTES, 'UTF-8') ?>
+                    <?php unset($_SESSION['ProfileSuccess']); ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="alert alert-danger page-alert">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+                    <?php unset($_SESSION['error']); ?>
+                </div>
+            <?php endif; ?>
+
             <div class="order-detail-shell">
 
                 <div class="order-detail-header">
                     <div>
                         <span>Order Details</span>
-                        <h2>#<?= htmlspecialchars($order['MaDonHang'] ?? '') ?></h2>
+                        <h2>#<?= htmlspecialchars($order['MaDonHang'] ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
                         <p>Thông tin chi tiết về đơn hàng và trạng thái xử lý.</p>
                     </div>
 
-                    <a href="index.php?controller=profile" class="btn-order-back">
-                        <i class="fas fa-arrow-left"></i>
-                        Quay lại
-                    </a>
+                    <div class="order-detail-actions">
+                        <?php if ($status === OrderStatusConstants::PENDING): ?>
+                            <form action="index.php?controller=profile&action=cancelOrder"
+                                  method="POST"
+                                  onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng này không?');">
+                                <input type="hidden"
+                                       name="MaDonHang"
+                                       value="<?= htmlspecialchars($order['MaDonHang'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+                                <button type="submit" class="btn-order-cancel-detail">
+                                    <i class="fas fa-times-circle"></i>
+                                    Hủy đơn hàng
+                                </button>
+                            </form>
+                        <?php endif; ?>
+
+                        <a href="index.php?controller=profile" class="btn-order-back">
+                            <i class="fas fa-arrow-left"></i>
+                            Quay lại
+                        </a>
+                    </div>
                 </div>
 
                 <div class="order-detail-grid">
@@ -55,16 +107,16 @@ $paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
 
                         <div>
                             <span>Người nhận</span>
-                            <h3><?= htmlspecialchars($order['HoTenNguoiNhan'] ?? '') ?></h3>
+                            <h3><?= htmlspecialchars($order['HoTenNguoiNhan'] ?? '', ENT_QUOTES, 'UTF-8') ?></h3>
 
                             <p>
                                 <i class="fas fa-phone-alt"></i>
-                                <?= htmlspecialchars($order['SoDienThoaiNguoiNhan'] ?? '') ?>
+                                <?= htmlspecialchars($order['SoDienThoaiNguoiNhan'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                             </p>
 
                             <p>
                                 <i class="fas fa-map-marker-alt"></i>
-                                <?= htmlspecialchars($order['DiaChiNhanHang'] ?? '') ?>
+                                <?= htmlspecialchars($order['DiaChiNhanHang'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                             </p>
                         </div>
                     </div>
@@ -76,7 +128,7 @@ $paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
 
                         <div>
                             <span>Trạng thái đơn hàng</span>
-                            <h3><?= OrderStatusConstants::getName($status) ?></h3>
+                            <h3><?= htmlspecialchars(OrderStatusConstants::getName($status), ENT_QUOTES, 'UTF-8') ?></h3>
 
                             <p>
                                 <i class="far fa-calendar-alt"></i>
@@ -84,7 +136,7 @@ $paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
                             </p>
 
                             <div class="order-status <?= OrderStatusConstants::getBadgeClass($status) ?>">
-                                <?= OrderStatusConstants::getName($status) ?>
+                                <?= htmlspecialchars(OrderStatusConstants::getName($status), ENT_QUOTES, 'UTF-8') ?>
                             </div>
                         </div>
                     </div>
@@ -96,9 +148,9 @@ $paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
 
                         <div>
                             <span>Thanh toán</span>
-                            <h3><?= htmlspecialchars($order['PhuongThucThanhToan'] ?? 'COD') ?></h3>
+                            <h3><?= htmlspecialchars($order['PhuongThucThanhToan'] ?? PaymentConstants::COD, ENT_QUOTES, 'UTF-8') ?></h3>
 
-                            <?php if ($paymentStatus === PaymentConstants::PAID): ?>
+                            <?php if ($isPaid): ?>
                                 <div class="payment-badge paid">
                                     <i class="fas fa-check-circle"></i>
                                     Đã thanh toán
@@ -108,6 +160,13 @@ $paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
                                     <i class="far fa-clock"></i>
                                     Chưa thanh toán
                                 </div>
+                            <?php endif; ?>
+
+                            <?php if (!empty($order['NgayThanhToan'])): ?>
+                                <p>
+                                    <i class="far fa-calendar-check"></i>
+                                    <?= date('d/m/Y H:i', strtotime($order['NgayThanhToan'])) ?>
+                                </p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -122,28 +181,64 @@ $paymentStatus = strtoupper($order['TrangThaiThanhToan'] ?? 'PENDING');
                     </div>
 
                     <div class="order-product-list">
-                        <?php foreach ($items as $item): ?>
-                            <div class="order-product-row">
-                                <div class="order-product-name">
-                                    <strong><?= htmlspecialchars($item['TenSanPhamSnapshot'] ?? 'Sản phẩm') ?></strong>
-                                </div>
+                        <?php if (!empty($items)): ?>
+                            <?php foreach ($items as $item): ?>
+                                <?php
+                                $productName = $item['TenSanPhamSnapshot']
+                                    ?? $item['TenSanPhamHienTai']
+                                    ?? 'Sản phẩm';
 
-                                <div class="order-product-price">
-                                    <span>Đơn giá</span>
-                                    <strong><?= formatMoney($item['DonGiaSnapshot'] ?? 0) ?></strong>
-                                </div>
+                                $imageSrc = clientOrderImageSrc($item['HinhAnhChinh'] ?? '', $baseUrl);
+                                $price = (float)($item['DonGiaSnapshot'] ?? 0);
+                                $discount = (float)($item['GiamGiaSnapshot'] ?? 0);
+                                $qty = (int)($item['SoLuong'] ?? 0);
+                                $lineTotal = (float)($item['ThanhTien'] ?? (($price - $discount) * $qty));
+                                ?>
 
-                                <div class="order-product-qty">
-                                    <span>Số lượng</span>
-                                    <strong><?= (int)($item['SoLuong'] ?? 0) ?></strong>
-                                </div>
+                                <div class="order-product-row">
+                                    <div class="order-product-name">
+                                        <div class="order-product-client-thumb">
+                                            <img src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
+                                                 alt="<?= htmlspecialchars($productName, ENT_QUOTES, 'UTF-8') ?>"
+                                                 onerror="this.src='<?= $baseUrl ?>/images/no-image.png'">
+                                        </div>
 
-                                <div class="order-product-total">
-                                    <span>Thành tiền</span>
-                                    <strong><?= formatMoney($item['ThanhTien'] ?? 0) ?></strong>
+                                        <div>
+                                            <strong><?= htmlspecialchars($productName, ENT_QUOTES, 'UTF-8') ?></strong>
+
+                                            <?php if (!empty($item['MaSanPham'])): ?>
+                                                <small><?= htmlspecialchars($item['MaSanPham'], ENT_QUOTES, 'UTF-8') ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="order-product-price">
+                                        <span>Đơn giá</span>
+                                        <strong><?= formatMoney($price) ?></strong>
+
+                                        <?php if ($discount > 0): ?>
+                                            <small>Giảm <?= formatMoney($discount) ?></small>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="order-product-qty">
+                                        <span>Số lượng</span>
+                                        <strong><?= $qty ?></strong>
+                                    </div>
+
+                                    <div class="order-product-total">
+                                        <span>Thành tiền</span>
+                                        <strong><?= formatMoney($lineTotal) ?></strong>
+                                    </div>
                                 </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="profile-empty-order">
+                                <i class="fas fa-box-open"></i>
+                                <h4>Không có sản phẩm</h4>
+                                <p>Đơn hàng này chưa có sản phẩm nào.</p>
                             </div>
-                        <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
 

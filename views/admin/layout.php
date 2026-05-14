@@ -3,57 +3,62 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$baseUrl = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-if ($baseUrl === '\\' || $baseUrl === '/') {
-    $baseUrl = '';
+if (!isset($pdo)) {
+    global $pdo;
 }
+
+require_once BASE_PATH . '/views/admin/layout_data.php';
 
 $title = $title ?? "Admin";
 $viewContent = $viewContent ?? null;
 
-$account = $_SESSION['LoginInformation'] ?? null;
+$sessionAccount = $sessionAccount ?? ($_SESSION['LoginInformation'] ?? []);
+$roleCode = $roleCode ?? strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
 
-$displayName = $account['HoTen'] ?? "Tài khoản";
-$displayUsername = $account['TenDangNhap'] ?? "";
-$roleCode = strtoupper(trim($account['MaVaiTro'] ?? ""));
-$roleName = $account['TenVaiTro'] ?? $roleCode;
+$isAdmin = $isAdmin ?? ($roleCode === 'ADMIN');
+$isStaff = $isStaff ?? ($roleCode === 'STAFF');
+$isShipper = $isShipper ?? ($roleCode === 'SHIPPER');
 
-$isAdmin = $roleCode === 'ADMIN';
-$isStaff = $roleCode === 'STAFF';
-$isShipper = $roleCode === 'SHIPPER';
+$displayName = $displayName ?? ($sessionAccount['HoTen'] ?? $sessionAccount['TenDangNhap'] ?? 'Tài khoản');
+$displayUsername = $displayUsername ?? ($sessionAccount['TenDangNhap'] ?? '');
+$roleName = $roleName ?? ($sessionAccount['TenVaiTro'] ?? $roleCode);
+
+$numberOfBlogWaitingApproval = $numberOfBlogWaitingApproval ?? 0;
+$numberOfOrderProcessing = $numberOfOrderProcessing ?? 0;
+$numberOfAssignedOrders = $numberOfAssignedOrders ?? 0;
+
+$avatar = $avatar ?? '/BanMatKinh/public/images/admin/default-avatar.png';
+$avatarText = $avatarText ?? strtoupper(mb_substr($displayName ?: 'A', 0, 1, 'UTF-8'));
 
 $currentController = strtolower($_GET['controller'] ?? 'dashboard');
 
-$numberOfOrderProcessing = $numberOfOrderProcessing ?? 0;
-$numberOfAssignedOrders = $numberOfAssignedOrders ?? 0;
-$numberOfBlogWaitingApproval = $numberOfBlogWaitingApproval ?? 0;
-
-function isActive($controller, $currentController) {
-    return strtolower($controller) === strtolower($currentController) ? 'active' : '';
-}
-
-function isMenuOpen($controllers, $currentController) {
-    return in_array(strtolower($currentController), array_map('strtolower', $controllers)) ? 'menu-open' : '';
-}
-
-function isGroupActive($controllers, $currentController) {
-    return in_array(strtolower($currentController), array_map('strtolower', $controllers)) ? 'active' : '';
-}
-
-function assetPath($path, $baseUrl) {
-    return $baseUrl . '/' . ltrim($path, '/');
-}
-
-$rawAvatar = $account['AnhDaiDien'] ?? '';
-
-if (!empty($rawAvatar)) {
-    if (preg_match('/^(http|https):\/\//', $rawAvatar) || str_starts_with($rawAvatar, '/')) {
-        $avatar = $rawAvatar;
-    } else {
-        $avatar = assetPath($rawAvatar, $baseUrl);
+if (!function_exists('isActive')) {
+    function isActive($controller, $currentController)
+    {
+        return strtolower($controller) === strtolower($currentController) ? 'active' : '';
     }
-} else {
-    $avatar = assetPath('img/default-avatar.png', $baseUrl);
+}
+
+if (!function_exists('isMenuOpen')) {
+    function isMenuOpen($controllers, $currentController)
+    {
+        return in_array(
+            strtolower($currentController),
+            array_map('strtolower', $controllers),
+            true
+        ) ? 'menu-open' : '';
+    }
+}
+
+if (!function_exists('isGroupActive')) {
+    function isGroupActive($controllers, $currentController)
+    {
+        return in_array(
+            strtolower($currentController),
+            array_map('strtolower', $controllers),
+            true
+        ) ? 'active' : '';
+    }
 }
 ?>
 
@@ -62,21 +67,24 @@ if (!empty($rawAvatar)) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= htmlspecialchars($title) ?> - Karma Eyewear Admin</title>
+    <title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?> - Karma Eyewear Admin</title>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,500,600,700&display=fallback">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-layout.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-dashboard.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-account.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-blog.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-brand.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-order.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-product.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-type.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-setting.css', $baseUrl) ?>">
-    <link rel="stylesheet" href="<?= assetPath('css/admin-revenue.css', $baseUrl) ?>">
+
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-layout.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-dashboard.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-account.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-blog.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-brand.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-order.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-product.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-type.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-setting.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-revenue.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/admin-profile.css">
+    <link rel="stylesheet" href="/BanMatKinh/public/css/premium-confirm.css">
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed admin-eyewear-body">
@@ -91,7 +99,7 @@ if (!empty($rawAvatar)) {
             </li>
 
             <li class="nav-item d-none d-sm-inline-block">
-                <a href="<?= assetPath('index.php', $baseUrl) ?>" class="nav-link admin-home-link">
+                <a href="/BanMatKinh/public/index.php?controller=home" class="nav-link admin-home-link">
                     <i class="fas fa-globe-asia mr-1"></i>
                     Trang chủ website
                 </a>
@@ -108,27 +116,38 @@ if (!empty($rawAvatar)) {
 
             <li class="nav-item dropdown user-menu">
                 <a href="#" class="nav-link dropdown-toggle admin-user-toggle" data-toggle="dropdown">
-                    <img src="<?= htmlspecialchars($avatar) ?>" class="user-image img-circle elevation-2" alt="User">
-                    <span class="d-none d-md-inline"><?= htmlspecialchars($displayName) ?></span>
+                    <img src="<?= htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') ?>"
+                         class="user-image img-circle elevation-2"
+                         alt="User"
+                         onerror="this.src='/BanMatKinh/public/images/admin/default-avatar.png'">
+
+                    <span class="d-none d-md-inline">
+                        <?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>
+                    </span>
                 </a>
 
                 <ul class="dropdown-menu dropdown-menu-lg dropdown-menu-right admin-user-dropdown">
                     <li class="user-header">
-                        <img src="<?= htmlspecialchars($avatar) ?>" class="img-circle elevation-2" alt="User">
+                        <img src="<?= htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') ?>"
+                             class="img-circle elevation-2"
+                             alt="User"
+                             onerror="this.src='/BanMatKinh/public/images/admin/default-avatar.png'">
 
                         <p>
-                            <?= htmlspecialchars($displayName) ?>
-                            <small><?= htmlspecialchars($displayUsername) ?></small>
-                            <small><?= htmlspecialchars($roleName) ?></small>
+                            <?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>
+                            <small><?= htmlspecialchars($displayUsername, ENT_QUOTES, 'UTF-8') ?></small>
+                            <small><?= htmlspecialchars($roleName, ENT_QUOTES, 'UTF-8') ?></small>
                         </p>
                     </li>
 
                     <li class="user-footer">
-                        <a href="<?= assetPath('index.php?controller=adminprofile', $baseUrl) ?>" class="btn btn-outline-dark btn-sm">
+                        <a href="/BanMatKinh/public/index.php?controller=adminprofile"
+                           class="btn btn-outline-dark btn-sm">
                             Hồ sơ
                         </a>
 
-                        <a href="<?= assetPath('index.php?controller=taikhoan&action=logout', $baseUrl) ?>" class="btn btn-dark btn-sm float-right">
+                        <a href="/BanMatKinh/public/index.php?controller=taikhoan&action=logout"
+                           class="btn btn-dark btn-sm float-right">
                             Đăng xuất
                         </a>
                     </li>
@@ -144,33 +163,46 @@ if (!empty($rawAvatar)) {
     </nav>
 
     <aside class="main-sidebar admin-sidebar elevation-4">
-        <a href="<?= assetPath('index.php?controller=dashboard', $baseUrl) ?>" class="brand-link admin-brand">
+        <a href="/BanMatKinh/public/index.php?controller=dashboard" class="brand-link admin-brand">
             <span class="brand-mark">K</span>
             <span class="brand-text">Karma Eyewear</span>
         </a>
 
         <div class="sidebar">
             <div class="admin-sidebar-user">
-                <img src="<?= htmlspecialchars($avatar) ?>" class="admin-sidebar-avatar" alt="Avatar">
+                <img src="<?= htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') ?>"
+                     class="admin-sidebar-avatar"
+                     alt="Avatar"
+                     onerror="this.src='/BanMatKinh/public/images/admin/default-avatar.png'">
 
                 <div>
-                    <div class="admin-sidebar-name"><?= htmlspecialchars($displayName) ?></div>
-                    <div class="admin-sidebar-role"><?= htmlspecialchars($roleName) ?></div>
+                    <div class="admin-sidebar-name">
+                        <?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+
+                    <div class="admin-sidebar-role">
+                        <?= htmlspecialchars($roleName, ENT_QUOTES, 'UTF-8') ?>
+                    </div>
                 </div>
             </div>
 
             <nav class="mt-3">
-                <ul class="nav nav-pills nav-sidebar flex-column admin-menu" data-widget="treeview" role="menu" data-accordion="false">
+                <ul class="nav nav-pills nav-sidebar flex-column admin-menu"
+                    data-widget="treeview"
+                    role="menu"
+                    data-accordion="false">
 
                     <li class="nav-item">
-                        <a href="<?= assetPath('index.php?controller=dashboard', $baseUrl) ?>" class="nav-link <?= isActive('dashboard', $currentController) ?>">
+                        <a href="/BanMatKinh/public/index.php?controller=dashboard"
+                           class="nav-link <?= isActive('dashboard', $currentController) ?>">
                             <i class="nav-icon fas fa-th-large"></i>
                             <p>Dashboard</p>
                         </a>
                     </li>
 
                     <li class="nav-item">
-                        <a href="<?= assetPath('index.php?controller=adminprofile', $baseUrl) ?>" class="nav-link <?= isActive('adminprofile', $currentController) ?>">
+                        <a href="/BanMatKinh/public/index.php?controller=adminprofile"
+                           class="nav-link <?= isActive('adminprofile', $currentController) ?>">
                             <i class="nav-icon fas fa-user-circle"></i>
                             <p>Hồ sơ cá nhân</p>
                         </a>
@@ -180,12 +212,15 @@ if (!empty($rawAvatar)) {
                         <li class="nav-header">TÁC NGHIỆP</li>
 
                         <li class="nav-item">
-                            <a href="<?= assetPath('index.php?controller=admindonhang', $baseUrl) ?>" class="nav-link <?= isActive('admindonhang', $currentController) ?>">
+                            <a href="/BanMatKinh/public/index.php?controller=admindonhang"
+                               class="nav-link <?= isActive('admindonhang', $currentController) ?>">
                                 <i class="nav-icon fas fa-shopping-bag"></i>
                                 <p>
                                     Đơn hàng
                                     <?php if ($numberOfOrderProcessing > 0): ?>
-                                        <span class="badge badge-danger right"><?= (int)$numberOfOrderProcessing ?></span>
+                                        <span class="badge badge-danger right">
+                                            <?= (int)$numberOfOrderProcessing ?>
+                                        </span>
                                     <?php endif; ?>
                                 </p>
                             </a>
@@ -194,19 +229,24 @@ if (!empty($rawAvatar)) {
                         <li class="nav-item has-treeview <?= isMenuOpen(['adminsanpham'], $currentController) ?>">
                             <a href="#" class="nav-link <?= isActive('adminsanpham', $currentController) ?>">
                                 <i class="nav-icon fas fa-glasses"></i>
-                                <p>Sản phẩm <i class="right fas fa-angle-left"></i></p>
+                                <p>
+                                    Sản phẩm
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
 
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <a href="<?= assetPath('index.php?controller=adminsanpham&action=edit', $baseUrl) ?>" class="nav-link">
+                                    <a href="/BanMatKinh/public/index.php?controller=adminsanpham&action=edit"
+                                       class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Thêm sản phẩm</p>
                                     </a>
                                 </li>
 
                                 <li class="nav-item">
-                                    <a href="<?= assetPath('index.php?controller=adminsanpham', $baseUrl) ?>" class="nav-link">
+                                    <a href="/BanMatKinh/public/index.php?controller=adminsanpham"
+                                       class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Danh sách sản phẩm</p>
                                     </a>
@@ -217,19 +257,24 @@ if (!empty($rawAvatar)) {
                         <li class="nav-item has-treeview <?= isMenuOpen(['adminblog'], $currentController) ?>">
                             <a href="#" class="nav-link <?= isActive('adminblog', $currentController) ?>">
                                 <i class="nav-icon fas fa-newspaper"></i>
-                                <p>Bài viết <i class="right fas fa-angle-left"></i></p>
+                                <p>
+                                    Bài viết
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
 
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <a href="<?= assetPath('index.php?controller=adminblog&action=edit', $baseUrl) ?>" class="nav-link">
+                                    <a href="/BanMatKinh/public/index.php?controller=adminblog&action=edit"
+                                       class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Thêm bài viết</p>
                                     </a>
                                 </li>
 
                                 <li class="nav-item">
-                                    <a href="<?= assetPath('index.php?controller=adminblog', $baseUrl) ?>" class="nav-link">
+                                    <a href="/BanMatKinh/public/index.php?controller=adminblog"
+                                       class="nav-link">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Danh sách bài viết</p>
                                     </a>
@@ -242,12 +287,15 @@ if (!empty($rawAvatar)) {
                         <li class="nav-header">GIAO HÀNG</li>
 
                         <li class="nav-item">
-                            <a href="<?= assetPath('index.php?controller=admindonhang', $baseUrl) ?>" class="nav-link <?= isActive('admindonhang', $currentController) ?>">
+                            <a href="/BanMatKinh/public/index.php?controller=admindonhang"
+                               class="nav-link <?= isActive('admindonhang', $currentController) ?>">
                                 <i class="nav-icon fas fa-truck"></i>
                                 <p>
                                     Đơn được giao
                                     <?php if ($numberOfAssignedOrders > 0): ?>
-                                        <span class="badge badge-danger right"><?= (int)$numberOfAssignedOrders ?></span>
+                                        <span class="badge badge-danger right">
+                                            <?= (int)$numberOfAssignedOrders ?>
+                                        </span>
                                     <?php endif; ?>
                                 </p>
                             </a>
@@ -258,33 +306,42 @@ if (!empty($rawAvatar)) {
                         <li class="nav-header">QUẢN TRỊ</li>
 
                         <li class="nav-item">
-                            <a href="<?= assetPath('index.php?controller=adminblog&status=draft', $baseUrl) ?>" class="nav-link <?= isActive('adminblog', $currentController) ?>">
+                            <a href="/BanMatKinh/public/index.php?controller=adminblog&status=draft"
+                               class="nav-link <?= isActive('adminblog', $currentController) ?>">
                                 <i class="nav-icon fas fa-check-circle"></i>
                                 <p>
                                     Kiểm duyệt bài viết
                                     <?php if ($numberOfBlogWaitingApproval > 0): ?>
-                                        <span class="badge badge-danger right"><?= (int)$numberOfBlogWaitingApproval ?></span>
+                                        <span class="badge badge-danger right">
+                                            <?= (int)$numberOfBlogWaitingApproval ?>
+                                        </span>
                                     <?php endif; ?>
                                 </p>
                             </a>
                         </li>
 
                         <li class="nav-item has-treeview <?= isMenuOpen(['admintype', 'adminbrand'], $currentController) ?>">
-                            <a href="#" class="nav-link <?= isGroupActive(['admintype', 'adminbrand'], $currentController) ?>">
+                            <a href="#"
+                               class="nav-link <?= isGroupActive(['admintype', 'adminbrand'], $currentController) ?>">
                                 <i class="nav-icon fas fa-tags"></i>
-                                <p>Danh mục hệ thống <i class="right fas fa-angle-left"></i></p>
+                                <p>
+                                    Danh mục hệ thống
+                                    <i class="right fas fa-angle-left"></i>
+                                </p>
                             </a>
 
                             <ul class="nav nav-treeview">
                                 <li class="nav-item">
-                                    <a href="<?= assetPath('index.php?controller=admintype', $baseUrl) ?>" class="nav-link <?= isActive('admintype', $currentController) ?>">
+                                    <a href="/BanMatKinh/public/index.php?controller=admintype"
+                                       class="nav-link <?= isActive('admintype', $currentController) ?>">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Loại sản phẩm</p>
                                     </a>
                                 </li>
 
                                 <li class="nav-item">
-                                    <a href="<?= assetPath('index.php?controller=adminbrand', $baseUrl) ?>" class="nav-link <?= isActive('adminbrand', $currentController) ?>">
+                                    <a href="/BanMatKinh/public/index.php?controller=adminbrand"
+                                       class="nav-link <?= isActive('adminbrand', $currentController) ?>">
                                         <i class="far fa-circle nav-icon"></i>
                                         <p>Thương hiệu</p>
                                     </a>
@@ -293,21 +350,24 @@ if (!empty($rawAvatar)) {
                         </li>
 
                         <li class="nav-item">
-                            <a href="<?= assetPath('index.php?controller=admintaikhoan', $baseUrl) ?>" class="nav-link <?= isActive('admintaikhoan', $currentController) ?>">
+                            <a href="/BanMatKinh/public/index.php?controller=admintaikhoan"
+                               class="nav-link <?= isActive('admintaikhoan', $currentController) ?>">
                                 <i class="nav-icon fas fa-users-cog"></i>
                                 <p>Quản lý tài khoản</p>
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a href="<?= assetPath('index.php?controller=adminrevenue', $baseUrl) ?>" class="nav-link <?= isActive('adminrevenue', $currentController) ?>">
+                            <a href="/BanMatKinh/public/index.php?controller=adminrevenue"
+                               class="nav-link <?= isActive('adminrevenue', $currentController) ?>">
                                 <i class="nav-icon fas fa-chart-line"></i>
                                 <p>Doanh thu</p>
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a href="<?= assetPath('index.php?controller=adminsetting', $baseUrl) ?>" class="nav-link <?= isActive('adminsetting', $currentController) ?>">
+                            <a href="/BanMatKinh/public/index.php?controller=adminsetting"
+                               class="nav-link <?= isActive('adminsetting', $currentController) ?>">
                                 <i class="nav-icon fas fa-store"></i>
                                 <p>Thông tin cửa hàng</p>
                             </a>
@@ -342,9 +402,18 @@ if (!empty($rawAvatar)) {
 
 </div>
 
+<?php
+$confirmModal = BASE_PATH . '/views/shared/_premium_confirm_modal.php';
+
+if (file_exists($confirmModal)) {
+    require_once $confirmModal;
+}
+?>
+
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+<script src="/BanMatKinh/public/js/premium-confirm.js"></script>
 
 </body>
-</html>
+</html> 

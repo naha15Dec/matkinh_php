@@ -1,11 +1,8 @@
 <?php
+require_once BASE_PATH . '/app/helpers/OrderConstants.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-}
-
-$baseUrl = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-if ($baseUrl === '\\' || $baseUrl === '/') {
-    $baseUrl = '';
 }
 
 if (!isset($pdo)) {
@@ -13,7 +10,7 @@ if (!isset($pdo)) {
 }
 
 if (!$pdo) {
-    die("Lỗi hệ thống: Kết nối cơ sở dữ liệu (PDO) bị mất tại layout_data.php. Vui lòng kiểm tra lại Controller.");
+    die("Lỗi hệ thống: Kết nối cơ sở dữ liệu PDO bị mất tại layout_data.php.");
 }
 
 $sessionAccount = $_SESSION['LoginInformation'] ?? null;
@@ -21,11 +18,15 @@ $isLoggedIn = $sessionAccount !== null;
 
 $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
 
-if (!$isLoggedIn || !in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER'])) {
-    $_SESSION['error'] = "Bạn không có quyền truy cập khu vực này.";
-    header("Location: {$baseUrl}/index.php?controller=taikhoan&action=login");
+if (!$isLoggedIn || !in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER'], true)) {
+    $_SESSION['error'] = "Bạn không có quyền truy cập khu vực quản trị.";
+    header("Location: /BanMatKinh/public/index.php?controller=taikhoan&action=login");
     exit();
 }
+
+$isAdmin = $roleCode === 'ADMIN';
+$isStaff = $roleCode === 'STAFF';
+$isShipper = $roleCode === 'SHIPPER';
 
 $numberOfBlogWaitingApproval = 0;
 $numberOfOrderProcessing = 0;
@@ -35,47 +36,86 @@ $totalProducts = 0;
 $totalRevenue = 0;
 
 try {
-    if ($roleCode === 'ADMIN') {
-        $stmt = $pdo->query("
-            SELECT COUNT(*) 
-            FROM baiviet 
-            WHERE TrangThai = 0
+    if ($isAdmin) {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM baiviet
+            WHERE TrangThai = ?
         ");
+        $stmt->execute([0]);
         $numberOfBlogWaitingApproval = (int)$stmt->fetchColumn();
     }
 
-    if (in_array($roleCode, ['ADMIN', 'STAFF'])) {
-        $stmt = $pdo->query("
-            SELECT COUNT(*) 
-            FROM donhang 
-            WHERE TrangThai NOT IN (4, 5)
+    if ($isAdmin || $isStaff) {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*)
+            FROM donhang
+            WHERE TrangThai IN (?, ?, ?, ?, ?)
         ");
+
+        $stmt->execute([
+            OrderStatusConstants::PENDING,
+            OrderStatusConstants::CONFIRMED,
+            OrderStatusConstants::PREPARING,
+            OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+            OrderStatusConstants::DELIVERING
+        ]);
+
         $numberOfOrderProcessing = (int)$stmt->fetchColumn();
 
         $stmt = $pdo->query("
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
             FROM sanpham
+            WHERE TrangThai = 1
         ");
+
         $totalProducts = (int)$stmt->fetchColumn();
     }
 
-    if ($roleCode === 'SHIPPER') {
+    if ($isShipper) {
         $stmt = $pdo->prepare("
-            SELECT COUNT(*) 
-            FROM donhang 
-            WHERE ShipperId = ? 
-            AND TrangThai NOT IN (4, 5)
+            SELECT COUNT(*)
+            FROM donhang
+            WHERE ShipperId = ?
+              AND TrangThai IN (?, ?, ?)
         ");
-        $stmt->execute([$sessionAccount['TaiKhoanId'] ?? 0]);
+
+        $stmt->execute([
+            (int)($sessionAccount['TaiKhoanId'] ?? 0),
+            OrderStatusConstants::ASSIGNED_TO_SHIPPER,
+            OrderStatusConstants::DELIVERING,
+            OrderStatusConstants::DELIVERY_FAILED
+        ]);
+
         $numberOfAssignedOrders = (int)$stmt->fetchColumn();
     }
 
-    if ($roleCode === 'ADMIN') {
-        $stmt = $pdo->query("
-            SELECT COALESCE(SUM(TongThanhToan), 0) 
-            FROM donhang 
-            WHERE TrangThai = 4
+    if ($isAdmin) {
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(
+                CASE
+                    WHEN TrangThai = ?
+                         AND (
+                            PhuongThucThanhToan = ?
+                            OR (
+                                PhuongThucThanhToan = ?
+                                AND TrangThaiThanhToan = ?
+                            )
+                         )
+                    THEN TongThanhToan
+                    ELSE 0
+                END
+            ), 0)
+            FROM donhang
         ");
+
+        $stmt->execute([
+            OrderStatusConstants::DELIVERED,
+            PaymentConstants::COD,
+            PaymentConstants::VNPAY,
+            PaymentConstants::PAID
+        ]);
+
         $totalRevenue = (float)$stmt->fetchColumn();
     }
 } catch (PDOException $e) {
@@ -91,17 +131,18 @@ $displayName = !empty($sessionAccount['HoTen'])
     : ($sessionAccount['TenDangNhap'] ?? 'Tài khoản');
 
 $displayUsername = $sessionAccount['TenDangNhap'] ?? '';
-$roleName = $sessionAccount['TenVaiTro'] ?? 'Nhân viên';
+$roleName = $sessionAccount['TenVaiTro'] ?? $roleCode;
 
 $rawAvatar = $sessionAccount['AnhDaiDien'] ?? '';
 
+$avatarText = strtoupper(mb_substr($displayName ?: 'A', 0, 1, 'UTF-8'));
+
 if (!empty($rawAvatar)) {
-    if (str_starts_with($rawAvatar, 'http') || str_starts_with($rawAvatar, '/')) {
+    if (preg_match('/^https?:\/\//i', $rawAvatar) || str_starts_with($rawAvatar, '/')) {
         $avatar = $rawAvatar;
     } else {
-        $avatar = $baseUrl . "/images/" . ltrim($rawAvatar, '/');
+        $avatar = '/BanMatKinh/public/images/' . ltrim($rawAvatar, '/');
     }
 } else {
-    $avatar = $baseUrl . "/assets/img/image_Account.jpg";
+    $avatar = '/BanMatKinh/public/images/admin/default-avatar.png';
 }
-?>

@@ -1,10 +1,45 @@
 <?php
 if (!function_exists('normalizeImg')) {
     function normalizeImg($path) {
-        if (empty($path)) return "/BanMatKinh/public/images/no-image.png";
-        if (strpos($path, 'http') === 0) return $path;
-        if (strpos($path, '/BanMatKinh/') === 0) return $path;
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return "/BanMatKinh/public/images/no-image.png";
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/BanMatKinh/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return '/BanMatKinh/' . ltrim($path, '/');
+        }
+
         return "/BanMatKinh/public/images/" . ltrim($path, '/');
+    }
+}
+
+if (!function_exists('shortText')) {
+    function shortText($text, $limit = 120) {
+        $text = trim(strip_tags((string)$text));
+
+        if ($text === '') {
+            return 'Bài viết đang được cập nhật nội dung tóm tắt.';
+        }
+
+        if (mb_strlen($text, 'UTF-8') <= $limit) {
+            return $text;
+        }
+
+        return mb_substr($text, 0, $limit, 'UTF-8') . '...';
     }
 }
 
@@ -32,21 +67,34 @@ $keyword = $keyword ?? '';
 
     <section class="blog-section-modern">
         <div class="container">
+
+            <?php if (!empty($_SESSION['error'])): ?>
+                <div class="alert alert-danger page-alert">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
+                </div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-lg-8">
                     <?php if (!empty($listPost)): ?>
                         <div class="row">
                             <?php foreach ($listPost as $post): ?>
                                 <?php
-                                    $blogId = $post['BaiVietId'] ?? 0;
-                                    $date = $post['NgayDang'] ?? $post['CreatedAt'] ?? null;
+                                $blogId = (int)($post['BaiVietId'] ?? 0);
+                                $date = $post['NgayDang'] ?? $post['CreatedAt'] ?? null;
+                                $imageSrc = normalizeImg($post['AnhDaiDien'] ?? '');
+                                $title = $post['TieuDe'] ?? 'Bài viết';
+                                $summary = $post['TomTat'] ?? $post['MoTaNgan'] ?? '';
                                 ?>
 
                                 <div class="col-md-6 mb-4">
                                     <article class="blog-card-modern h-100">
                                         <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>">
-                                            <img src="<?= normalizeImg($post['AnhDaiDien'] ?? '') ?>"
-                                                 alt="<?= htmlspecialchars($post['TieuDe'] ?? 'Bài viết') ?>">
+                                            <img src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
+                                                 alt="<?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?>"
+                                                 onerror="this.src='/BanMatKinh/public/images/no-image.png'">
                                         </a>
 
                                         <div class="blog-card-modern__content">
@@ -57,12 +105,12 @@ $keyword = $keyword ?? '';
 
                                             <h4>
                                                 <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>">
-                                                    <?= htmlspecialchars($post['TieuDe'] ?? 'Bài viết') ?>
+                                                    <?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?>
                                                 </a>
                                             </h4>
 
                                             <p>
-                                                <?= htmlspecialchars(mb_substr(strip_tags($post['TomTat'] ?? $post['MoTaNgan'] ?? ''), 0, 120)) ?>...
+                                                <?= htmlspecialchars(shortText($summary, 120), ENT_QUOTES, 'UTF-8') ?>
                                             </p>
 
                                             <a href="index.php?controller=blog&action=detail&id=<?= $blogId ?>" class="btn-readmore">
@@ -102,8 +150,10 @@ $keyword = $keyword ?? '';
 
                             <form action="index.php" method="GET" class="blog-search">
                                 <input type="hidden" name="controller" value="blog">
-                                <input type="text" name="keyword" placeholder="Tìm bài viết..."
-                                       value="<?= htmlspecialchars($keyword) ?>">
+                                <input type="text"
+                                       name="keyword"
+                                       placeholder="Tìm bài viết..."
+                                       value="<?= htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8') ?>">
                                 <button type="submit">
                                     <i class="fas fa-search"></i>
                                 </button>
@@ -113,12 +163,24 @@ $keyword = $keyword ?? '';
                         <div class="blog-widget">
                             <h3>Bài viết mới</h3>
 
-                            <?php foreach ($listPostPopular as $item): ?>
-                                <a href="index.php?controller=blog&action=detail&id=<?= $item['BaiVietId'] ?>" class="mini-post">
-                                    <img src="<?= normalizeImg($item['AnhDaiDien'] ?? '') ?>" alt="Blog">
-                                    <span><?= htmlspecialchars($item['TieuDe'] ?? 'Bài viết') ?></span>
-                                </a>
-                            <?php endforeach; ?>
+                            <?php if (!empty($listPostPopular)): ?>
+                                <?php foreach ($listPostPopular as $item): ?>
+                                    <?php
+                                    $popularId = (int)($item['BaiVietId'] ?? 0);
+                                    $popularTitle = $item['TieuDe'] ?? 'Bài viết';
+                                    $popularImg = normalizeImg($item['AnhDaiDien'] ?? '');
+                                    ?>
+
+                                    <a href="index.php?controller=blog&action=detail&id=<?= $popularId ?>" class="mini-post">
+                                        <img src="<?= htmlspecialchars($popularImg, ENT_QUOTES, 'UTF-8') ?>"
+                                             alt="<?= htmlspecialchars($popularTitle, ENT_QUOTES, 'UTF-8') ?>"
+                                             onerror="this.src='/BanMatKinh/public/images/no-image.png'">
+                                        <span><?= htmlspecialchars($popularTitle, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </a>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <p class="text-muted mb-0">Chưa có bài viết mới.</p>
+                            <?php endif; ?>
                         </div>
                     </aside>
                 </div>

@@ -4,6 +4,8 @@ $roles = $roles ?? [];
 $keyword = $keyword ?? ($_GET['keyword'] ?? '');
 $role = $role ?? ($_GET['role'] ?? '');
 $baseUrl = $baseUrl ?? '';
+
+$currentAdminId = (int)($_SESSION['LoginInformation']['TaiKhoanId'] ?? 0);
 ?>
 
 <div class="admin-page-header mb-4">
@@ -72,7 +74,7 @@ $baseUrl = $baseUrl ?? '';
                             type="search"
                             name="keyword"
                             value="<?= htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Tìm theo tên đăng nhập, họ tên hoặc email..."
+                            placeholder="Tìm theo tên đăng nhập, họ tên, email hoặc số điện thoại..."
                         >
                     </div>
 
@@ -81,13 +83,18 @@ $baseUrl = $baseUrl ?? '';
 
                         <?php foreach ($roles as $roleItem): ?>
                             <?php
-                            $roleValue = $roleItem['MaVaiTro'] ?? $roleItem['VaiTroId'] ?? '';
+                            $roleValue = $roleItem['MaVaiTro'] ?? '';
                             $roleText = $roleItem['TenVaiTro'] ?? $roleItem['MaVaiTro'] ?? 'Vai trò';
                             ?>
-                            <option value="<?= htmlspecialchars($roleValue, ENT_QUOTES, 'UTF-8') ?>"
-                                <?= (string)$role === (string)$roleValue ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($roleText, ENT_QUOTES, 'UTF-8') ?>
-                            </option>
+
+                            <?php if ($roleValue !== ''): ?>
+                                <option
+                                    value="<?= htmlspecialchars($roleValue, ENT_QUOTES, 'UTF-8') ?>"
+                                    <?= (string)$role === (string)$roleValue ? 'selected' : '' ?>
+                                >
+                                    <?= htmlspecialchars($roleText, ENT_QUOTES, 'UTF-8') ?>
+                                </option>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </select>
 
@@ -125,19 +132,25 @@ $baseUrl = $baseUrl ?? '';
                                     $fullName = $item['HoTen'] ?? '';
                                     $email = $item['Email'] ?? '';
                                     $roleName = $item['TenVaiTro'] ?? $item['MaVaiTro'] ?? 'Chưa phân quyền';
+                                    $roleCode = strtoupper(trim($item['MaVaiTro'] ?? ''));
                                     $isActive = !empty($item['IsActive']);
+                                    $isCurrentAccount = $id === $currentAdminId;
                                     ?>
 
                                     <tr>
                                         <td>
                                             <div class="account-user-cell">
                                                 <div class="account-avatar">
-                                                    <?= strtoupper(mb_substr($username, 0, 1, 'UTF-8')) ?>
+                                                    <?= htmlspecialchars(strtoupper(mb_substr($username, 0, 1, 'UTF-8')), ENT_QUOTES, 'UTF-8') ?>
                                                 </div>
 
                                                 <div>
                                                     <div class="account-name">
                                                         <?= htmlspecialchars($fullName ?: $username, ENT_QUOTES, 'UTF-8') ?>
+
+                                                        <?php if ($isCurrentAccount): ?>
+                                                            <span class="account-self-badge">Bạn</span>
+                                                        <?php endif; ?>
                                                     </div>
 
                                                     <div class="account-meta">
@@ -156,7 +169,7 @@ $baseUrl = $baseUrl ?? '';
                                         </td>
 
                                         <td>
-                                            <span class="account-role-badge">
+                                            <span class="account-role-badge account-role-<?= strtolower(htmlspecialchars($roleCode, ENT_QUOTES, 'UTF-8')) ?>">
                                                 <i class="fas fa-user-shield mr-1"></i>
                                                 <?= htmlspecialchars($roleName, ENT_QUOTES, 'UTF-8') ?>
                                             </span>
@@ -186,33 +199,49 @@ $baseUrl = $baseUrl ?? '';
                                                     Chi tiết
                                                 </a>
 
-                                                <form
-                                                    action="<?= $baseUrl ?>/index.php?controller=admintaikhoan&action=toggleActive"
-                                                    method="POST"
-                                                    class="d-inline"
-                                                >
-                                                    <input type="hidden" name="id" value="<?= $id ?>">
+                                                <?php if ($isCurrentAccount): ?>
+                                                    <button
+                                                        type="button"
+                                                        class="btn account-btn account-btn-disabled"
+                                                        disabled
+                                                        title="Không thể tự khóa tài khoản đang đăng nhập"
+                                                    >
+                                                        <i class="fas fa-lock mr-1"></i>
+                                                        Tài khoản hiện tại
+                                                    </button>
+                                                <?php else: ?>
+                                                    <form
+                                                        action="<?= $baseUrl ?>/index.php?controller=admintaikhoan&action=toggleActive"
+                                                        method="POST"
+                                                        class="d-inline"
+                                                    >
+                                                        <input type="hidden" name="id" value="<?= $id ?>">
 
-                                                    <?php if ($isActive): ?>
-                                                        <button
-                                                            type="submit"
-                                                            class="btn account-btn account-btn-lock"
-                                                            onclick="return confirm('Bạn có chắc muốn khóa tài khoản này?')"
-                                                        >
-                                                            <i class="fas fa-ban mr-1"></i>
-                                                            Khóa
-                                                        </button>
-                                                    <?php else: ?>
-                                                        <button
-                                                            type="submit"
-                                                            class="btn account-btn account-btn-unlock"
-                                                            onclick="return confirm('Bạn có chắc muốn mở khóa tài khoản này?')"
-                                                        >
-                                                            <i class="fas fa-unlock mr-1"></i>
-                                                            Mở khóa
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </form>
+                                                        <?php if ($isActive): ?>
+                                                            <button
+                                                                type="submit"
+                                                                class="btn account-btn account-btn-lock"
+                                                                data-confirm
+                                                                data-confirm-title="Khóa tài khoản"
+                                                                data-confirm-ok="Khóa tài khoản"
+                                                            >
+                                                                <i class="fas fa-ban mr-1"></i>
+                                                                Khóa
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <button
+                                                                type="submit"
+                                                                class="btn account-btn account-btn-unlock"
+                                                                data-confirm
+                                                                data-confirm-title="Mở khóa tài khoản"
+                                                                data-confirm-ok="Mở khóa"
+                                                            >
+                                                                <i class="fas fa-unlock mr-1"></i>
+                                                                Mở khóa
+                                                            </button>
+                                                        <?php endif; ?>
+                                                    </form>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>

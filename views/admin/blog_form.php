@@ -5,10 +5,28 @@ $baseUrl = $baseUrl ?? '';
 $isEdit = !empty($post['BaiVietId']);
 $pageTitle = $title ?? ($isEdit ? 'Cập nhật bài viết' : 'Thêm bài viết mới');
 
+$autoCode = 'BV' . date('ymdHis');
+$currentCode = !empty($post['MaBaiViet']) ? $post['MaBaiViet'] : $autoCode;
+
 $imageName = $post['AnhDaiDien'] ?? '';
-$imageSrc = $imageName
-    ? $baseUrl . '/images/' . $imageName
-    : $baseUrl . '/images/no-image.png';
+
+function blogFormImageSrc($image, $baseUrl)
+{
+    $image = trim((string)$image);
+
+    if ($image === '') {
+        return $baseUrl . '/images/no-image.png';
+    }
+
+    if (preg_match('/^https?:\/\//i', $image)) {
+        return $image;
+    }
+
+    return $baseUrl . '/images/' . ltrim($image, '/');
+}
+
+$imageSrc = blogFormImageSrc($imageName, $baseUrl);
+$currentStatus = (int)($post['TrangThai'] ?? 1);
 ?>
 
 <div class="admin-page-header mb-4">
@@ -83,6 +101,19 @@ $imageSrc = $imageName
 
                         <div class="premium-panel-body">
                             <div class="form-group">
+                                <label class="blog-edit-label">Mã bài viết</label>
+                                <input
+                                    type="text"
+                                    name="MaBaiViet"
+                                    class="form-control blog-edit-input"
+                                    value="<?= htmlspecialchars($currentCode, ENT_QUOTES, 'UTF-8') ?>"
+                                    maxlength="20"
+                                    readonly
+                                >
+                                <small class="text-muted">Mã bài viết dùng để quản lý nội bộ, không được trùng.</small>
+                            </div>
+
+                            <div class="form-group">
                                 <label class="blog-edit-label">Tiêu đề bài viết</label>
                                 <input
                                     type="text"
@@ -90,6 +121,7 @@ $imageSrc = $imageName
                                     class="form-control blog-edit-input"
                                     placeholder="Ví dụ: Cách chọn kính phù hợp với khuôn mặt..."
                                     value="<?= htmlspecialchars($post['TieuDe'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                    maxlength="250"
                                     required
                                 >
                             </div>
@@ -100,8 +132,10 @@ $imageSrc = $imageName
                                     name="TomTat"
                                     class="form-control blog-edit-input blog-edit-textarea"
                                     rows="4"
+                                    maxlength="500"
                                     placeholder="Nhập mô tả ngắn hiển thị ở danh sách bài viết..."
                                 ><?= htmlspecialchars($post['TomTat'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                <small class="text-muted">Tối đa 500 ký tự.</small>
                             </div>
                         </div>
                     </div>
@@ -157,7 +191,7 @@ $imageSrc = $imageName
 
                             <div class="blog-edit-note mt-3">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                Nên dùng ảnh ngang, rõ sản phẩm hoặc phong cách eyewear boutique.
+                                Hỗ trợ JPG, JPEG, PNG, WEBP. Dung lượng tối đa 3MB.
                             </div>
                         </div>
                     </div>
@@ -171,12 +205,31 @@ $imageSrc = $imageName
                         </div>
 
                         <div class="premium-panel-body">
-                            <div class="blog-publish-note">
-                                <i class="fas fa-clock mr-1"></i>
-                                Sau khi lưu, bài viết sẽ được xử lý theo controller `adminblog&action=save`.
+                            <div class="form-group">
+                                <label class="blog-edit-label">Trạng thái bài viết</label>
+                                <select name="TrangThai" class="form-control blog-edit-input">
+                                    <option value="1" <?= $currentStatus === 1 ? 'selected' : '' ?>>
+                                        Đã đăng
+                                    </option>
+                                    <option value="0" <?= $currentStatus === 0 ? 'selected' : '' ?>>
+                                        Nháp
+                                    </option>
+                                    <option value="2" <?= $currentStatus === 2 ? 'selected' : '' ?>>
+                                        Ẩn
+                                    </option>
+                                </select>
                             </div>
 
-                            <button type="submit" class="btn blog-submit-btn btn-block mt-3">
+                            <div class="blog-publish-note">
+                                <i class="fas fa-clock mr-1"></i>
+                                Nếu chọn “Đã đăng”, hệ thống sẽ tự ghi nhận ngày đăng nếu bài chưa từng được đăng.
+                            </div>
+
+                            <button type="submit"
+                                    class="btn blog-submit-btn btn-block mt-3"
+                                    data-confirm
+                                    data-confirm-title="<?= $isEdit ? 'Cập nhật bài viết' : 'Tạo bài viết' ?>"
+                                    data-confirm-ok="<?= $isEdit ? 'Cập nhật' : 'Tạo bài' ?>">
                                 <i class="fas fa-paper-plane mr-1"></i>
                                 <?= $isEdit ? 'Cập nhật bài viết' : 'Tạo bài viết' ?>
                             </button>
@@ -197,19 +250,21 @@ $imageSrc = $imageName
 <script src="https://cdn.tiny.cloud/1/zihqpwrk4mgc8xsa9hlg2hm0etuz7f7dh1ovyeioicuygk8v/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 
 <script>
-    tinymce.init({
-        selector: '#tinymce-editor',
-        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | removeformat',
-        height: 500,
-        branding: false,
-        menubar: false,
-        setup: function (editor) {
-            editor.on('change', function () {
-                editor.save();
-            });
-        }
-    });
+    if (typeof tinymce !== 'undefined') {
+        tinymce.init({
+            selector: '#tinymce-editor',
+            plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | removeformat',
+            height: 500,
+            branding: false,
+            menubar: false,
+            setup: function (editor) {
+                editor.on('change', function () {
+                    editor.save();
+                });
+            }
+        });
+    }
 
     const imageInput = document.getElementById('imageAvatar');
 
@@ -218,6 +273,20 @@ $imageSrc = $imageName
             const file = this.files[0];
 
             if (!file) {
+                return;
+            }
+
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert('Ảnh bài viết chỉ hỗ trợ JPG, JPEG, PNG hoặc WEBP.');
+                this.value = '';
+                return;
+            }
+
+            if (file.size > 3 * 1024 * 1024) {
+                alert('Dung lượng ảnh bài viết tối đa là 3MB.');
+                this.value = '';
                 return;
             }
 
@@ -236,9 +305,13 @@ $imageSrc = $imageName
         });
     }
 
-    document.getElementById('blogForm').addEventListener('submit', function () {
-        if (typeof tinymce !== 'undefined') {
-            tinymce.triggerSave();
-        }
-    });
+    const blogForm = document.getElementById('blogForm');
+
+    if (blogForm) {
+        blogForm.addEventListener('submit', function () {
+            if (typeof tinymce !== 'undefined') {
+                tinymce.triggerSave();
+            }
+        });
+    }
 </script>

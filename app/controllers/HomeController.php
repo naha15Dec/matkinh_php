@@ -2,16 +2,19 @@
 
 require_once BASE_PATH . '/app/models/HomeModel.php';
 
-class HomeController {
+class HomeController
+{
     private $pdo;
     private $homeModel;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->pdo = $pdo;
         $this->homeModel = new HomeModel($pdo);
     }
 
-    public function index() {
+    public function index()
+    {
         $listDiscountProduct = $this->homeModel->getDiscountProducts(8);
         $listNewProduct      = $this->homeModel->getNewProducts(8);
         $listDealHot         = $this->homeModel->getDealHotProducts(4);
@@ -24,7 +27,12 @@ class HomeController {
         require BASE_PATH . '/views/client/layout.php';
     }
 
-    public function findProductByID() {
+    public function findProductByID()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $idProduct = trim($_GET['idProduct'] ?? $_POST['idProduct'] ?? '');
 
         if ($idProduct === '') {
@@ -36,12 +44,12 @@ class HomeController {
         $product = $this->homeModel->findProductByCodeOrId($idProduct);
 
         if (!$product) {
-            $_SESSION['error'] = "Không tìm thấy sản phẩm phù hợp.";
+            $_SESSION['error'] = "Không tìm thấy sản phẩm phù hợp hoặc sản phẩm đã ngừng bán.";
             header("Location: index.php?controller=home");
             exit;
         }
 
-        header("Location: index.php?controller=sanpham&action=detail&id=" . $product['SanPhamId']);
+        header("Location: index.php?controller=sanpham&action=detail&id=" . (int)$product['SanPhamId']);
         exit;
     }
 }

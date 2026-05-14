@@ -1,18 +1,21 @@
 <?php
 
-class ContactModel {
+class ContactModel
+{
     private $db;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->db = $pdo;
     }
 
-    public function getStoreInfo() {
+    public function getStoreInfo()
+    {
         $sql = "
             SELECT *
             FROM thongtincuahang
             WHERE IsActive = 1
-            ORDER BY UpdatedAt DESC
+            ORDER BY UpdatedAt DESC, ThongTinCuaHangId DESC
             LIMIT 1
         ";
 

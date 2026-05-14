@@ -1,9 +1,28 @@
 <?php
 if (!function_exists('normalizeImg')) {
     function normalizeImg($path) {
-        if (empty($path)) return "/BanMatKinh/public/images/no-image.png";
-        if (strpos($path, 'http') === 0) return $path;
-        if (strpos($path, '/BanMatKinh/') === 0) return $path;
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return "/BanMatKinh/public/images/no-image.png";
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/BanMatKinh/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return '/BanMatKinh/' . ltrim($path, '/');
+        }
+
         return "/BanMatKinh/public/images/" . ltrim($path, '/');
     }
 }
@@ -53,7 +72,7 @@ $grandTotal = $totalOrder + $shippingFee;
             <?php if (isset($_SESSION['CartError'])): ?>
                 <div class="alert alert-danger page-alert">
                     <i class="fas fa-exclamation-circle mr-2"></i>
-                    <?= htmlspecialchars($_SESSION['CartError']) ?>
+                    <?= htmlspecialchars($_SESSION['CartError'], ENT_QUOTES, 'UTF-8') ?>
                     <?php unset($_SESSION['CartError']); ?>
                 </div>
             <?php endif; ?>
@@ -61,7 +80,7 @@ $grandTotal = $totalOrder + $shippingFee;
             <?php if (isset($_SESSION['CartSuccess'])): ?>
                 <div class="alert alert-success page-alert">
                     <i class="fas fa-check-circle mr-2"></i>
-                    <?= htmlspecialchars($_SESSION['CartSuccess']) ?>
+                    <?= htmlspecialchars($_SESSION['CartSuccess'], ENT_QUOTES, 'UTF-8') ?>
                     <?php unset($_SESSION['CartSuccess']); ?>
                 </div>
             <?php endif; ?>
@@ -99,32 +118,36 @@ $grandTotal = $totalOrder + $shippingFee;
                         <div class="cart-items">
                             <?php foreach ($cart as $item): ?>
                                 <?php
-                                    $productId = (int)($item['SanPhamId'] ?? 0);
-                                    $qty = (int)($item['SoLuong'] ?? 1);
-                                    $price = (float)($item['DonGia'] ?? 0);
-                                    $giaGoc = (float)($item['GiaGoc'] ?? 0);
-                                    $subtotal = $price * $qty;
+                                $productId = (int)($item['SanPhamId'] ?? 0);
+                                $qty = max(1, (int)($item['SoLuong'] ?? 1));
+                                $price = (float)($item['DonGia'] ?? 0);
+                                $giaGoc = (float)($item['GiaGoc'] ?? 0);
+                                $stock = max(1, (int)($item['SoLuongTon'] ?? 1));
+                                $subtotal = $price * $qty;
+                                $productName = $item['TenSanPham'] ?? 'Sản phẩm';
+                                $productImage = normalizeImg($item['HinhAnh'] ?? '');
                                 ?>
 
                                 <div class="cart-item-modern">
                                     <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="cart-item-img">
                                         <img 
-                                            src="<?= normalizeImg($item['HinhAnh'] ?? '') ?>" 
-                                            alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>"
+                                            src="<?= htmlspecialchars($productImage, ENT_QUOTES, 'UTF-8') ?>" 
+                                            alt="<?= htmlspecialchars($productName, ENT_QUOTES, 'UTF-8') ?>"
+                                            onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                                         >
                                     </a>
 
                                     <div class="cart-item-info">
                                         <div class="cart-item-meta">
-                                            <?= htmlspecialchars($item['ThuongHieu'] ?? 'Karma Eyewear') ?>
+                                            <?= htmlspecialchars($item['ThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?>
                                         </div>
 
                                         <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>" class="cart-item-name">
-                                            <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>
+                                            <?= htmlspecialchars($productName, ENT_QUOTES, 'UTF-8') ?>
                                         </a>
 
                                         <div class="cart-item-type">
-                                            <?= htmlspecialchars($item['LoaiSanPham'] ?? 'Mắt kính thời trang') ?>
+                                            <?= htmlspecialchars($item['LoaiSanPham'] ?? 'Mắt kính thời trang', ENT_QUOTES, 'UTF-8') ?>
                                         </div>
 
                                         <div class="cart-item-price">
@@ -133,6 +156,10 @@ $grandTotal = $totalOrder + $shippingFee;
                                             <?php if ($giaGoc > $price): ?>
                                                 <del><?= formatMoney($giaGoc) ?></del>
                                             <?php endif; ?>
+                                        </div>
+
+                                        <div class="cart-item-type">
+                                            Còn <?= (int)$stock ?> sản phẩm
                                         </div>
                                     </div>
 
@@ -147,7 +174,7 @@ $grandTotal = $totalOrder + $shippingFee;
                                                 name="soLuong" 
                                                 value="<?= $qty ?>" 
                                                 min="1"
-                                                max="<?= (int)($item['SoLuongTon'] ?? 99) ?>"
+                                                max="<?= (int)$stock ?>"
                                             >
 
                                             <button type="button" class="cart-qty-btn" data-type="plus">+</button>
@@ -168,7 +195,7 @@ $grandTotal = $totalOrder + $shippingFee;
                                         class="cart-remove-btn"
                                         data-confirm-url="index.php?controller=giohang&action=remove&sanPhamId=<?= $productId ?>"
                                         data-confirm-title="Xóa sản phẩm?"
-                                        data-confirm-message="Bạn có chắc muốn xóa <strong><?= htmlspecialchars($item['TenSanPham'] ?? 'sản phẩm này') ?></strong> khỏi giỏ hàng không?"
+                                        data-confirm-message="Bạn có chắc muốn xóa <strong><?= htmlspecialchars($productName, ENT_QUOTES, 'UTF-8') ?></strong> khỏi giỏ hàng không?"
                                         data-confirm-text="Xóa sản phẩm"
                                         data-confirm-icon="far fa-trash-alt"
                                         data-confirm-type="danger"
@@ -187,7 +214,7 @@ $grandTotal = $totalOrder + $shippingFee;
 
                             <div class="summary-line">
                                 <span>Tổng sản phẩm</span>
-                                <strong><?= $totalQuantity ?></strong>
+                                <strong><?= (int)$totalQuantity ?></strong>
                             </div>
 
                             <div class="summary-line">
@@ -224,18 +251,20 @@ $grandTotal = $totalOrder + $shippingFee;
                                 <i class="fas fa-arrow-right"></i>
                             </a>
 
-                            <a 
-                                href="javascript:void(0);"
-                                class="btn-clear-cart"
-                                data-confirm-url="index.php?controller=giohang&action=clear"
-                                data-confirm-title="Xóa toàn bộ giỏ hàng?"
-                                data-confirm-message="Toàn bộ sản phẩm trong giỏ sẽ bị xóa. Bạn có chắc muốn tiếp tục không?"
-                                data-confirm-text="Xóa tất cả"
-                                data-confirm-icon="fas fa-shopping-bag"
-                                data-confirm-type="danger"
-                            >
-                                Xóa toàn bộ giỏ hàng
-                            </a>
+                            <form action="index.php?controller=giohang&action=clear"
+                                  method="POST"
+                                  class="clear-cart-form">
+                                <button type="submit"
+                                        class="btn-clear-cart"
+                                        data-confirm
+                                        data-confirm-title="Xóa toàn bộ giỏ hàng?"
+                                        data-confirm-message="Toàn bộ sản phẩm trong giỏ sẽ bị xóa. Bạn có chắc muốn tiếp tục không?"
+                                        data-confirm-ok="Xóa tất cả"
+                                        data-confirm-icon="fas fa-shopping-bag"
+                                        data-confirm-type="danger">
+                                    Xóa toàn bộ giỏ hàng
+                                </button>
+                            </form>
                         </div>
 
                         <div class="cart-support-card">
@@ -265,8 +294,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 const min = parseInt(input.getAttribute("min") || "1");
                 const max = parseInt(input.getAttribute("max") || "99");
 
-                if (this.dataset.type === "plus" && value < max) value++;
-                if (this.dataset.type === "minus" && value > min) value--;
+                if (this.dataset.type === "plus" && value < max) {
+                    value++;
+                }
+
+                if (this.dataset.type === "minus" && value > min) {
+                    value--;
+                }
 
                 input.value = value;
                 form.submit();

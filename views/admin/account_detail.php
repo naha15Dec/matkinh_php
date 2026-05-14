@@ -1,9 +1,16 @@
 <?php
-$account = $account ?? [];
+$accountDetail = $accountDetail ?? [];
 $roles = $roles ?? [];
 $baseUrl = $baseUrl ?? '';
 
-$avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
+$currentAdminId = (int)($_SESSION['LoginInformation']['TaiKhoanId'] ?? 0);
+$accountId = (int)($accountDetail['TaiKhoanId'] ?? 0);
+$isCurrentAccount = $accountId === $currentAdminId;
+
+$username = $accountDetail['TenDangNhap'] ?? 'U';
+$avatarLetter = function_exists('mb_substr')
+    ? strtoupper(mb_substr($username, 0, 1, 'UTF-8'))
+    : strtoupper(substr($username, 0, 1));
 ?>
 
 <div class="admin-page-header mb-4">
@@ -25,20 +32,14 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
 
         <ol class="breadcrumb admin-breadcrumb mt-3 mt-md-0">
             <li class="breadcrumb-item">
-                <a href="<?= $baseUrl ?>/index.php?controller=dashboard">
-                    Dashboard
-                </a>
+                <a href="<?= $baseUrl ?>/index.php?controller=dashboard">Dashboard</a>
             </li>
 
             <li class="breadcrumb-item">
-                <a href="<?= $baseUrl ?>/index.php?controller=admintaikhoan">
-                    Tài khoản
-                </a>
+                <a href="<?= $baseUrl ?>/index.php?controller=admintaikhoan">Tài khoản</a>
             </li>
 
-            <li class="breadcrumb-item active">
-                Chi tiết
-            </li>
+            <li class="breadcrumb-item active">Chi tiết</li>
         </ol>
     </div>
 </div>
@@ -49,7 +50,7 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
         <?php if (!empty($_SESSION['success'])): ?>
             <div class="alert alert-success admin-alert">
                 <i class="fas fa-check-circle mr-1"></i>
-                <?= htmlspecialchars($_SESSION['success']) ?>
+                <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
             </div>
             <?php unset($_SESSION['success']); ?>
         <?php endif; ?>
@@ -57,7 +58,7 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
         <?php if (!empty($_SESSION['error'])): ?>
             <div class="alert alert-danger admin-alert">
                 <i class="fas fa-exclamation-circle mr-1"></i>
-                <?= htmlspecialchars($_SESSION['error']) ?>
+                <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
             </div>
             <?php unset($_SESSION['error']); ?>
         <?php endif; ?>
@@ -72,19 +73,23 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                     <div class="admin-profile-content">
 
                         <div class="admin-profile-avatar">
-                            <?= $avatarLetter ?>
+                            <?= htmlspecialchars($avatarLetter, ENT_QUOTES, 'UTF-8') ?>
                         </div>
 
                         <h4 class="admin-profile-name">
-                            <?= htmlspecialchars($account['HoTen'] ?: $account['TenDangNhap']) ?>
+                            <?= htmlspecialchars(($accountDetail['HoTen'] ?? '') ?: ($accountDetail['TenDangNhap'] ?? 'Tài khoản'), ENT_QUOTES, 'UTF-8') ?>
+
+                            <?php if ($isCurrentAccount): ?>
+                                <span class="account-self-badge">Bạn</span>
+                            <?php endif; ?>
                         </h4>
 
                         <div class="admin-profile-username">
-                            @<?= htmlspecialchars($account['TenDangNhap']) ?>
+                            @<?= htmlspecialchars($accountDetail['TenDangNhap'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                         </div>
 
                         <div class="admin-profile-role">
-                            <?= htmlspecialchars($account['TenVaiTro'] ?? 'Chưa phân quyền') ?>
+                            <?= htmlspecialchars($accountDetail['TenVaiTro'] ?? 'Chưa phân quyền', ENT_QUOTES, 'UTF-8') ?>
                         </div>
 
                         <div class="admin-profile-divider"></div>
@@ -92,36 +97,30 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                         <div class="admin-profile-meta">
 
                             <div class="admin-profile-meta-item">
-                                <span class="admin-profile-meta-label">
-                                    Email
-                                </span>
+                                <span class="admin-profile-meta-label">Email</span>
 
                                 <span class="admin-profile-meta-value">
-                                    <?= !empty($account['Email'])
-                                        ? htmlspecialchars($account['Email'])
+                                    <?= !empty($accountDetail['Email'])
+                                        ? htmlspecialchars($accountDetail['Email'], ENT_QUOTES, 'UTF-8')
                                         : 'Chưa cập nhật' ?>
                                 </span>
                             </div>
 
                             <div class="admin-profile-meta-item">
-                                <span class="admin-profile-meta-label">
-                                    Điện thoại
-                                </span>
+                                <span class="admin-profile-meta-label">Điện thoại</span>
 
                                 <span class="admin-profile-meta-value">
-                                    <?= !empty($account['SoDienThoai'])
-                                        ? htmlspecialchars($account['SoDienThoai'])
+                                    <?= !empty($accountDetail['SoDienThoai'])
+                                        ? htmlspecialchars($accountDetail['SoDienThoai'], ENT_QUOTES, 'UTF-8')
                                         : 'Chưa cập nhật' ?>
                                 </span>
                             </div>
 
                             <div class="admin-profile-meta-item">
-                                <span class="admin-profile-meta-label">
-                                    Trạng thái
-                                </span>
+                                <span class="admin-profile-meta-label">Trạng thái</span>
 
                                 <span class="admin-profile-meta-value">
-                                    <?php if (!empty($account['IsActive'])): ?>
+                                    <?php if (!empty($accountDetail['IsActive'])): ?>
                                         <span class="account-status active">
                                             <i class="fas fa-circle"></i>
                                             Hoạt động
@@ -165,7 +164,7 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
 
                             <li class="nav-item">
                                 <a class="nav-link"
-                                   href="#changePermisstion"
+                                   href="#changePermission"
                                    data-toggle="tab">
                                     Phân quyền
                                 </a>
@@ -178,15 +177,14 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                         <div class="tab-content">
 
                             <!-- TAB THÔNG TIN -->
-
                             <div class="tab-pane active" id="profileInformationAccount">
 
-                                <form action="index.php?controller=admintaikhoan&action=updateInfo"
+                                <form action="<?= $baseUrl ?>/index.php?controller=admintaikhoan&action=updateInfo"
                                       method="POST">
 
                                     <input type="hidden"
                                            name="TaiKhoanId"
-                                           value="<?= $account['TaiKhoanId'] ?>">
+                                           value="<?= $accountId ?>">
 
                                     <div class="row">
 
@@ -195,7 +193,7 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                                 <label>Tài khoản</label>
 
                                                 <input class="form-control admin-input"
-                                                       value="<?= htmlspecialchars($account['TenDangNhap']) ?>"
+                                                       value="<?= htmlspecialchars($accountDetail['TenDangNhap'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                        disabled>
                                             </div>
                                         </div>
@@ -207,7 +205,8 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                                 <input type="email"
                                                        name="Email"
                                                        class="form-control admin-input"
-                                                       value="<?= htmlspecialchars($account['Email'] ?? '') ?>">
+                                                       value="<?= htmlspecialchars($accountDetail['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                       maxlength="100">
                                             </div>
                                         </div>
 
@@ -219,7 +218,9 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                         <input type="text"
                                                name="HoTen"
                                                class="form-control admin-input"
-                                               value="<?= htmlspecialchars($account['HoTen'] ?? '') ?>">
+                                               value="<?= htmlspecialchars($accountDetail['HoTen'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                               maxlength="150"
+                                               required>
                                     </div>
 
                                     <div class="row">
@@ -231,7 +232,8 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                                 <input type="text"
                                                        name="SoDienThoai"
                                                        class="form-control admin-input"
-                                                       value="<?= htmlspecialchars($account['SoDienThoai'] ?? '') ?>">
+                                                       value="<?= htmlspecialchars($accountDetail['SoDienThoai'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                       maxlength="20">
                                             </div>
                                         </div>
 
@@ -242,7 +244,8 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                                 <input type="text"
                                                        name="DiaChi"
                                                        class="form-control admin-input"
-                                                       value="<?= htmlspecialchars($account['DiaChi'] ?? '') ?>">
+                                                       value="<?= htmlspecialchars($accountDetail['DiaChi'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                       maxlength="255">
                                             </div>
                                         </div>
 
@@ -250,7 +253,10 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
 
                                     <div class="text-right mt-4">
                                         <button type="submit"
-                                                class="btn admin-btn-save">
+                                                class="btn admin-btn-save"
+                                                data-confirm
+                                                data-confirm-title="Lưu thông tin tài khoản"
+                                                data-confirm-ok="Lưu thông tin">
                                             <i class="fas fa-save mr-1"></i>
                                             Lưu thông tin
                                         </button>
@@ -260,15 +266,14 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                             </div>
 
                             <!-- TAB PASSWORD -->
-
                             <div class="tab-pane" id="changePassword">
 
-                                <form action="index.php?controller=admintaikhoan&action=changePassword"
+                                <form action="<?= $baseUrl ?>/index.php?controller=admintaikhoan&action=changePassword"
                                       method="POST">
 
                                     <input type="hidden"
                                            name="TaiKhoanId"
-                                           value="<?= $account['TaiKhoanId'] ?>">
+                                           value="<?= $accountId ?>">
 
                                     <div class="form-group">
                                         <label>Mật khẩu mới</label>
@@ -277,7 +282,8 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                                name="NewPassword"
                                                class="form-control admin-input"
                                                required
-                                               minlength="6">
+                                               minlength="6"
+                                               autocomplete="new-password">
                                     </div>
 
                                     <div class="form-group">
@@ -287,12 +293,16 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                                name="ConfirmPassword"
                                                class="form-control admin-input"
                                                required
-                                               minlength="6">
+                                               minlength="6"
+                                               autocomplete="new-password">
                                     </div>
 
                                     <div class="text-right mt-4">
                                         <button type="submit"
-                                                class="btn admin-btn-save">
+                                                class="btn admin-btn-save"
+                                                data-confirm
+                                                data-confirm-title="Đổi mật khẩu tài khoản"
+                                                data-confirm-ok="Đổi mật khẩu">
                                             <i class="fas fa-key mr-1"></i>
                                             Đổi mật khẩu
                                         </button>
@@ -302,32 +312,41 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                             </div>
 
                             <!-- TAB ROLE -->
+                            <div class="tab-pane" id="changePermission">
 
-                            <div class="tab-pane" id="changePermisstion">
+                                <?php if ($isCurrentAccount): ?>
+                                    <div class="alert alert-warning admin-alert">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        Bạn không thể tự thay đổi quyền của chính tài khoản đang đăng nhập.
+                                    </div>
+                                <?php endif; ?>
 
-                                <form action="index.php?controller=admintaikhoan&action=updateRole"
+                                <form action="<?= $baseUrl ?>/index.php?controller=admintaikhoan&action=updateRole"
                                       method="POST">
 
                                     <input type="hidden"
                                            name="TaiKhoanId"
-                                           value="<?= $account['TaiKhoanId'] ?>">
+                                           value="<?= $accountId ?>">
 
                                     <div class="form-group">
                                         <label>Vai trò tài khoản</label>
 
                                         <select name="VaiTroId"
-                                                class="form-control admin-input">
+                                                class="form-control admin-input"
+                                                <?= $isCurrentAccount ? 'disabled' : '' ?>>
 
-                                            <?php foreach ($roles as $role): ?>
+                                            <?php foreach ($roles as $roleItem): ?>
+                                                <?php
+                                                $roleId = (int)($roleItem['VaiTroId'] ?? 0);
+                                                $roleName = $roleItem['TenVaiTro'] ?? $roleItem['MaVaiTro'] ?? 'Vai trò';
+                                                ?>
 
-                                                <option value="<?= $role['VaiTroId'] ?>"
-                                                    <?= $role['VaiTroId'] == $account['VaiTroId']
-                                                        ? 'selected'
-                                                        : '' ?>>
-
-                                                    <?= htmlspecialchars($role['TenVaiTro']) ?>
-
-                                                </option>
+                                                <?php if ($roleId > 0): ?>
+                                                    <option value="<?= $roleId ?>"
+                                                        <?= $roleId === (int)($accountDetail['VaiTroId'] ?? 0) ? 'selected' : '' ?>>
+                                                        <?= htmlspecialchars($roleName, ENT_QUOTES, 'UTF-8') ?>
+                                                    </option>
+                                                <?php endif; ?>
 
                                             <?php endforeach; ?>
 
@@ -335,11 +354,23 @@ $avatarLetter = strtoupper(substr($account['TenDangNhap'] ?? 'U', 0, 1));
                                     </div>
 
                                     <div class="text-right mt-4">
-                                        <button type="submit"
-                                                class="btn admin-btn-save">
-                                            <i class="fas fa-user-cog mr-1"></i>
-                                            Cập nhật quyền
-                                        </button>
+                                        <?php if ($isCurrentAccount): ?>
+                                            <button type="button"
+                                                    class="btn admin-btn-save"
+                                                    disabled>
+                                                <i class="fas fa-user-lock mr-1"></i>
+                                                Không thể tự đổi quyền
+                                            </button>
+                                        <?php else: ?>
+                                            <button type="submit"
+                                                    class="btn admin-btn-save"
+                                                    data-confirm
+                                                    data-confirm-title="Cập nhật quyền tài khoản"
+                                                    data-confirm-ok="Cập nhật quyền">
+                                                <i class="fas fa-user-cog mr-1"></i>
+                                                Cập nhật quyền
+                                            </button>
+                                        <?php endif; ?>
                                     </div>
 
                                 </form>

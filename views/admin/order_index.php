@@ -99,7 +99,7 @@ function orderIndexStatusClass($status)
 
                         <?php for ($i = 1; $i <= 8; $i++): ?>
                             <option value="<?= $i ?>" <?= ((string)$status === (string)$i) ? 'selected' : '' ?>>
-                                <?= OrderStatusConstants::getName($i) ?>
+                                <?= htmlspecialchars(OrderStatusConstants::getName($i), ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endfor; ?>
                     </select>
@@ -143,21 +143,21 @@ function orderIndexStatusClass($status)
                                         ? $item['HoTenNguoiNhan']
                                         : ($item['TenKhachHang'] ?? 'Khách hàng');
 
-                                    $phone = $item['SoDienThoaiNguoiNhan'] ?? $item['SoDienThoai'] ?? 'Chưa có SĐT';
-                                    $address = $item['DiaChiNhanHang'] ?? $item['DiaChiNguoiNhan'] ?? $item['DiaChi'] ?? 'Chưa có địa chỉ';
+                                    $phone = $item['SoDienThoaiNguoiNhan'] ?? 'Chưa có SĐT';
+                                    $address = $item['DiaChiNhanHang'] ?? 'Chưa có địa chỉ';
 
                                     $createdAt = $item['NgayDat'] ?? null;
                                     $confirmedAt = $item['NgayXacNhan'] ?? null;
 
                                     $quantity = (int)($item['SoLuongSanPham'] ?? 0);
-                                    $totalPayment = (float)($item['TongThanhToan'] ?? $item['TongTien'] ?? 0);
+                                    $totalPayment = (float)($item['TongThanhToan'] ?? 0);
                                     $totalProduct = (float)($item['TongTienHang'] ?? 0);
 
                                     $currentStatus = (int)($item['TrangThai'] ?? 0);
                                     $statusText = OrderStatusConstants::getName($currentStatus);
                                     $statusClass = orderIndexStatusClass($currentStatus);
 
-                                    $shipperName = $item['ShipperName'] ?? $item['TenShipper'] ?? '';
+                                    $shipperName = $item['ShipperName'] ?? '';
                                     ?>
 
                                     <tr>
@@ -174,7 +174,7 @@ function orderIndexStatusClass($status)
                                         <td>
                                             <div class="order-customer-cell">
                                                 <div class="order-customer-avatar">
-                                                    <?= strtoupper(mb_substr($receiverName, 0, 1, 'UTF-8')) ?>
+                                                    <?= htmlspecialchars(strtoupper(mb_substr($receiverName, 0, 1, 'UTF-8')), ENT_QUOTES, 'UTF-8') ?>
                                                 </div>
 
                                                 <div>
@@ -218,7 +218,7 @@ function orderIndexStatusClass($status)
 
                                             <?php if ($totalProduct > 0): ?>
                                                 <div class="order-subtext">
-                                                    Gốc: <?= number_format($totalProduct, 0, ',', '.') ?> đ
+                                                    Hàng: <?= number_format($totalProduct, 0, ',', '.') ?> đ
                                                 </div>
                                             <?php endif; ?>
                                         </td>

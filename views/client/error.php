@@ -1,3 +1,7 @@
+<?php
+$isAdminLike = $isAdminLike ?? false;
+?>
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -53,23 +57,23 @@
             </div>
 
             <div class="error-actions">
-                <?php if (!empty($isAdminLike)): ?>
+                <?php if ($isAdminLike): ?>
 
-                    <a href="index.php?controller=dashboard" class="btn-error-primary">
+                    <a href="/BanMatKinh/public/index.php?controller=dashboard" class="btn-error-primary">
                         <i class="fas fa-chart-line"></i>
                         Vào Dashboard
                     </a>
 
                 <?php else: ?>
 
-                    <a href="index.php" class="btn-error-primary">
+                    <a href="/BanMatKinh/public/index.php?controller=home" class="btn-error-primary">
                         <i class="fas fa-home"></i>
                         Về trang chủ
                     </a>
 
                 <?php endif; ?>
 
-                <a href="index.php?controller=sanpham" class="btn-error-secondary">
+                <a href="/BanMatKinh/public/index.php?controller=sanpham" class="btn-error-secondary">
                     <i class="fas fa-glasses"></i>
                     Tiếp tục mua sắm
                 </a>

@@ -1,9 +1,28 @@
 <?php
 if (!function_exists('normalizeImg')) {
     function normalizeImg($path) {
-        if (empty($path)) return "/BanMatKinh/public/images/no-image.png";
-        if (strpos($path, 'http') === 0) return $path;
-        if (strpos($path, '/BanMatKinh/') === 0) return $path;
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return "/BanMatKinh/public/images/no-image.png";
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/BanMatKinh/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return '/BanMatKinh/' . ltrim($path, '/');
+        }
+
         return "/BanMatKinh/public/images/" . ltrim($path, '/');
     }
 }
@@ -20,15 +39,15 @@ $relatedProducts = $relatedProducts ?? [];
 
 $displayProducts = !empty($recommendedProducts) ? $recommendedProducts : $relatedProducts;
 
-$productId = $product['SanPhamId'] ?? 0;
+$productId = (int)($product['SanPhamId'] ?? 0);
 $tenSP = $product['TenSanPham'] ?? 'Sản phẩm';
 $maSP = $product['MaSanPham'] ?? '—';
 $giaGoc = (float)($product['GiaGoc'] ?? 0);
 $giaBan = (float)($product['GiaBan'] ?? 0);
 $soLuongTon = (int)($product['SoLuongTon'] ?? 0);
 
-$isSale = $giaGoc > $giaBan;
-$conHang = (($product['TrangThai'] ?? 0) == 1 && $soLuongTon > 0);
+$isSale = $giaGoc > $giaBan && $giaBan > 0;
+$conHang = ((int)($product['TrangThai'] ?? 0) === 1 && $soLuongTon > 0);
 $mainImg = normalizeImg($product['HinhAnhChinh'] ?? '');
 $fallbackImg = "/BanMatKinh/public/images/no-image.png";
 
@@ -67,15 +86,17 @@ $discountPercent = $isSale && $giaGoc > 0
 
                                 <img 
                                     id="mainImage" 
-                                    src="<?= $mainImg ?>" 
-                                    alt="<?= htmlspecialchars($tenSP) ?>"
+                                    src="<?= htmlspecialchars($mainImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                    alt="<?= htmlspecialchars($tenSP, ENT_QUOTES, 'UTF-8') ?>"
                                     onerror="this.onerror=null;this.src='<?= $fallbackImg ?>';"
                                 >
                             </div>
 
                             <div class="detail-thumb-list">
-                                <button type="button" class="detail-thumb active" data-src="<?= $mainImg ?>">
-                                    <img src="<?= $mainImg ?>" alt="<?= htmlspecialchars($tenSP) ?>">
+                                <button type="button" class="detail-thumb active" data-src="<?= htmlspecialchars($mainImg, ENT_QUOTES, 'UTF-8') ?>">
+                                    <img src="<?= htmlspecialchars($mainImg, ENT_QUOTES, 'UTF-8') ?>"
+                                         alt="<?= htmlspecialchars($tenSP, ENT_QUOTES, 'UTF-8') ?>"
+                                         onerror="this.src='<?= $fallbackImg ?>'">
                                 </button>
                             </div>
                         </div>
@@ -84,19 +105,19 @@ $discountPercent = $isSale && $giaGoc > 0
                     <div class="col-lg-6">
                         <div class="detail-info-modern">
                             <div class="detail-badge-row">
-                                <span><?= htmlspecialchars($product['TenLoaiSanPham'] ?? 'Mắt kính') ?></span>
-                                <span><?= htmlspecialchars($product['TenThuongHieu'] ?? 'Karma Eyewear') ?></span>
+                                <span><?= htmlspecialchars($product['TenLoaiSanPham'] ?? 'Mắt kính', ENT_QUOTES, 'UTF-8') ?></span>
+                                <span><?= htmlspecialchars($product['TenThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?></span>
                                 <span class="<?= $conHang ? 'in-stock' : 'out-stock' ?>">
                                     <?= $conHang ? 'Còn hàng' : 'Hết hàng' ?>
                                 </span>
                             </div>
 
-                            <h2><?= htmlspecialchars($tenSP) ?></h2>
+                            <h2><?= htmlspecialchars($tenSP, ENT_QUOTES, 'UTF-8') ?></h2>
 
                             <div class="detail-meta-modern">
                                 <div>
                                     <strong>Mã sản phẩm</strong>
-                                    <span><?= htmlspecialchars($maSP) ?></span>
+                                    <span><?= htmlspecialchars($maSP, ENT_QUOTES, 'UTF-8') ?></span>
                                 </div>
 
                                 <div>
@@ -116,7 +137,7 @@ $discountPercent = $isSale && $giaGoc > 0
 
                             <div class="detail-short-desc">
                                 <?= !empty($product['MoTaNgan'])
-                                    ? nl2br(htmlspecialchars($product['MoTaNgan']))
+                                    ? nl2br(htmlspecialchars($product['MoTaNgan'], ENT_QUOTES, 'UTF-8'))
                                     : "Thiết kế mắt kính hiện đại, thanh lịch, phù hợp sử dụng hằng ngày và nâng tầm phong cách cá nhân." ?>
                             </div>
 
@@ -202,17 +223,17 @@ $discountPercent = $isSale && $giaGoc > 0
                         <div class="spec-grid">
                             <div>
                                 <strong>Mã sản phẩm</strong>
-                                <span><?= htmlspecialchars($maSP) ?></span>
+                                <span><?= htmlspecialchars($maSP, ENT_QUOTES, 'UTF-8') ?></span>
                             </div>
 
                             <div>
                                 <strong>Thương hiệu</strong>
-                                <span><?= htmlspecialchars($product['TenThuongHieu'] ?? '—') ?></span>
+                                <span><?= htmlspecialchars($product['TenThuongHieu'] ?? '—', ENT_QUOTES, 'UTF-8') ?></span>
                             </div>
 
                             <div>
                                 <strong>Dòng sản phẩm</strong>
-                                <span><?= htmlspecialchars($product['TenLoaiSanPham'] ?? '—') ?></span>
+                                <span><?= htmlspecialchars($product['TenLoaiSanPham'] ?? '—', ENT_QUOTES, 'UTF-8') ?></span>
                             </div>
 
                             <div>
@@ -235,22 +256,24 @@ $discountPercent = $isSale && $giaGoc > 0
                     <div class="row">
                         <?php foreach ($displayProducts as $item): ?>
                             <?php
-                                $relatedId = $item['SanPhamId'] ?? 0;
-                                $relatedGiaBan = $item['GiaBan'] ?? 0;
+                            $relatedId = (int)($item['SanPhamId'] ?? 0);
+                            $relatedGiaBan = (float)($item['GiaBan'] ?? 0);
+                            $relatedImg = normalizeImg($item['HinhAnhChinh'] ?? '');
                             ?>
 
                             <div class="col-lg-3 col-md-6 mb-4">
                                 <div class="related-product-card">
                                     <a href="index.php?controller=sanpham&action=detail&id=<?= $relatedId ?>" class="related-thumb">
                                         <img 
-                                            src="<?= normalizeImg($item['HinhAnhChinh'] ?? '') ?>" 
-                                            alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>"
+                                            src="<?= htmlspecialchars($relatedImg, ENT_QUOTES, 'UTF-8') ?>" 
+                                            alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>"
+                                            onerror="this.src='/BanMatKinh/public/images/no-image.png'"
                                         >
                                     </a>
 
                                     <div class="related-body">
                                         <a href="index.php?controller=sanpham&action=detail&id=<?= $relatedId ?>">
-                                            <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>
+                                            <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
                                         </a>
                                         <strong><?= formatMoney($relatedGiaBan) ?></strong>
                                     </div>
@@ -287,14 +310,22 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".qty-btn").forEach(function (btn) {
         btn.addEventListener("click", function () {
             const input = document.getElementById("quantityInput");
-            if (!input) return;
+
+            if (!input) {
+                return;
+            }
 
             let value = parseInt(input.value || "1");
             const min = parseInt(input.getAttribute("min") || "1");
             const max = parseInt(input.getAttribute("max") || "999");
 
-            if (this.dataset.type === "plus" && value < max) value++;
-            if (this.dataset.type === "minus" && value > min) value--;
+            if (this.dataset.type === "plus" && value < max) {
+                value++;
+            }
+
+            if (this.dataset.type === "minus" && value > min) {
+                value--;
+            }
 
             input.value = value;
         });

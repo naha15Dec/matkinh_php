@@ -1,9 +1,28 @@
 <?php
 if (!function_exists('normalizeImg')) {
     function normalizeImg($path) {
-        if (empty($path)) return "/BanMatKinh/public/images/no-image.png";
-        if (strpos($path, 'http') === 0) return $path;
-        if (strpos($path, '/BanMatKinh/') === 0) return $path;
+        $path = trim((string)$path);
+
+        if ($path === '') {
+            return "/BanMatKinh/public/images/no-image.png";
+        }
+
+        if (preg_match('/^https?:\/\//i', $path)) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/BanMatKinh/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, '/')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            return '/BanMatKinh/' . ltrim($path, '/');
+        }
+
         return "/BanMatKinh/public/images/" . ltrim($path, '/');
     }
 }
@@ -18,12 +37,13 @@ $products = $products ?? [];
 $brandList = $brandList ?? [];
 $typeProductList = $typeProductList ?? [];
 $filter = $filter ?? [];
+$pagination = $pagination ?? [];
 
-$page = $pagination['CurrentPage'] ?? 1;
-$totalPages = $pagination['TotalPages'] ?? 1;
-$displayStart = $pagination['DisplayStart'] ?? 1;
-$displayEnd = $pagination['DisplayEnd'] ?? 1;
-$totalCount = $totalCount ?? 0;
+$page = (int)($pagination['CurrentPage'] ?? 1);
+$totalPages = (int)($pagination['TotalPages'] ?? 1);
+$displayStart = (int)($pagination['DisplayStart'] ?? 1);
+$displayEnd = (int)($pagination['DisplayEnd'] ?? 1);
+$totalCount = (int)($totalCount ?? 0);
 
 $prevPage = $page > 1 ? $page - 1 : 1;
 $nextPage = $page < $totalPages ? $page + 1 : $totalPages;
@@ -32,7 +52,8 @@ if (!function_exists('buildProductRoute')) {
     function buildProductRoute($pageNum) {
         $params = $_GET;
         $params['controller'] = 'sanpham';
-        $params['Page'] = $pageNum;
+        $params['Page'] = (int)$pageNum;
+
         return "index.php?" . http_build_query($params);
     }
 }
@@ -44,6 +65,11 @@ $priceOptions = [
     "5000000" => "3.000.000đ - 5.000.000đ",
     "10000000" => "Trên 10.000.000đ"
 ];
+
+$currentCategoryId = (int)($_GET['CategoryId'] ?? 0);
+$currentBrandId = (int)($_GET['BrandId'] ?? 0);
+$currentKeyword = trim($_GET['Keyword'] ?? '');
+$currentPriceRange = trim($_GET['PriceRange'] ?? '');
 ?>
 
 <section class="product-page-modern">
@@ -73,17 +99,24 @@ $priceOptions = [
                         </div>
 
                         <a href="index.php?controller=sanpham"
-                           class="category-pill <?= empty($_GET['CategoryId']) ? 'active' : '' ?>">
+                           class="category-pill <?= $currentCategoryId <= 0 ? 'active' : '' ?>">
                             <i class="fas fa-border-all"></i>
                             Tất cả sản phẩm
                         </a>
 
                         <?php foreach ($typeProductList as $cat): ?>
-                            <a href="index.php?controller=sanpham&CategoryId=<?= $cat['LoaiSanPhamId'] ?>"
-                               class="category-pill <?= ($_GET['CategoryId'] ?? 0) == $cat['LoaiSanPhamId'] ? 'active' : '' ?>">
-                                <i class="fas fa-glasses"></i>
-                                <?= htmlspecialchars($cat['TenLoaiSanPham']) ?>
-                            </a>
+                            <?php
+                            $catId = (int)($cat['LoaiSanPhamId'] ?? 0);
+                            $catName = $cat['TenLoaiSanPham'] ?? 'Danh mục';
+                            ?>
+
+                            <?php if ($catId > 0): ?>
+                                <a href="index.php?controller=sanpham&CategoryId=<?= $catId ?>"
+                                   class="category-pill <?= $currentCategoryId === $catId ? 'active' : '' ?>">
+                                    <i class="fas fa-glasses"></i>
+                                    <?= htmlspecialchars($catName, ENT_QUOTES, 'UTF-8') ?>
+                                </a>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
 
@@ -95,7 +128,7 @@ $priceOptions = [
 
                         <form action="index.php" method="GET" class="filter-form">
                             <input type="hidden" name="controller" value="sanpham">
-                            <input type="hidden" name="CategoryId" value="<?= htmlspecialchars($_GET['CategoryId'] ?? '') ?>">
+                            <input type="hidden" name="CategoryId" value="<?= htmlspecialchars((string)$currentCategoryId, ENT_QUOTES, 'UTF-8') ?>">
 
                             <div class="filter-group">
                                 <label>Từ khóa</label>
@@ -104,7 +137,7 @@ $priceOptions = [
                                     <input type="text"
                                            name="Keyword"
                                            placeholder="Tìm kính, thương hiệu..."
-                                           value="<?= htmlspecialchars($_GET['Keyword'] ?? '') ?>">
+                                           value="<?= htmlspecialchars($currentKeyword, ENT_QUOTES, 'UTF-8') ?>">
                                 </div>
                             </div>
 
@@ -112,18 +145,25 @@ $priceOptions = [
                                 <label>Thương hiệu</label>
 
                                 <label class="radio-line">
-                                    <input type="radio" name="BrandId" value="" <?= empty($_GET['BrandId']) ? 'checked' : '' ?>>
+                                    <input type="radio" name="BrandId" value="" <?= $currentBrandId <= 0 ? 'checked' : '' ?>>
                                     <span>Tất cả thương hiệu</span>
                                 </label>
 
                                 <?php foreach ($brandList as $brand): ?>
-                                    <label class="radio-line">
-                                        <input type="radio"
-                                               name="BrandId"
-                                               value="<?= $brand['ThuongHieuId'] ?>"
-                                               <?= ($_GET['BrandId'] ?? 0) == $brand['ThuongHieuId'] ? 'checked' : '' ?>>
-                                        <span><?= htmlspecialchars($brand['TenThuongHieu']) ?></span>
-                                    </label>
+                                    <?php
+                                    $brandId = (int)($brand['ThuongHieuId'] ?? 0);
+                                    $brandName = $brand['TenThuongHieu'] ?? 'Thương hiệu';
+                                    ?>
+
+                                    <?php if ($brandId > 0): ?>
+                                        <label class="radio-line">
+                                            <input type="radio"
+                                                   name="BrandId"
+                                                   value="<?= $brandId ?>"
+                                                <?= $currentBrandId === $brandId ? 'checked' : '' ?>>
+                                            <span><?= htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8') ?></span>
+                                        </label>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </div>
 
@@ -134,9 +174,9 @@ $priceOptions = [
                                     <label class="radio-line">
                                         <input type="radio"
                                                name="PriceRange"
-                                               value="<?= $val ?>"
-                                               <?= ($_GET['PriceRange'] ?? '') == $val ? 'checked' : '' ?>>
-                                        <span><?= $label ?></span>
+                                               value="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"
+                                            <?= $currentPriceRange === (string)$val ? 'checked' : '' ?>>
+                                        <span><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span>
                                     </label>
                                 <?php endforeach; ?>
                             </div>
@@ -157,22 +197,24 @@ $priceOptions = [
                         <div>
                             <span class="catalog-eyebrow">Eyewear Catalog</span>
                             <h2>
-                                <?= $totalCount > 0
-                                    ? "Tìm thấy <strong>{$totalCount}</strong> sản phẩm"
-                                    : "Không tìm thấy sản phẩm" ?>
+                                <?php if ($totalCount > 0): ?>
+                                    Tìm thấy <strong><?= number_format($totalCount, 0, ',', '.') ?></strong> sản phẩm
+                                <?php else: ?>
+                                    Không tìm thấy sản phẩm
+                                <?php endif; ?>
                             </h2>
                         </div>
 
                         <form action="index.php" method="GET" class="catalog-search-box">
                             <input type="hidden" name="controller" value="sanpham">
-                            <input type="hidden" name="CategoryId" value="<?= htmlspecialchars($_GET['CategoryId'] ?? '') ?>">
-                            <input type="hidden" name="BrandId" value="<?= htmlspecialchars($_GET['BrandId'] ?? '') ?>">
-                            <input type="hidden" name="PriceRange" value="<?= htmlspecialchars($_GET['PriceRange'] ?? '') ?>">
+                            <input type="hidden" name="CategoryId" value="<?= htmlspecialchars((string)$currentCategoryId, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="BrandId" value="<?= htmlspecialchars((string)$currentBrandId, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="PriceRange" value="<?= htmlspecialchars($currentPriceRange, ENT_QUOTES, 'UTF-8') ?>">
 
                             <input type="text"
                                    name="Keyword"
                                    placeholder="Tìm kiếm nhanh..."
-                                   value="<?= htmlspecialchars($_GET['Keyword'] ?? '') ?>">
+                                   value="<?= htmlspecialchars($currentKeyword, ENT_QUOTES, 'UTF-8') ?>">
 
                             <button type="submit">
                                 <i class="fas fa-search"></i>
@@ -191,15 +233,16 @@ $priceOptions = [
                         <div class="row">
                             <?php foreach ($products as $item): ?>
                                 <?php
-                                    $productId = $item['SanPhamId'] ?? 0;
-                                    $giaBan = $item['GiaBan'] ?? 0;
-                                    $giaGoc = $item['GiaGoc'] ?? 0;
-                                    $isSale = $giaGoc > $giaBan;
-                                    $conHang = (($item['TrangThai'] ?? 0) == 1) && (($item['SoLuongTon'] ?? 0) > 0);
+                                $productId = (int)($item['SanPhamId'] ?? 0);
+                                $giaBan = (float)($item['GiaBan'] ?? 0);
+                                $giaGoc = (float)($item['GiaGoc'] ?? 0);
+                                $isSale = $giaGoc > $giaBan && $giaBan > 0;
+                                $conHang = ((int)($item['TrangThai'] ?? 0) === 1) && ((int)($item['SoLuongTon'] ?? 0) > 0);
+                                $productImage = normalizeImg($item['HinhAnhChinh'] ?? '');
 
-                                    $discountPercent = $isSale && $giaGoc > 0
-                                        ? round((($giaGoc - $giaBan) / $giaGoc) * 100)
-                                        : 0;
+                                $discountPercent = $isSale && $giaGoc > 0
+                                    ? round((($giaGoc - $giaBan) / $giaGoc) * 100)
+                                    : 0;
                                 ?>
 
                                 <div class="col-xl-4 col-md-6 mb-4">
@@ -213,22 +256,23 @@ $priceOptions = [
                                                 <span class="catalog-badge new">New</span>
                                             <?php endif; ?>
 
-                                            <img src="<?= normalizeImg($item['HinhAnhChinh'] ?? '') ?>"
-                                                 alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>">
+                                            <img src="<?= htmlspecialchars($productImage, ENT_QUOTES, 'UTF-8') ?>"
+                                                 alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>"
+                                                 onerror="this.src='/BanMatKinh/public/images/no-image.png'">
                                         </a>
 
                                         <div class="catalog-product-body">
                                             <div class="catalog-product-meta">
-                                                <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear') ?>
+                                                <?= htmlspecialchars($item['TenThuongHieu'] ?? 'Karma Eyewear', ENT_QUOTES, 'UTF-8') ?>
                                             </div>
 
                                             <a href="index.php?controller=sanpham&action=detail&id=<?= $productId ?>"
                                                class="catalog-product-name">
-                                                <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm') ?>
+                                                <?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>
                                             </a>
 
                                             <div class="catalog-product-type">
-                                                <?= htmlspecialchars($item['TenLoaiSanPham'] ?? 'Mắt kính thời trang') ?>
+                                                <?= htmlspecialchars($item['TenLoaiSanPham'] ?? 'Mắt kính thời trang', ENT_QUOTES, 'UTF-8') ?>
                                             </div>
 
                                             <div class="catalog-product-price">
@@ -266,10 +310,15 @@ $priceOptions = [
 
                         <?php if ($totalPages > 1): ?>
                             <nav class="catalog-pagination">
-                                <a class="page-btn <?= $page <= 1 ? 'disabled' : '' ?>"
-                                   href="<?= buildProductRoute($prevPage) ?>">
-                                    <i class="fas fa-angle-left"></i>
-                                </a>
+                                <?php if ($page > 1): ?>
+                                    <a class="page-btn" href="<?= buildProductRoute($prevPage) ?>">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-btn disabled">
+                                        <i class="fas fa-angle-left"></i>
+                                    </span>
+                                <?php endif; ?>
 
                                 <?php for ($i = $displayStart; $i <= $displayEnd; $i++): ?>
                                     <a class="page-btn <?= $i == $page ? 'active' : '' ?>"
@@ -278,10 +327,15 @@ $priceOptions = [
                                     </a>
                                 <?php endfor; ?>
 
-                                <a class="page-btn <?= $page >= $totalPages ? 'disabled' : '' ?>"
-                                   href="<?= buildProductRoute($nextPage) ?>">
-                                    <i class="fas fa-angle-right"></i>
-                                </a>
+                                <?php if ($page < $totalPages): ?>
+                                    <a class="page-btn" href="<?= buildProductRoute($nextPage) ?>">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="page-btn disabled">
+                                        <i class="fas fa-angle-right"></i>
+                                    </span>
+                                <?php endif; ?>
                             </nav>
                         <?php endif; ?>
                     <?php endif; ?>

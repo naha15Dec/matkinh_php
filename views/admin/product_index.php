@@ -5,17 +5,48 @@ $baseUrl = $baseUrl ?? '';
 $keyword = $_GET['keyword'] ?? '';
 $currStatus = $_GET['statusProduct'] ?? 'stock';
 
+$allowedStatus = ['all', 'stock', 'outofstock', 'inactive'];
+if (!in_array($currStatus, $allowedStatus, true)) {
+    $currStatus = 'stock';
+}
+
 $userRole = strtoupper($_SESSION['LoginInformation']['MaVaiTro'] ?? '');
 $isAdmin = $userRole === 'ADMIN';
 
-function productStatusText($status)
+function adminProductStatusText($status)
 {
     return ((int)$status === 1) ? 'Đang bán' : 'Ngừng bán';
 }
 
-function productStatusClass($status)
+function adminProductStatusClass($status)
 {
     return ((int)$status === 1) ? 'active' : 'inactive';
+}
+
+function adminProductImageSrc($image, $baseUrl)
+{
+    $image = trim((string)$image);
+
+    if ($image === '') {
+        return $baseUrl . '/images/default.jpg';
+    }
+
+    if (preg_match('/^https?:\/\//i', $image)) {
+        return $image;
+    }
+
+    return $baseUrl . '/images/' . ltrim($image, '/');
+}
+
+function adminProductTabUrl($baseUrl, $status, $keyword = '')
+{
+    $url = $baseUrl . '/index.php?controller=adminsanpham&statusProduct=' . urlencode($status);
+
+    if (trim($keyword) !== '') {
+        $url .= '&keyword=' . urlencode($keyword);
+    }
+
+    return $url;
 }
 ?>
 
@@ -75,7 +106,8 @@ function productStatusClass($status)
                         <?= count($products) ?> sản phẩm
                     </span>
 
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham&action=edit" class="btn product-create-btn">
+                    <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham&action=edit"
+                       class="btn product-create-btn">
                         <i class="fas fa-plus mr-1"></i>
                         Thêm sản phẩm
                     </a>
@@ -84,17 +116,22 @@ function productStatusClass($status)
 
             <div class="product-toolbar">
                 <div class="product-status-tabs">
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham&statusProduct=stock"
+                    <a href="<?= adminProductTabUrl($baseUrl, 'all', $keyword) ?>"
+                       class="product-tab <?= $currStatus === 'all' ? 'active' : '' ?>">
+                        Tất cả
+                    </a>
+
+                    <a href="<?= adminProductTabUrl($baseUrl, 'stock', $keyword) ?>"
                        class="product-tab <?= $currStatus === 'stock' ? 'active' : '' ?>">
                         Còn hàng
                     </a>
 
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham&statusProduct=outofstock"
+                    <a href="<?= adminProductTabUrl($baseUrl, 'outofstock', $keyword) ?>"
                        class="product-tab <?= $currStatus === 'outofstock' ? 'active warning' : '' ?>">
                         Hết hàng
                     </a>
 
-                    <a href="<?= $baseUrl ?>/index.php?controller=adminsanpham&statusProduct=inactive"
+                    <a href="<?= adminProductTabUrl($baseUrl, 'inactive', $keyword) ?>"
                        class="product-tab <?= $currStatus === 'inactive' ? 'active danger' : '' ?>">
                         Ngừng bán
                     </a>
@@ -110,11 +147,12 @@ function productStatusClass($status)
                             type="search"
                             name="keyword"
                             value="<?= htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8') ?>"
-                            placeholder="Tìm theo mã hoặc tên sản phẩm..."
+                            placeholder="Tìm theo mã, tên, thương hiệu hoặc loại sản phẩm..."
                         >
                     </div>
 
                     <button type="submit" class="btn product-filter-btn">
+                        <i class="fas fa-search mr-1"></i>
                         Tìm
                     </button>
 
@@ -150,9 +188,10 @@ function productStatusClass($status)
                                     $id = (int)($item['SanPhamId'] ?? 0);
                                     $code = $item['MaSanPham'] ?? $id;
                                     $image = $item['HinhAnhChinh'] ?? '';
-                                    $imageSrc = $image ? $baseUrl . '/images/' . $image : $baseUrl . '/images/default.jpg';
+                                    $imageSrc = adminProductImageSrc($image, $baseUrl);
                                     $status = (int)($item['TrangThai'] ?? 1);
                                     $stock = (int)($item['SoLuongTon'] ?? 0);
+                                    $isFeatured = !empty($item['IsFeatured']);
                                     ?>
 
                                     <tr>
@@ -174,7 +213,7 @@ function productStatusClass($status)
                                             <div class="product-cell">
                                                 <div class="product-thumb">
                                                     <img src="<?= htmlspecialchars($imageSrc, ENT_QUOTES, 'UTF-8') ?>"
-                                                         alt="product"
+                                                         alt="<?= htmlspecialchars($item['TenSanPham'] ?? 'Sản phẩm', ENT_QUOTES, 'UTF-8') ?>"
                                                          onerror="this.src='<?= $baseUrl ?>/images/default.jpg'">
                                                 </div>
 
@@ -214,7 +253,7 @@ function productStatusClass($status)
                                                 <?= number_format((float)($item['GiaBan'] ?? 0), 0, ',', '.') ?> đ
                                             </div>
 
-                                            <?php if (!empty($item['GiaGoc'])): ?>
+                                            <?php if (!empty($item['GiaGoc']) && (float)$item['GiaGoc'] > (float)($item['GiaBan'] ?? 0)): ?>
                                                 <div class="product-origin-price">
                                                     <?= number_format((float)$item['GiaGoc'], 0, ',', '.') ?> đ
                                                 </div>
@@ -233,16 +272,21 @@ function productStatusClass($status)
                                                   class="d-inline">
                                                 <input type="hidden" name="id" value="<?= $id ?>">
 
-                                                <button type="submit" class="product-feature-btn" title="Bật/tắt nổi bật">
-                                                    <i class="<?= !empty($item['IsFeatured']) ? 'fas fa-star' : 'far fa-star' ?>"></i>
+                                                <button type="submit"
+                                                        class="product-feature-btn"
+                                                        title="<?= $isFeatured ? 'Tắt nổi bật' : 'Bật nổi bật' ?>"
+                                                        data-confirm
+                                                        data-confirm-title="<?= $isFeatured ? 'Tắt sản phẩm nổi bật' : 'Bật sản phẩm nổi bật' ?>"
+                                                        data-confirm-ok="<?= $isFeatured ? 'Tắt nổi bật' : 'Bật nổi bật' ?>">
+                                                    <i class="<?= $isFeatured ? 'fas fa-star' : 'far fa-star' ?>"></i>
                                                 </button>
                                             </form>
                                         </td>
 
                                         <td>
-                                            <span class="product-status <?= productStatusClass($status) ?>">
+                                            <span class="product-status <?= adminProductStatusClass($status) ?>">
                                                 <i class="fas fa-circle"></i>
-                                                <?= productStatusText($status) ?>
+                                                <?= adminProductStatusText($status) ?>
                                             </span>
                                         </td>
 
@@ -256,11 +300,14 @@ function productStatusClass($status)
 
                                                 <form action="<?= $baseUrl ?>/index.php?controller=adminsanpham&action=delete"
                                                       method="POST"
-                                                      class="d-inline"
-                                                      onsubmit="return confirm('Bạn có chắc muốn xóa hoặc ngừng bán sản phẩm này?')">
+                                                      class="d-inline">
                                                     <input type="hidden" name="id" value="<?= $id ?>">
 
-                                                    <button type="submit" class="btn product-btn product-btn-delete">
+                                                    <button type="submit"
+                                                            class="btn product-btn product-btn-delete"
+                                                            data-confirm
+                                                            data-confirm-title="Xóa hoặc ngừng bán sản phẩm"
+                                                            data-confirm-ok="Xác nhận">
                                                         <i class="fas fa-trash-alt mr-1"></i>
                                                         Xóa
                                                     </button>

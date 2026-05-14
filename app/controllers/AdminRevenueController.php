@@ -1,5 +1,6 @@
 <?php
 require_once BASE_PATH . '/app/models/AdminRevenueModel.php';
+require_once BASE_PATH . '/app/helpers/OrderConstants.php';
 
 class AdminRevenueController
 {
@@ -25,7 +26,21 @@ class AdminRevenueController
     {
         $pdo = $this->pdo;
 
-        $data = $this->model->getRevenueStats();
+        $fromDate = trim($_GET['fromDate'] ?? '');
+        $toDate = trim($_GET['toDate'] ?? '');
+
+        if (!$this->isValidDate($fromDate)) {
+            $fromDate = '';
+        }
+
+        if (!$this->isValidDate($toDate)) {
+            $toDate = '';
+        }
+
+        $data = $this->model->getRevenueStats($fromDate, $toDate);
+        $dailyRevenue = $this->model->getDailyRevenueLast7Days();
+        $monthlyRevenue = $this->model->getMonthlyRevenueCurrentYear();
+        $topProducts = $this->model->getTopSellingProducts(5);
 
         $sessionAccount = $_SESSION['LoginInformation'];
         $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
@@ -39,5 +54,16 @@ class AdminRevenueController
         $viewContent = BASE_PATH . '/views/admin/revenue_index.php';
 
         require_once BASE_PATH . '/views/admin/layout.php';
+    }
+
+    private function isValidDate($date)
+    {
+        if ($date === '') {
+            return false;
+        }
+
+        $dt = DateTime::createFromFormat('Y-m-d', $date);
+
+        return $dt && $dt->format('Y-m-d') === $date;
     }
 }

@@ -1,37 +1,50 @@
 <?php
-class ErrorController {
+
+class ErrorController
+{
     private $pdo;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $this->pdo = $pdo;
     }
 
-    public function index() {
-        // 1. Lấy thông tin session
+    public function index()
+    {
         $sessionAccount = $_SESSION['LoginInformation'] ?? null;
         $roleCode = "";
 
-        if ($sessionAccount) {
-            // Truy vấn lại DB để lấy mã vai trò
-            $sql = "SELECT v.MaVaiTro 
-                    FROM taikhoan t 
-                    JOIN vaitro v ON t.VaiTroId = v.VaiTroId 
-                    WHERE t.TaiKhoanId = :id AND t.IsActive = 1 LIMIT 1";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(['id' => $sessionAccount['TaiKhoanId']]);
-            $account = $stmt->fetch();
+        if ($sessionAccount && !empty($sessionAccount['TaiKhoanId']) && $this->pdo) {
+            try {
+                $sql = "SELECT v.MaVaiTro 
+                        FROM taikhoan t 
+                        JOIN vaitro v ON t.VaiTroId = v.VaiTroId 
+                        WHERE t.TaiKhoanId = :id 
+                          AND t.IsActive = 1 
+                          AND v.IsActive = 1
+                        LIMIT 1";
 
-            if ($account) {
-                $roleCode = strtoupper(trim($account['MaVaiTro']));
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([
+                    'id' => (int)$sessionAccount['TaiKhoanId']
+                ]);
+
+                $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($account) {
+                    $roleCode = strtoupper(trim($account['MaVaiTro'] ?? ''));
+                }
+            } catch (PDOException $e) {
+                $roleCode = strtoupper(trim($sessionAccount['MaVaiTro'] ?? ''));
             }
         }
 
-        // 2. Kiểm tra xem có phải là nhân viên/quản trị không
-        $isAdminLike = in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER']);
+        $isAdminLike = in_array($roleCode, ['ADMIN', 'STAFF', 'SHIPPER'], true);
 
-        // 3. NẠP GIAO DIỆN LỖI (Độc lập, không qua layout.php)
-        // Vì C# của bạn để Layout = null, nên chúng ta include trực tiếp file view
-        // File view này phải có đầy đủ <html>, <head>, <body>
         include BASE_PATH . '/views/client/error.php';
     }
 }

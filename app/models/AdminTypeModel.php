@@ -1,79 +1,269 @@
 <?php
-class AdminTypeModel {
+class AdminTypeModel
+{
     private $db;
-    public function __construct($pdo) { $this->db = $pdo; }
 
-    public function getAllTypes() {
-        $sql = "SELECT loai.*, 
-                (SELECT COUNT(*) FROM sanpham sp WHERE sp.LoaiSanPhamId = loai.LoaiSanPhamId) as SoSanPham 
-                FROM loaisanpham loai ORDER BY loai.CreatedAt DESC";
-        return $this->db->query($sql)->fetchAll();
+    public function __construct($pdo)
+    {
+        $this->db = $pdo;
     }
 
-    public function getById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM loaisanpham WHERE LoaiSanPhamId = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch();
+    public function getAllTypes()
+    {
+        $sql = "
+            SELECT loai.*, 
+                   (
+                       SELECT COUNT(*) 
+                       FROM sanpham sp 
+                       WHERE sp.LoaiSanPhamId = loai.LoaiSanPhamId
+                   ) AS SoSanPham 
+            FROM loaisanpham loai
+            ORDER BY loai.IsActive DESC, loai.CreatedAt DESC, loai.LoaiSanPhamId DESC
+        ";
+
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function save($data) {
-    // 1. Logic Tự động Gen Mã theo chữ cái đầu nếu mã để trống
-    if (empty($data['MaLoaiSanPham'])) {
-        $name = $data['TenLoaiSanPham'];
-        
-        // Tách chuỗi thành mảng các từ
-        $words = explode(' ', $name);
-        $genCode = '';
-        foreach ($words as $w) {
-            // Lấy chữ cái đầu của mỗi từ và viết hoa
-            if (!empty($w)) {
-                $genCode .= mb_substr($w, 0, 1);
+    public function getById($id)
+    {
+        $stmt = $this->db->prepare("
+            SELECT *
+            FROM loaisanpham
+            WHERE LoaiSanPhamId = ?
+            LIMIT 1
+        ");
+
+        $stmt->execute([(int)$id]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getTypeWithProductCount($id)
+    {
+        $stmt = $this->db->prepare("
+            SELECT loai.*,
+                   (
+                       SELECT COUNT(*)
+                       FROM sanpham sp
+                       WHERE sp.LoaiSanPhamId = loai.LoaiSanPhamId
+                   ) AS SoSanPham
+            FROM loaisanpham loai
+            WHERE loai.LoaiSanPhamId = ?
+            LIMIT 1
+        ");
+
+        $stmt->execute([(int)$id]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function checkDuplicateCode($code, $excludeId = 0)
+    {
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*)
+            FROM loaisanpham
+            WHERE MaLoaiSanPham = ?
+              AND LoaiSanPhamId <> ?
+        ");
+
+        $stmt->execute([
+            strtoupper(trim($code)),
+            (int)$excludeId
+        ]);
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function checkDuplicateName($name, $excludeId = 0)
+    {
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*)
+            FROM loaisanpham
+            WHERE TenLoaiSanPham = ?
+              AND LoaiSanPhamId <> ?
+        ");
+
+        $stmt->execute([
+            trim($name),
+            (int)$excludeId
+        ]);
+
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
+    public function save($data)
+    {
+        $id = (int)($data['LoaiSanPhamId'] ?? 0);
+
+        $code = strtoupper(trim($data['MaLoaiSanPham'] ?? ''));
+        $name = trim($data['TenLoaiSanPham'] ?? '');
+        $description = trim($data['MoTa'] ?? '');
+        $isActive = !empty($data['IsActive']) ? 1 : 0;
+
+        if ($id > 0) {
+            $sql = "
+                UPDATE loaisanpham
+                SET MaLoaiSanPham = ?,
+                    TenLoaiSanPham = ?,
+                    MoTa = ?,
+                    IsActive = ?,
+                    UpdatedAt = NOW()
+                WHERE LoaiSanPhamId = ?
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                $code,
+                $name,
+                $description,
+                $isActive,
+                $id
+            ]);
+
+            return $stmt->rowCount() > 0;
+        }
+
+        $sql = "
+            INSERT INTO loaisanpham (
+                MaLoaiSanPham,
+                TenLoaiSanPham,
+                MoTa,
+                IsActive,
+                CreatedAt
+            ) VALUES (?, ?, ?, ?, NOW())
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            $code,
+            $name,
+            $description,
+            $isActive
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function updateStatus($id, $status)
+    {
+        $status = !empty($status) ? 1 : 0;
+
+        $stmt = $this->db->prepare("
+            UPDATE loaisanpham 
+            SET IsActive = ?,
+                UpdatedAt = NOW()
+            WHERE LoaiSanPhamId = ?
+        ");
+
+        $stmt->execute([
+            $status,
+            (int)$id
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function hardDelete($id)
+    {
+        $stmt = $this->db->prepare("
+            DELETE FROM loaisanpham
+            WHERE LoaiSanPhamId = ?
+        ");
+
+        $stmt->execute([(int)$id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function generateUniqueCode($code, $name, $excludeId = 0)
+    {
+        $code = strtoupper(trim($code));
+
+        if ($code !== '') {
+            return mb_substr($code, 0, 20, 'UTF-8');
+        }
+
+        $baseCode = $this->generateCodeIfEmpty('', $name);
+        $baseCode = mb_substr($baseCode, 0, 12, 'UTF-8');
+
+        $finalCode = $baseCode;
+        $counter = 1;
+
+        while ($this->checkDuplicateCode($finalCode, $excludeId)) {
+            $suffix = str_pad((string)$counter, 2, '0', STR_PAD_LEFT);
+            $finalCode = mb_substr($baseCode, 0, 20 - mb_strlen($suffix, 'UTF-8'), 'UTF-8') . $suffix;
+            $counter++;
+
+            if ($counter > 99) {
+                $finalCode = 'LSP' . date('His') . mt_rand(10, 99);
+                break;
             }
         }
-        
-        // Chuyển sang viết hoa và loại bỏ dấu tiếng Việt (optional)
-        $data['MaLoaiSanPham'] = strtoupper($this->removeVietnameseSign($genCode));
-        
-        // Nếu mã vẫn quá ngắn (ví dụ tên chỉ có 1 từ), hãy thêm số ngẫu nhiên
-        if (strlen($data['MaLoaiSanPham']) < 2) {
-            $data['MaLoaiSanPham'] .= rand(10, 99);
-        }
-    } else {
-        $data['MaLoaiSanPham'] = strtoupper(trim($data['MaLoaiSanPham']));
+
+        return strtoupper($finalCode);
     }
 
-    // 2. Phần logic Insert/Update giữ nguyên như cũ
-        if (isset($data['LoaiSanPhamId']) && $data['LoaiSanPhamId'] > 0) {
-            $sql = "UPDATE loaisanpham SET MaLoaiSanPham = ?, TenLoaiSanPham = ?, MoTa = ?, IsActive = ?, UpdatedAt = NOW() WHERE LoaiSanPhamId = ?";
-            return $this->db->prepare($sql)->execute([
-                $data['MaLoaiSanPham'], $data['TenLoaiSanPham'], $data['MoTa'], $data['IsActive'], $data['LoaiSanPhamId']
-            ]);
-        } else {
-            $sql = "INSERT INTO loaisanpham (MaLoaiSanPham, TenLoaiSanPham, MoTa, IsActive, CreatedAt) VALUES (?, ?, ?, ?, NOW())";
-            return $this->db->prepare($sql)->execute([
-                $data['MaLoaiSanPham'], $data['TenLoaiSanPham'], $data['MoTa'], $data['IsActive']
-            ]);
+    public function generateCodeIfEmpty($code, $name)
+    {
+        $code = strtoupper(trim($code));
+
+        if ($code !== '') {
+            return mb_substr($code, 0, 20, 'UTF-8');
         }
+
+        $name = trim($name);
+
+        if ($name === '') {
+            return 'LSP' . date('His');
+        }
+
+        $normalized = $this->removeVietnameseSign($name);
+        $words = preg_split('/\s+/', $normalized);
+
+        $generated = '';
+
+        foreach ($words as $word) {
+            $word = preg_replace('/[^A-Za-z0-9]/', '', $word);
+
+            if ($word !== '') {
+                $generated .= strtoupper(substr($word, 0, 1));
+            }
+        }
+
+        if (mb_strlen($generated, 'UTF-8') < 2) {
+            $generated = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $normalized), 0, 6));
+        }
+
+        if ($generated === '') {
+            $generated = 'LSP';
+        }
+
+        return mb_substr($generated, 0, 20, 'UTF-8');
     }
 
-    // Hàm bổ trợ loại bỏ dấu tiếng Việt để mã sạch hơn (ví dụ: Á -> A)
-    private function removeVietnameseSign($str) {
-        $str = preg_replace("/(à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ)/", "a", $str);
-        $str = preg_replace("/(è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ)/", "e", $str);
-        $str = preg_replace("/(ì|í|ị|ỉ|ĩ)/", "i", $str);
-        $str = preg_replace("/(ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ)/", "o", $str);
-        $str = preg_replace("/(ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ)/", "u", $str);
-        $str = preg_replace("/(ỳ|ý|ỵ|ỷ|ỹ)/", "y", $str);
-        $str = preg_replace("/(đ)/", "d", $str);
+    private function removeVietnameseSign($str)
+    {
+        $unicode = [
+            'a' => 'áàảãạăắằẳẵặâấầẩẫậ',
+            'd' => 'đ',
+            'e' => 'éèẻẽẹêếềểễệ',
+            'i' => 'íìỉĩị',
+            'o' => 'óòỏõọôốồổỗộơớờởỡợ',
+            'u' => 'úùủũụưứừửữự',
+            'y' => 'ýỳỷỹỵ',
+            'A' => 'ÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬ',
+            'D' => 'Đ',
+            'E' => 'ÉÈẺẼẸÊẾỀỂỄỆ',
+            'I' => 'ÍÌỈĨỊ',
+            'O' => 'ÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢ',
+            'U' => 'ÚÙỦŨỤƯỨỪỬỮỰ',
+            'Y' => 'ÝỲỶỸỴ'
+        ];
+
+        foreach ($unicode as $nonUnicode => $uni) {
+            $str = preg_replace("/[$uni]/u", $nonUnicode, $str);
+        }
+
         return $str;
-    }
-
-    public function updateStatus($id, $status) {
-        return $this->db->prepare("UPDATE loaisanpham SET IsActive = ?, UpdatedAt = NOW() WHERE LoaiSanPhamId = ?")
-                        ->execute([$status, $id]);
-    }
-
-    public function hardDelete($id) {
-        return $this->db->prepare("DELETE FROM loaisanpham WHERE LoaiSanPhamId = ?")->execute([$id]);
     }
 }

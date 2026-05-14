@@ -1,44 +1,69 @@
 <?php
 
-class TaiKhoanModel {
+class TaiKhoanModel
+{
     private $db;
 
-    public function __construct($pdo) {
+    public function __construct($pdo)
+    {
         $this->db = $pdo;
     }
 
-    public function getAccountByUsername($username) {
-    $sql = "
-        SELECT 
-            tk.*,
-            vt.MaVaiTro,
-            vt.TenVaiTro
-        FROM taikhoan tk
-        LEFT JOIN vaitro vt 
-            ON tk.VaiTroId = vt.VaiTroId
-        WHERE 
-            tk.IsActive = 1
-            AND (
-                tk.TenDangNhap = :login_username
-                OR tk.Email = :login_email
-                OR tk.SoDienThoai = :login_phone
-            )
-        LIMIT 1
-    ";
+    public function getAccountByUsername($username)
+    {
+        $sql = "
+            SELECT 
+                tk.*,
+                vt.MaVaiTro,
+                vt.TenVaiTro
+            FROM taikhoan tk
+            LEFT JOIN vaitro vt ON tk.VaiTroId = vt.VaiTroId
+            WHERE 
+                tk.IsActive = 1
+                AND vt.IsActive = 1
+                AND (
+                    tk.TenDangNhap = :login_username
+                    OR tk.Email = :login_email
+                    OR tk.SoDienThoai = :login_phone
+                )
+            LIMIT 1
+        ";
 
-    $login = trim($username);
+        $login = trim($username);
 
-    $stmt = $this->db->prepare($sql);
-    $stmt->execute([
-        'login_username' => $login,
-        'login_email'    => $login,
-        'login_phone'    => $login
-    ]);
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'login_username' => $login,
+            'login_email'    => $login,
+            'login_phone'    => $login
+        ]);
 
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-}
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
-    public function updateLastLogin($accountId) {
+    public function getAccountById($id)
+    {
+        $sql = "
+            SELECT 
+                tk.*,
+                vt.MaVaiTro,
+                vt.TenVaiTro
+            FROM taikhoan tk
+            LEFT JOIN vaitro vt ON tk.VaiTroId = vt.VaiTroId
+            WHERE tk.TaiKhoanId = :id
+            LIMIT 1
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            'id' => (int)$id
+        ]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateLastLogin($accountId)
+    {
         $sql = "
             UPDATE taikhoan 
             SET 
@@ -48,13 +73,22 @@ class TaiKhoanModel {
         ";
 
         $stmt = $this->db->prepare($sql);
-        return $stmt->execute([
+        $stmt->execute([
             'id' => (int)$accountId
         ]);
+
+        return $stmt->rowCount() > 0;
     }
 
-    public function checkUsernameExists($username) {
-        $sql = "SELECT 1 FROM taikhoan WHERE TenDangNhap = :username LIMIT 1";
+    public function checkUsernameExists($username)
+    {
+        $sql = "
+            SELECT 1 
+            FROM taikhoan 
+            WHERE TenDangNhap = :username 
+            LIMIT 1
+        ";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'username' => trim($username)
@@ -63,26 +97,40 @@ class TaiKhoanModel {
         return (bool)$stmt->fetchColumn();
     }
 
-    public function checkEmailExists($email) {
-        if (empty($email)) {
+    public function checkEmailExists($email)
+    {
+        if ($email === null || trim($email) === '') {
             return false;
         }
 
-        $sql = "SELECT 1 FROM taikhoan WHERE Email = :email LIMIT 1";
+        $sql = "
+            SELECT 1 
+            FROM taikhoan 
+            WHERE Email = :email 
+            LIMIT 1
+        ";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
-            'email' => trim($email)
+            'email' => strtolower(trim($email))
         ]);
 
         return (bool)$stmt->fetchColumn();
     }
 
-    public function checkPhoneExists($phone) {
-        if (empty($phone)) {
+    public function checkPhoneExists($phone)
+    {
+        if ($phone === null || trim($phone) === '') {
             return false;
         }
 
-        $sql = "SELECT 1 FROM taikhoan WHERE SoDienThoai = :phone LIMIT 1";
+        $sql = "
+            SELECT 1 
+            FROM taikhoan 
+            WHERE SoDienThoai = :phone 
+            LIMIT 1
+        ";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'phone' => trim($phone)
@@ -91,13 +139,15 @@ class TaiKhoanModel {
         return (bool)$stmt->fetchColumn();
     }
 
-    public function getCustomerRoleId() {
+    public function getCustomerRoleId()
+    {
         $sql = "
             SELECT VaiTroId 
             FROM vaitro
             WHERE 
                 IsActive = 1
                 AND MaVaiTro IN ('USER', 'CUSTOMER', 'KHACHHANG')
+            ORDER BY FIELD(MaVaiTro, 'USER', 'CUSTOMER', 'KHACHHANG')
             LIMIT 1
         ";
 
@@ -111,8 +161,15 @@ class TaiKhoanModel {
         return (int)$role['VaiTroId'];
     }
 
-    public function checkCustomerCodeExists($code) {
-        $sql = "SELECT 1 FROM khachhang WHERE MaKhachHang = :code LIMIT 1";
+    public function checkCustomerCodeExists($code)
+    {
+        $sql = "
+            SELECT 1 
+            FROM khachhang 
+            WHERE MaKhachHang = :code 
+            LIMIT 1
+        ";
+
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'code' => trim($code)
@@ -121,31 +178,66 @@ class TaiKhoanModel {
         return (bool)$stmt->fetchColumn();
     }
 
-    public function getCustomerByPhoneOrEmail($phone, $email = null) {
+    public function getCustomerByPhoneOrEmail($phone, $email = null)
+    {
+        $phone = trim((string)$phone);
+        $email = trim((string)$email);
+
+        if ($phone === '' && $email === '') {
+            return false;
+        }
+
+        if ($phone !== '' && $email !== '') {
+            $sql = "
+                SELECT KhachHangId 
+                FROM khachhang 
+                WHERE SoDienThoai = :phone
+                   OR Email = :email
+                LIMIT 1
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                'phone' => $phone,
+                'email' => $email
+            ]);
+
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if ($phone !== '') {
+            $sql = "
+                SELECT KhachHangId 
+                FROM khachhang 
+                WHERE SoDienThoai = :phone
+                LIMIT 1
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                'phone' => $phone
+            ]);
+
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
         $sql = "
             SELECT KhachHangId 
             FROM khachhang 
-            WHERE SoDienThoai = :phone
+            WHERE Email = :email
+            LIMIT 1
         ";
 
-        $params = [
-            'phone' => trim($phone)
-        ];
-
-        if (!empty($email)) {
-            $sql .= " OR Email = :email";
-            $params['email'] = trim($email);
-        }
-
-        $sql .= " LIMIT 1";
-
         $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        $stmt->execute([
+            'email' => $email
+        ]);
 
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function createCustomer($data) {
+    public function createCustomer($data)
+    {
         $sql = "
             INSERT INTO khachhang (
                 MaKhachHang,
@@ -181,14 +273,19 @@ class TaiKhoanModel {
             'sdt'      => $data['SoDienThoai'],
             'gioitinh' => $data['GioiTinh'] ?? null,
             'ngaysinh' => !empty($data['NgaySinh']) ? $data['NgaySinh'] : null,
-            'diachi'   => $data['DiaChi'] ?? '',
-            'ghichu'   => $data['GhiChu'] ?? ''
+            'diachi'   => $data['DiaChi'] ?? null,
+            'ghichu'   => $data['GhiChu'] ?? null
         ]);
 
-        return $this->db->lastInsertId();
+        if ($stmt->rowCount() <= 0) {
+            throw new Exception("Không thể tạo hồ sơ khách hàng.");
+        }
+
+        return (int)$this->db->lastInsertId();
     }
 
-    public function createAccount($data) {
+    public function createAccount($data)
+    {
         $sql = "
             INSERT INTO taikhoan (
                 VaiTroId,
@@ -220,7 +317,7 @@ class TaiKhoanModel {
         $stmt = $this->db->prepare($sql);
 
         $stmt->execute([
-            'vaitro'   => $data['VaiTroId'],
+            'vaitro'   => (int)$data['VaiTroId'],
             'user'     => $data['TenDangNhap'],
             'pass'     => $data['MatKhauHash'],
             'hoten'    => $data['HoTen'],
@@ -228,28 +325,15 @@ class TaiKhoanModel {
             'sdt'      => $data['SoDienThoai'],
             'gioitinh' => $data['GioiTinh'] ?? null,
             'ngaysinh' => !empty($data['NgaySinh']) ? $data['NgaySinh'] : null,
-            'diachi'   => $data['DiaChi'] ?? ''
+            'diachi'   => $data['DiaChi'] ?? null
         ]);
 
-        $id = $this->db->lastInsertId();
+        if ($stmt->rowCount() <= 0) {
+            throw new Exception("Không thể tạo tài khoản.");
+        }
 
-        $sqlGet = "
-            SELECT 
-                tk.*,
-                vt.MaVaiTro,
-                vt.TenVaiTro
-            FROM taikhoan tk
-            LEFT JOIN vaitro vt 
-                ON tk.VaiTroId = vt.VaiTroId
-            WHERE tk.TaiKhoanId = :id
-            LIMIT 1
-        ";
+        $id = (int)$this->db->lastInsertId();
 
-        $st = $this->db->prepare($sqlGet);
-        $st->execute([
-            'id' => $id
-        ]);
-
-        return $st->fetch(PDO::FETCH_ASSOC);
+        return $this->getAccountById($id);
     }
 }

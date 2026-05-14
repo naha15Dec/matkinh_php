@@ -87,24 +87,25 @@ $isEdit = !empty($brandEdit);
                                             $desc = $item['MoTa'] ?? '';
                                             $productCount = (int)($item['SoSanPham'] ?? 0);
                                             $active = !empty($item['IsActive']);
+                                            $avatar = strtoupper(mb_substr($name ?: 'B', 0, 1, 'UTF-8'));
                                             ?>
 
                                             <tr>
                                                 <td>
                                                     <span class="brand-code">
-                                                        #<?= htmlspecialchars($code, ENT_QUOTES, 'UTF-8') ?>
+                                                        #<?= htmlspecialchars($code ?: 'N/A', ENT_QUOTES, 'UTF-8') ?>
                                                     </span>
                                                 </td>
 
                                                 <td>
                                                     <div class="brand-name-cell">
                                                         <div class="brand-avatar">
-                                                            <?= strtoupper(mb_substr($name ?: 'B', 0, 1, 'UTF-8')) ?>
+                                                            <?= htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') ?>
                                                         </div>
 
                                                         <div>
                                                             <div class="brand-name">
-                                                                <?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>
+                                                                <?= htmlspecialchars($name ?: 'Chưa đặt tên', ENT_QUOTES, 'UTF-8') ?>
                                                             </div>
                                                             <div class="brand-meta">
                                                                 ID: <?= $id ?>
@@ -157,15 +158,33 @@ $isEdit = !empty($brandEdit);
                                                             Sửa
                                                         </a>
 
-                                                        <form action="<?= $baseUrl ?>/index.php?controller=adminbrand&action=delete"
+                                                        <form action="<?= $baseUrl ?>/index.php?controller=adminbrand&action=toggleStatus"
                                                               method="POST"
-                                                              class="d-inline"
-                                                              onsubmit="return confirm('Bạn có chắc muốn xóa hoặc ngừng sử dụng thương hiệu này?')">
+                                                              class="d-inline">
                                                             <input type="hidden" name="id" value="<?= $id ?>">
 
-                                                            <button type="submit" class="btn brand-btn brand-btn-delete">
+                                                            <button type="submit"
+                                                                    class="btn brand-btn <?= $active ? 'brand-btn-delete' : 'brand-btn-edit' ?>"
+                                                                    data-confirm
+                                                                    data-confirm-title="<?= $active ? 'Ngừng sử dụng thương hiệu' : 'Kích hoạt thương hiệu' ?>"
+                                                                    data-confirm-ok="<?= $active ? 'Ngừng dùng' : 'Kích hoạt' ?>">
+                                                                <i class="fas <?= $active ? 'fa-eye-slash' : 'fa-eye' ?> mr-1"></i>
+                                                                <?= $active ? 'Tắt' : 'Bật' ?>
+                                                            </button>
+                                                        </form>
+
+                                                        <form action="<?= $baseUrl ?>/index.php?controller=adminbrand&action=delete"
+                                                              method="POST"
+                                                              class="d-inline">
+                                                            <input type="hidden" name="id" value="<?= $id ?>">
+
+                                                            <button type="submit"
+                                                                    class="btn brand-btn brand-btn-delete"
+                                                                    data-confirm
+                                                                    data-confirm-title="<?= $productCount > 0 ? 'Ngừng sử dụng thương hiệu' : 'Xóa thương hiệu' ?>"
+                                                                    data-confirm-ok="<?= $productCount > 0 ? 'Ngừng sử dụng' : 'Xóa' ?>">
                                                                 <i class="fas fa-trash-alt mr-1"></i>
-                                                                Xóa
+                                                                <?= $productCount > 0 ? 'Ngừng' : 'Xóa' ?>
                                                             </button>
                                                         </form>
                                                     </div>
@@ -219,7 +238,7 @@ $isEdit = !empty($brandEdit);
                         <div class="premium-panel-body">
                             <div class="brand-form-preview mb-4">
                                 <div class="brand-form-logo">
-                                    <?= strtoupper(mb_substr($brandEdit['TenThuongHieu'] ?? 'K', 0, 1, 'UTF-8')) ?>
+                                    <?= htmlspecialchars(strtoupper(mb_substr($brandEdit['TenThuongHieu'] ?? 'K', 0, 1, 'UTF-8')), ENT_QUOTES, 'UTF-8') ?>
                                 </div>
 
                                 <div>
@@ -234,8 +253,11 @@ $isEdit = !empty($brandEdit);
                                        name="MaThuongHieu"
                                        class="form-control brand-input"
                                        value="<?= htmlspecialchars($brandEdit['MaThuongHieu'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                       placeholder="Ví dụ: RB, PRADA, GUCCI">
-                                <small class="brand-help">Có thể để trống, hệ thống sẽ tự tạo từ tên thương hiệu.</small>
+                                       placeholder="Ví dụ: RAYBAN, PRADA, GUCCI"
+                                       maxlength="20">
+                                <small class="brand-help">
+                                    Có thể để trống, hệ thống sẽ tự tạo từ tên thương hiệu. Tối đa 20 ký tự.
+                                </small>
                             </div>
 
                             <div class="form-group">
@@ -245,6 +267,7 @@ $isEdit = !empty($brandEdit);
                                        class="form-control brand-input"
                                        placeholder="Tên thương hiệu"
                                        value="<?= htmlspecialchars($brandEdit['TenThuongHieu'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                       maxlength="150"
                                        required>
                             </div>
 
@@ -253,7 +276,9 @@ $isEdit = !empty($brandEdit);
                                 <textarea name="MoTa"
                                           class="form-control brand-input brand-textarea"
                                           rows="4"
+                                          maxlength="500"
                                           placeholder="Mô tả ngắn về phong cách, xuất xứ hoặc phân khúc thương hiệu..."><?= htmlspecialchars($brandEdit['MoTa'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                <small class="brand-help">Tối đa 500 ký tự.</small>
                             </div>
 
                             <div class="form-group">
@@ -268,7 +293,11 @@ $isEdit = !empty($brandEdit);
                                 </select>
                             </div>
 
-                            <button type="submit" class="btn brand-submit-btn btn-block mt-4">
+                            <button type="submit"
+                                    class="btn brand-submit-btn btn-block mt-4"
+                                    data-confirm
+                                    data-confirm-title="<?= $isEdit ? 'Cập nhật thương hiệu' : 'Thêm thương hiệu mới' ?>"
+                                    data-confirm-ok="<?= $isEdit ? 'Cập nhật' : 'Thêm mới' ?>">
                                 <i class="fas fa-save mr-1"></i>
                                 <?= $isEdit ? 'Cập nhật thương hiệu' : 'Lưu thương hiệu' ?>
                             </button>

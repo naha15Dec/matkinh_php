@@ -1,3 +1,8 @@
+<?php
+$errors = $errors ?? [];
+$oldUsername = $_POST['Username'] ?? '';
+?>
+
 <section class="auth-page">
     <section class="optical-breadcrumb">
         <div class="container">
@@ -21,7 +26,9 @@
 
                     <div class="col-lg-6 d-none d-lg-block">
                         <div class="auth-visual">
-                            <img src="/BanMatKinh/public/images/auth/login.jpg" alt="Đăng nhập Karma Eyewear">
+                            <img src="/BanMatKinh/public/images/auth/login.jpg"
+                                 alt="Đăng nhập Karma Eyewear"
+                                 onerror="this.src='/BanMatKinh/public/images/no-image.png'">
 
                             <div class="auth-visual-overlay"></div>
 
@@ -44,33 +51,39 @@
                             <div id="authMessage">
                                 <?php if (!empty($errors['Global'])): ?>
                                     <div class="alert alert-danger border-0 small">
-                                        <?= implode('<br>', array_map('htmlspecialchars', $errors['Global'])) ?>
+                                        <?= implode('<br>', array_map(function ($msg) {
+                                            return htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
+                                        }, $errors['Global'])) ?>
                                     </div>
                                 <?php endif; ?>
 
                                 <?php if (isset($_SESSION['NotificationLogin'])): ?>
                                     <div class="alert alert-warning border-0 small">
-                                        <?= htmlspecialchars($_SESSION['NotificationLogin']) ?>
+                                        <?= htmlspecialchars($_SESSION['NotificationLogin'], ENT_QUOTES, 'UTF-8') ?>
                                         <?php unset($_SESSION['NotificationLogin']); ?>
                                     </div>
                                 <?php endif; ?>
 
                                 <?php if (isset($_SESSION['success'])): ?>
                                     <div class="alert alert-success border-0 small">
-                                        <?= htmlspecialchars($_SESSION['success']) ?>
+                                        <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?>
                                         <?php unset($_SESSION['success']); ?>
                                     </div>
                                 <?php endif; ?>
 
                                 <?php if (isset($_SESSION['error'])): ?>
                                     <div class="alert alert-danger border-0 small">
-                                        <?= htmlspecialchars($_SESSION['error']) ?>
+                                        <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') ?>
                                         <?php unset($_SESSION['error']); ?>
                                     </div>
                                 <?php endif; ?>
                             </div>
 
-                            <form action="index.php?controller=taikhoan&action=login" method="POST" class="auth-form">
+                            <form action="index.php?controller=taikhoan&action=login"
+                                  method="POST"
+                                  class="auth-form"
+                                  id="loginForm">
+
                                 <div class="form-group">
                                     <label class="auth-label">Tên đăng nhập / Email / Số điện thoại</label>
 
@@ -81,7 +94,9 @@
                                             name="Username" 
                                             class="form-control auth-input"
                                             placeholder="Nhập tên đăng nhập, email hoặc số điện thoại"
-                                            value="<?= htmlspecialchars($_POST['Username'] ?? '') ?>"
+                                            value="<?= htmlspecialchars($oldUsername, ENT_QUOTES, 'UTF-8') ?>"
+                                            maxlength="100"
+                                            autocomplete="username"
                                             required
                                         >
                                     </div>
@@ -98,6 +113,8 @@
                                             id="loginPassword"
                                             class="form-control auth-input"
                                             placeholder="Nhập mật khẩu"
+                                            minlength="6"
+                                            autocomplete="current-password"
                                             required
                                         >
 
@@ -113,12 +130,13 @@
                                         <span>Ghi nhớ đăng nhập</span>
                                     </label>
 
-                                    <a href="javascript:void(0);" data-toggle="modal" data-target="#forgotModal">
+                                    <a href="javascript:void(0);"
+                                       onclick="alert('Chức năng quên mật khẩu đang được cập nhật. Vui lòng liên hệ cửa hàng để được hỗ trợ.');">
                                         Quên mật khẩu?
                                     </a>
                                 </div>
 
-                                <button type="submit" class="btn-auth-submit">
+                                <button type="submit" class="btn-auth-submit" id="btnLogin">
                                     Đăng nhập
                                 </button>
                             </form>
@@ -161,5 +179,15 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+
+    const loginForm = document.getElementById("loginForm");
+    const btnLogin = document.getElementById("btnLogin");
+
+    if (loginForm && btnLogin) {
+        loginForm.addEventListener("submit", function () {
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = 'Đang đăng nhập...';
+        });
+    }
 });
 </script>
